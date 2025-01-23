@@ -1,10 +1,13 @@
+use std::sync::{Arc, Mutex};
+
 use bevy::prelude::*;
 
 use bevy_tokio_tasks::{TokioTasksPlugin, TokioTasksRuntime};
 
-use lib::MyTcpListener;
+use lib::MyConnectedClients;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::runtime;
 
 use crate::config::{ConfigLoadState, MyConfig};
 use crate::SharedGameState;
@@ -16,7 +19,11 @@ pub struct MyNetworkingPlugin;
 impl Plugin for MyNetworkingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(TokioTasksPlugin::default())
-            .add_systems(OnEnter(ConfigLoadState::Loaded), init_tcp_listener);
+            .add_systems(
+                OnEnter(ConfigLoadState::Loaded),
+                (init_tcp_listener,).chain(),
+            )
+            .init_resource::<MyConnectedClients>();
     }
 }
 
@@ -27,42 +34,46 @@ fn init_tcp_listener(runtime: ResMut<TokioTasksRuntime>, config: Res<MyConfig>) 
         if let Ok(listener) =
             TcpListener::bind(format!("{}:{}", &config.server_ip, config.server_port)).await
         {
-            info!("Listening on {}:{}", &config.server_ip, config.server_port);
+            info!(
+                "Network: Listening on {}:{}",
+                &config.server_ip, config.server_port
+            );
 
-            ctx.run_on_main_thread(move |ctx| {
-                let world = ctx.world;
-                world.insert_resource(MyTcpListener(listener));
-            })
-            .await;
+            loop {
+                let (socket, addr) = listener.accept().await.unwrap();
+
+                info!("Network: Client connected: {:?}", addr);
+
+                ctx.run_on_main_thread(move |ctx| {
+                    let world = ctx.world;
+                    let connected_clients = world.get_resource_mut::<MyConnectedClients>().unwrap();
+                    connected_clients.0.lock().unwrap().insert(addr, socket);
+                })
+                .await;
+            }
         } else {
             panic!(
                 "Failed to bind to {}:{}",
                 &config.server_ip, config.server_port
             );
         }
-
-        println!(
-            "Network: Listening on {}:{}",
-            &config.server_ip, config.server_port
-        );
     });
 }
 
-/// An async function that sets up a listener and processes connections.
-async fn run_network_task(shared: SharedGameState) -> std::io::Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:9999").await?;
-    println!("Network: Listening on 127.0.0.1:9999");
+fn send_messages(
+    runtime: ResMut<TokioTasksRuntime>,
+    shared: Res<SharedGameState>,
+    connected_clients: Res<MyConnectedClients>,
+) {
+    let connected_clients = connected_clients.0.clone();
+    let shared = shared.clone();
 
-    // Accept connections in a loop (this example processes one at a time; you might spawn tasks).
-    loop {
-        let (socket, addr) = listener.accept().await?;
-        println!("Network: Client connected: {:?}", addr);
-
-        // Handle the connection (in a real scenario, you might spawn a new task each time).
-        if let Err(e) = handle_connection(socket, &shared).await {
-            eprintln!("Error handling client {}: {:?}", addr, e);
+    runtime.spawn_background_task(|mut ctx| async move {
+        let connected_clients = connected_clients.lock().unwrap();
+        for (addr, socket) in connected_clients.iter() {
+            socket.write_all(b"Hello from Bevy+Tokio!\n").await.unwrap();
         }
-    }
+    });
 }
 
 /// Process a single client connection.
