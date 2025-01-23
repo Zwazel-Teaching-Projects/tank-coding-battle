@@ -2,26 +2,49 @@ use bevy::prelude::*;
 
 use bevy_tokio_tasks::{TokioTasksPlugin, TokioTasksRuntime};
 
+use lib::MyTcpListener;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
 
+use crate::config::{ConfigLoadState, MyConfig};
 use crate::SharedGameState;
+
+mod lib;
 
 pub struct MyNetworkingPlugin;
 
 impl Plugin for MyNetworkingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(TokioTasksPlugin::default())
-            .add_systems(Startup, start_tokio_task);
+            .add_systems(OnEnter(ConfigLoadState::Loaded), init_tcp_listener);
     }
 }
 
-fn start_tokio_task(runtime: ResMut<TokioTasksRuntime>, network_state: Res<SharedGameState>) {
-    let network_state = network_state.clone();
-    runtime.spawn_background_task(|_ctx| async move {
-        if let Err(e) = run_network_task(network_state).await {
-            eprintln!("Network Task Error: {:?}", e);
+fn init_tcp_listener(runtime: ResMut<TokioTasksRuntime>, config: Res<MyConfig>) {
+    let config = config.clone();
+    runtime.spawn_background_task(|mut ctx| async move {
+        let config = config.clone();
+        if let Ok(listener) =
+            TcpListener::bind(format!("{}:{}", &config.server_ip, config.server_port)).await
+        {
+            info!("Listening on {}:{}", &config.server_ip, config.server_port);
+
+            ctx.run_on_main_thread(move |ctx| {
+                let world = ctx.world;
+                world.insert_resource(MyTcpListener(listener));
+            })
+            .await;
+        } else {
+            panic!(
+                "Failed to bind to {}:{}",
+                &config.server_ip, config.server_port
+            );
         }
+
+        println!(
+            "Network: Listening on {}:{}",
+            &config.server_ip, config.server_port
+        );
     });
 }
 

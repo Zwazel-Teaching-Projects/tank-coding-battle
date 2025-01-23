@@ -1,8 +1,11 @@
 use bevy::prelude::*;
+
+use config::MyConfigPlugin;
 use netowrking::MyNetworkingPlugin;
 
 use std::sync::{Arc, Mutex};
 
+pub mod config;
 mod netowrking;
 
 // A simple resource to share game state with both Bevy systems and network tasks.
@@ -38,6 +41,11 @@ impl Plugin for GamePlugin {
 fn main() {
     App::new()
         .insert_resource(SharedGameState::default())
-        .add_plugins((MinimalPlugins, GamePlugin, MyNetworkingPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            GamePlugin,
+            MyConfigPlugin,
+            MyNetworkingPlugin,
+        ))
         .run();
 }
