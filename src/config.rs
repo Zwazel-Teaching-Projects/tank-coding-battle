@@ -56,5 +56,5 @@ pub struct MyConfig {
 pub struct TeamConfig {
     pub name: String,
     pub color: Color,
-    pub max_players: u8,
+    pub max_players: usize,
 }
