@@ -1,4 +1,30 @@
 (
     server_ip: "127.0.0.1",
     server_port: 9999,
+    /* rust is:
+teams: vec![
+                TeamConfig {
+                    name: "Red".to_string(),
+                    color: RED.into(),
+                    max_players: 4,
+                },
+                TeamConfig {
+                    name: "Blue".to_string(),
+                    color: BLUE.into(),
+                    max_players: 4,
+                },
+            ],
+    */
+    teams: [
+        {
+            name: "Red".to_string(),
+            color: rgb(1.0, 0.0, 0.0),
+            max_players: 4,
+        },
+        {
+            name: "Blue".to_string(),
+            color: rgb(0.0, 0.0, 1.0),
+            max_players: 4,
+        },
+    ],
 )

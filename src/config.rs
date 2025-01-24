@@ -45,18 +45,16 @@ fn insert_config(
 #[derive(Debug, Reflect, Clone, Deref, DerefMut, Resource)]
 struct MyConfigHandle(pub Handle<MyConfig>);
 
-#[derive(Debug, Deserialize, Asset, Reflect, Resource, Clone)]
+#[derive(Debug, Default, Deserialize, Asset, Reflect, Resource, Clone)]
 pub struct MyConfig {
     pub server_ip: String,
     pub server_port: u16,
+    pub teams: Vec<TeamConfig>,
 }
 
-impl Default for MyConfig {
-    fn default() -> Self {
-        Self {
-            // Localhost
-            server_ip: "127.0.0.1".to_string(),
-            server_port: 9999,
-        }
-    }
+#[derive(Debug, Deserialize, Clone, Reflect, Default)]
+pub struct TeamConfig {
+    pub name: String,
+    pub color: Color,
+    pub max_players: u8,
 }
