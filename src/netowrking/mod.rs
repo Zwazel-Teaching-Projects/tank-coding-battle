@@ -1,12 +1,11 @@
 use std::net::UdpSocket;
-use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
 use bevy::prelude::*;
 
 use bevy_renet::netcode::{NetcodeServerPlugin, NetcodeServerTransport, ServerConfig};
+use bevy_renet::renet::{ConnectionConfig, DefaultChannel, RenetServer, ServerEvent};
 use bevy_renet::RenetServerPlugin;
-use lib::MyConnectedClients;
 
 use crate::config::{ConfigLoadState, MyConfig};
 use crate::SharedGameState;
@@ -22,11 +21,18 @@ impl Plugin for MyNetworkingPlugin {
                 OnEnter(ConfigLoadState::Loaded),
                 (init_renet_server,).chain(),
             )
-            .init_resource::<MyConnectedClients>();
+            .add_systems(
+                Update,
+                (send_messages, receive_message_system, handle_events)
+                    .run_if(resource_exists::<RenetServer>),
+            );
     }
 }
 
 fn init_renet_server(mut commands: Commands, config: Res<MyConfig>) {
+    let server = RenetServer::new(ConnectionConfig::default());
+    commands.insert_resource(server);
+
     let server_addr = format!("{}:{}", config.server_ip, config.server_port)
         .parse()
         .unwrap();
@@ -46,7 +52,34 @@ fn init_renet_server(mut commands: Commands, config: Res<MyConfig>) {
     info!("Server started on {}", server_addr);
 }
 
-fn send_messages(shared: Res<SharedGameState>, connected_clients: Res<MyConnectedClients>) {}
+fn send_messages(shared: Res<SharedGameState>, mut server: ResMut<RenetServer>) {
+    let _channel_id = 0;
+
+    // Send a message to all clients
+    //server.broadcast_message(DefaultChannel::ReliableOrdered, "Hello, clients!");
+}
+
+fn receive_message_system(mut server: ResMut<RenetServer>) {
+    // Receive message from all clients
+    for client_id in server.clients_id() {
+        while let Some(message) = server.receive_message(client_id, DefaultChannel::ReliableOrdered)
+        {
+            // Handle received message
+            println!("Received message from client {}: {:?}", client_id, message);
+        }
+    }
+}
 
 /// Process a single client connection.
-fn handle_connection(shared: &SharedGameState) {}
+fn handle_events(mut server_events: EventReader<ServerEvent>) {
+    for event in server_events.read() {
+        match event {
+            ServerEvent::ClientConnected { client_id } => {
+                println!("Client {client_id} connected");
+            }
+            ServerEvent::ClientDisconnected { client_id, reason } => {
+                println!("Client {client_id} disconnected: {reason}");
+            }
+        }
+    }
+}
