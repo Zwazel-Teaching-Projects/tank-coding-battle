@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 
-use crate::config::ConfigLoadState;
+use crate::config::{ConfigLoadState, MyConfig};
 
 // Store active, accepted client connections.
 #[derive(Resource, Default)]
@@ -32,10 +32,17 @@ impl Plugin for MyNetworkingPlugin {
     }
 }
 
-fn setup_listener(mut commands: Commands) {
+fn setup_listener(mut commands: Commands, config: Res<MyConfig>) {
     // Bind to local TCP port 9999
-    let listener = TcpListener::bind("127.0.0.1:9999").expect("Failed to bind on 127.0.0.1:9999");
-    info!("TCP server listening on 127.0.0.1:9999");
+    let listener = TcpListener::bind(format!("{:}:{:}", config.server_ip, config.server_port))
+        .expect(
+            format!(
+                "Failed to bind to port {} on {}",
+                config.server_port, config.server_ip
+            )
+            .as_str(),
+        );
+    info!("TCP server listening on {}", listener.local_addr().unwrap());
 
     // Set to non-blocking so `accept()` won't block the main thread
     listener
