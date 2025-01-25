@@ -1,0 +1,11 @@
+[alias]
+# Build with default features
+b = "build"
+# Run with default features
+r = "run"
+# Build with release optimizations
+br = "build --release"
+# Run with release optimizations
+rr = "run --release"
+# Run with profiling enabled
+rt = "run --release --features profiling"

@@ -1,85 +1,164 @@
-use std::net::UdpSocket;
-use std::time::SystemTime;
-
 use bevy::prelude::*;
+use crossbeam_channel::{unbounded, Receiver, Sender};
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::thread;
 
-use bevy_renet::netcode::{NetcodeServerPlugin, NetcodeServerTransport, ServerConfig};
-use bevy_renet::renet::{ConnectionConfig, DefaultChannel, RenetServer, ServerEvent};
-use bevy_renet::RenetServerPlugin;
+use crate::config::ConfigLoadState;
 
-use crate::config::{ConfigLoadState, MyConfig};
-use crate::SharedGameState;
+// Resource to hold channels for newly accepted client connections.
+#[derive(Resource)]
+struct ConnectionChannel {
+    sender: Sender<TcpStream>,
+    receiver: Receiver<TcpStream>,
+}
 
-mod lib;
+// Store active, accepted client connections.
+#[derive(Resource, Default)]
+struct Connections {
+    streams: Vec<TcpStream>,
+}
+
+// A simple resource holding the listener
+#[derive(Resource)]
+pub struct MyTcpListener {
+    pub listener: TcpListener,
+}
 
 pub struct MyNetworkingPlugin;
 
 impl Plugin for MyNetworkingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((RenetServerPlugin, NetcodeServerPlugin))
-            .add_systems(
-                OnEnter(ConfigLoadState::Loaded),
-                (init_renet_server,).chain(),
-            )
-            .add_systems(
-                Update,
-                (send_messages, receive_message_system, handle_events)
-                    .run_if(resource_exists::<RenetServer>),
-            );
+        // Crossbeam channels for sending newly accepted streams into Bevy
+        let (tx, rx) = unbounded();
+
+        app.insert_resource(ConnectionChannel {
+            sender: tx,
+            receiver: rx,
+        })
+        // We can store a list of active client connections.
+        .insert_resource(Connections::default())
+        .add_systems(OnEnter(ConfigLoadState::Loaded), setup_listener)
+        .add_systems(
+            Update,
+            (accept_connections_system, handle_client_messages)
+                .run_if(resource_exists::<MyTcpListener>),
+        );
     }
 }
 
-fn init_renet_server(mut commands: Commands, config: Res<MyConfig>) {
-    let server = RenetServer::new(ConnectionConfig::default());
-    commands.insert_resource(server);
+fn setup_listener(mut commands: Commands) {
+    // Bind to local TCP port 9999
+    let listener = TcpListener::bind("127.0.0.1:9999").expect("Failed to bind on 127.0.0.1:9999");
+    info!("TCP server listening on 127.0.0.1:9999");
 
-    let server_addr = format!("{}:{}", config.server_ip, config.server_port)
-        .parse()
-        .unwrap();
-    let socket = UdpSocket::bind(server_addr).unwrap();
-    let server_config = ServerConfig {
-        current_time: SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap(),
-        max_clients: config.teams.iter().map(|team| team.max_players).sum(),
-        protocol_id: 0,
-        public_addresses: vec![server_addr],
-        authentication: bevy_renet::netcode::ServerAuthentication::Unsecure,
-    };
-    let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
-    commands.insert_resource(transport);
+    // Set to non-blocking so `accept()` won't block the main thread
+    listener
+        .set_nonblocking(true)
+        .expect("Cannot set non-blocking mode");
 
-    info!("Server started on {}", server_addr);
+    commands.insert_resource(MyTcpListener { listener });
 }
 
-fn send_messages(shared: Res<SharedGameState>, mut server: ResMut<RenetServer>) {
-    let _channel_id = 0;
+/// Spawns a thread that listens for incoming TCP connections.
+fn start_tcp_server(channel: Res<ConnectionChannel>) {
+    // Clone the sender so we can move the clone into the thread
+    let sender = channel.sender.clone();
 
-    // Send a message to all clients
-    //server.broadcast_message(DefaultChannel::ReliableOrdered, "Hello, clients!");
+    thread::spawn(move || {
+        // Bind to local TCP port 9999
+        let listener = TcpListener::bind("127.0.0.1:9999").expect("Failed to bind TCP port");
+        println!("TCP server listening on 127.0.0.1:9999");
+
+        // Accept incoming connections in a loop
+        for stream_result in listener.incoming() {
+            match stream_result {
+                Ok(stream) => {
+                    println!("New client connected from {:?}", stream.peer_addr());
+                    // Now we can safely use the cloned sender
+                    sender.send(stream).unwrap();
+                }
+                Err(e) => {
+                    eprintln!("Error accepting connection: {}", e);
+                }
+            }
+        }
+    });
 }
 
-fn receive_message_system(mut server: ResMut<RenetServer>) {
-    // Receive message from all clients
-    for client_id in server.clients_id() {
-        while let Some(message) = server.receive_message(client_id, DefaultChannel::ReliableOrdered)
-        {
-            // Handle received message
-            println!("Received message from client {}: {:?}", client_id, message);
+/// System that checks the channel for newly accepted connections,
+fn accept_connections_system(
+    my_listener: Res<MyTcpListener>,
+    mut connections: ResMut<Connections>,
+) {
+    // Accept in a loop until we get a WouldBlock error
+    loop {
+        match my_listener.listener.accept() {
+            Ok((stream, addr)) => {
+                println!("New client from: {}", addr);
+                // If you want, set the stream to non-blocking as well:
+                // stream.set_nonblocking(true).unwrap();
+                connections.streams.push(stream);
+            }
+            Err(e) => {
+                use std::io::ErrorKind;
+                match e.kind() {
+                    ErrorKind::WouldBlock => {
+                        // No more incoming connections right now
+                        break;
+                    }
+                    _ => {
+                        // Some other error, e.g. connection reset, etc.
+                        eprintln!("Accept error: {}", e);
+                        break;
+                    }
+                }
+            }
         }
     }
 }
 
-/// Process a single client connection.
-fn handle_events(mut server_events: EventReader<ServerEvent>) {
-    for event in server_events.read() {
-        match event {
-            ServerEvent::ClientConnected { client_id } => {
-                println!("Client {client_id} connected");
+/// Example system that reads data from connected clients.
+/// In a real project, you’d parse structured messages, handle disconnections, etc.
+fn handle_client_messages(mut connections: ResMut<Connections>) {
+    let mut disconnected = Vec::new();
+
+    for (index, stream) in connections.streams.iter_mut().enumerate() {
+        // Non-blocking read attempt
+        let mut buf = [0u8; 1024];
+        match stream.read(&mut buf) {
+            Ok(0) => {
+                // 0 = client closed connection
+                println!("Client closed connection");
+                disconnected.push(index);
             }
-            ServerEvent::ClientDisconnected { client_id, reason } => {
-                println!("Client {client_id} disconnected: {reason}");
+            Ok(n) => {
+                // We got `n` bytes
+                if n > 0 {
+                    let data = &buf[..n];
+                    let received = String::from_utf8_lossy(data);
+                    println!("Received from client: {}", received);
+
+                    // Example: echo the message back
+                    let _ = stream.write_all(b"Echo: ");
+                    let _ = stream.write_all(data);
+                }
+            }
+            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // WouldBlock is normal if we're using non-blocking
+                // (if you set_nonblocking(true)).
+                // Ignore for now
+            }
+            Err(e) => {
+                // Some other read error
+                eprintln!("Read error: {}", e);
+                disconnected.push(index);
             }
         }
+    }
+
+    // Remove any disconnected streams from the vector (in reverse order).
+    for &idx in disconnected.iter().rev() {
+        connections.streams.remove(idx);
     }
 }
