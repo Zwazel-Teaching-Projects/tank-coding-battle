@@ -1,17 +1,8 @@
 use bevy::prelude::*;
-use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::thread;
 
 use crate::config::ConfigLoadState;
-
-// Resource to hold channels for newly accepted client connections.
-#[derive(Resource)]
-struct ConnectionChannel {
-    sender: Sender<TcpStream>,
-    receiver: Receiver<TcpStream>,
-}
 
 // Store active, accepted client connections.
 #[derive(Resource, Default)]
@@ -29,21 +20,15 @@ pub struct MyNetworkingPlugin;
 
 impl Plugin for MyNetworkingPlugin {
     fn build(&self, app: &mut App) {
-        // Crossbeam channels for sending newly accepted streams into Bevy
-        let (tx, rx) = unbounded();
-
-        app.insert_resource(ConnectionChannel {
-            sender: tx,
-            receiver: rx,
-        })
-        // We can store a list of active client connections.
-        .insert_resource(Connections::default())
-        .add_systems(OnEnter(ConfigLoadState::Loaded), setup_listener)
-        .add_systems(
-            Update,
-            (accept_connections_system, handle_client_messages)
-                .run_if(resource_exists::<MyTcpListener>),
-        );
+        app
+            // We can store a list of active client connections.
+            .insert_resource(Connections::default())
+            .add_systems(OnEnter(ConfigLoadState::Loaded), setup_listener)
+            .add_systems(
+                Update,
+                (accept_connections_system, handle_client_messages)
+                    .run_if(resource_exists::<MyTcpListener>),
+            );
     }
 }
 
@@ -58,32 +43,6 @@ fn setup_listener(mut commands: Commands) {
         .expect("Cannot set non-blocking mode");
 
     commands.insert_resource(MyTcpListener { listener });
-}
-
-/// Spawns a thread that listens for incoming TCP connections.
-fn start_tcp_server(channel: Res<ConnectionChannel>) {
-    // Clone the sender so we can move the clone into the thread
-    let sender = channel.sender.clone();
-
-    thread::spawn(move || {
-        // Bind to local TCP port 9999
-        let listener = TcpListener::bind("127.0.0.1:9999").expect("Failed to bind TCP port");
-        println!("TCP server listening on 127.0.0.1:9999");
-
-        // Accept incoming connections in a loop
-        for stream_result in listener.incoming() {
-            match stream_result {
-                Ok(stream) => {
-                    println!("New client connected from {:?}", stream.peer_addr());
-                    // Now we can safely use the cloned sender
-                    sender.send(stream).unwrap();
-                }
-                Err(e) => {
-                    eprintln!("Error accepting connection: {}", e);
-                }
-            }
-        }
-    });
 }
 
 /// System that checks the channel for newly accepted connections,
