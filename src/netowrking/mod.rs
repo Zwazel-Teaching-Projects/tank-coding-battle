@@ -118,6 +118,7 @@ fn handle_client_messages(mut connections: ResMut<Connections>) {
 
     // Remove any disconnected streams from the vector (in reverse order).
     for &idx in disconnected.iter().rev() {
+        info!("Removing client connection at index {}", idx);
         connections.streams.remove(idx);
     }
 }
