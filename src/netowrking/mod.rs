@@ -95,15 +95,16 @@ fn handle_client_messages(mut connections: ResMut<Connections>) {
         match stream.read(&mut buf) {
             Ok(0) => {
                 // 0 = client closed connection
-                println!("Client closed connection");
+                info!("Client closed connection");
                 disconnected.push(index);
             }
             Ok(n) => {
+                info!("Read {} bytes", n);
                 // We got `n` bytes
                 if n > 0 {
                     let data = &buf[..n];
                     let received = String::from_utf8_lossy(data);
-                    println!("Received from client: {}", received);
+                    info!("Received from client: {}", received);
 
                     // Example: echo the message back
                     let _ = stream.write_all(b"Echo: ");
