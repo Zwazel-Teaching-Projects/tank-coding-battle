@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use config::MyConfigPlugin;
 use networking::MyNetworkingPlugin;
 
@@ -43,6 +44,7 @@ fn main() {
         .insert_resource(SharedGameState::default())
         .add_plugins((
             DefaultPlugins,
+            WorldInspectorPlugin::new(),
             GamePlugin,
             MyConfigPlugin,
             MyNetworkingPlugin,
