@@ -2,7 +2,9 @@ use bevy::prelude::*;
 use handle_clients::HandleClientsPlugin;
 use handle_messages::HandleMessagesPlugin;
 use lib::{MyConnections, MyTcpListener};
+use run_conditions::server_running;
 use std::net::TcpListener;
+use system_sets::MyNetworkingSet;
 
 pub mod handle_clients;
 pub mod handle_messages;
@@ -16,9 +18,19 @@ pub struct MyNetworkingPlugin;
 
 impl Plugin for MyNetworkingPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(MyConnections::default())
-            .add_plugins((HandleClientsPlugin, HandleMessagesPlugin))
-            .add_systems(OnEnter(ConfigLoadState::Loaded), setup_listener);
+        app.configure_sets(
+            PreUpdate,
+            (
+                MyNetworkingSet::AcceptConnections,
+                MyNetworkingSet::IncomingMessages,
+                MyNetworkingSet::OutgoingMessages,
+            )
+                .run_if(server_running)
+                .chain(),
+        )
+        .insert_resource(MyConnections::default())
+        .add_plugins((HandleClientsPlugin, HandleMessagesPlugin))
+        .add_systems(OnEnter(ConfigLoadState::Loaded), setup_listener);
     }
 }
 

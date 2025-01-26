@@ -3,7 +3,7 @@ use handle_connect::accept_connections_system;
 use handle_disconnect::handle_client_disconnects;
 use lib::{ClientConnected, ClientDisconnected};
 
-use super::run_conditions::server_running;
+use super::system_sets::MyNetworkingSet;
 
 mod handle_connect;
 mod handle_disconnect;
@@ -15,7 +15,10 @@ impl Plugin for HandleClientsPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ClientConnected>()
             .add_event::<ClientDisconnected>()
-            .add_systems(Update, (accept_connections_system).run_if(server_running))
+            .add_systems(
+                PreUpdate,
+                (accept_connections_system,).in_set(MyNetworkingSet::AcceptConnections),
+            )
             .add_observer(handle_client_disconnects);
     }
 }

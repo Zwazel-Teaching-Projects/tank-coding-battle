@@ -4,13 +4,16 @@ use bevy::prelude::*;
 
 use crate::networking::handle_clients::lib::ClientDisconnected;
 
-use super::{lib::MyConnections, run_conditions::server_running};
+use super::{lib::MyConnections, system_sets::MyNetworkingSet};
 
 pub struct HandleMessagesPlugin;
 
 impl Plugin for HandleMessagesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (handle_client_messages).run_if(server_running));
+        app.add_systems(
+            PreUpdate,
+            (handle_client_messages,).in_set(MyNetworkingSet::IncomingMessages),
+        );
     }
 }
 
