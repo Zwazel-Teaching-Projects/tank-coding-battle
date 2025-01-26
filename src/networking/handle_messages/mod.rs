@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use crate::networking::handle_clients::lib::ClientDisconnected;
 
-use super::{lib::MyConnections, system_sets::MyNetworkingSet};
+use super::{lib::MyConnectedClients, system_sets::MyNetworkingSet};
 
 pub struct HandleMessagesPlugin;
 
@@ -19,7 +19,7 @@ impl Plugin for HandleMessagesPlugin {
 
 /// Example system that reads data from connected clients.
 /// In a real project, you’d parse structured messages, handle disconnections, etc.
-fn handle_client_messages(mut commands: Commands, mut connections: ResMut<MyConnections>) {
+fn handle_client_messages(mut commands: Commands, mut connections: ResMut<MyConnectedClients>) {
     let mut disconnected = Vec::new();
 
     for (addr, stream) in connections.streams.iter_mut() {

@@ -2,14 +2,14 @@ use bevy::prelude::*;
 
 use crate::networking::{
     handle_clients::lib::ClientConnected,
-    lib::{MyConnections, MyTcpListener},
+    lib::{MyClient, MyConnectedClients, MyTcpListener},
 };
 
 /// System that checks the channel for newly accepted connections,
 pub fn accept_connections_system(
     mut commands: Commands,
     my_listener: Res<MyTcpListener>,
-    mut connections: ResMut<MyConnections>,
+    mut connections: ResMut<MyConnectedClients>,
 ) {
     // Accept in a loop until we get a WouldBlock error
     loop {
@@ -18,7 +18,7 @@ pub fn accept_connections_system(
                 println!("New client from: {}", addr);
                 // If you want, set the stream to non-blocking as well:
                 // stream.set_nonblocking(true).unwrap();
-                connections.streams.insert(addr, stream);
+                connections.streams.insert(addr, MyClient::new(stream));
                 commands.trigger(ClientConnected(addr));
             }
             Err(e) => {
