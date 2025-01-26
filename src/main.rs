@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
 use config::MyConfigPlugin;
-use netowrking::MyNetworkingPlugin;
+use networking::MyNetworkingPlugin;
 
 use std::sync::{Arc, Mutex};
 
 pub mod config;
-mod netowrking;
+mod networking;
 
 // A simple resource to share game state with both Bevy systems and network tasks.
 #[derive(Resource, Default, Clone)]

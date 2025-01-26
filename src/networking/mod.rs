@@ -1,20 +1,18 @@
 use bevy::prelude::*;
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use handle_clients::{lib::ClientDisconnected, HandleClientsPlugin};
+use lib::{MyConnections, MyTcpListener};
+use run_conditions::server_running;
+use std::{
+    io::{Read, Write},
+    net::TcpListener,
+};
+
+pub mod handle_clients;
+pub mod handle_messages;
+pub mod lib;
+pub mod run_conditions;
 
 use crate::config::{ConfigLoadState, MyConfig};
-
-// Store active, accepted client connections.
-#[derive(Resource, Default)]
-struct Connections {
-    streams: Vec<TcpStream>,
-}
-
-// A simple resource holding the listener
-#[derive(Resource)]
-pub struct MyTcpListener {
-    pub listener: TcpListener,
-}
 
 pub struct MyNetworkingPlugin;
 
@@ -22,18 +20,14 @@ impl Plugin for MyNetworkingPlugin {
     fn build(&self, app: &mut App) {
         app
             // We can store a list of active client connections.
-            .insert_resource(Connections::default())
+            .insert_resource(MyConnections::default())
+            .add_plugins(HandleClientsPlugin)
             .add_systems(OnEnter(ConfigLoadState::Loaded), setup_listener)
-            .add_systems(
-                Update,
-                (accept_connections_system, handle_client_messages)
-                    .run_if(resource_exists::<MyTcpListener>),
-            );
+            .add_systems(Update, (handle_client_messages).run_if(server_running));
     }
 }
 
 fn setup_listener(mut commands: Commands, config: Res<MyConfig>) {
-    // Bind to local TCP port 9999
     let listener = TcpListener::bind(format!("{:}:{:}", config.server_ip, config.server_port))
         .expect(
             format!(
@@ -52,54 +46,21 @@ fn setup_listener(mut commands: Commands, config: Res<MyConfig>) {
     commands.insert_resource(MyTcpListener { listener });
 }
 
-/// System that checks the channel for newly accepted connections,
-fn accept_connections_system(
-    my_listener: Res<MyTcpListener>,
-    mut connections: ResMut<Connections>,
-) {
-    // Accept in a loop until we get a WouldBlock error
-    loop {
-        match my_listener.listener.accept() {
-            Ok((stream, addr)) => {
-                println!("New client from: {}", addr);
-                // If you want, set the stream to non-blocking as well:
-                // stream.set_nonblocking(true).unwrap();
-                connections.streams.push(stream);
-            }
-            Err(e) => {
-                use std::io::ErrorKind;
-                match e.kind() {
-                    ErrorKind::WouldBlock => {
-                        // No more incoming connections right now
-                        break;
-                    }
-                    _ => {
-                        // Some other error, e.g. connection reset, etc.
-                        eprintln!("Accept error: {}", e);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-}
-
 /// Example system that reads data from connected clients.
 /// In a real project, you’d parse structured messages, handle disconnections, etc.
-fn handle_client_messages(mut connections: ResMut<Connections>) {
+fn handle_client_messages(mut commands: Commands, mut connections: ResMut<MyConnections>) {
     let mut disconnected = Vec::new();
 
-    for (index, stream) in connections.streams.iter_mut().enumerate() {
+    for (addr, stream) in connections.streams.iter_mut() {
         // Non-blocking read attempt
         let mut buf = [0u8; 1024];
         match stream.read(&mut buf) {
             Ok(0) => {
                 // 0 = client closed connection
                 info!("Client closed connection");
-                disconnected.push(index);
+                disconnected.push(addr);
             }
             Ok(n) => {
-                info!("Read {} bytes", n);
                 // We got `n` bytes
                 if n > 0 {
                     let data = &buf[..n];
@@ -119,14 +80,14 @@ fn handle_client_messages(mut connections: ResMut<Connections>) {
             Err(e) => {
                 // Some other read error
                 eprintln!("Read error: {}", e);
-                disconnected.push(index);
+                disconnected.push(addr);
             }
         }
     }
 
     // Remove any disconnected streams from the vector (in reverse order).
-    for &idx in disconnected.iter().rev() {
-        info!("Removing client connection at index {}", idx);
-        connections.streams.remove(idx);
+    for addr in disconnected.iter() {
+        info!("Removing client connection with addr {}", addr);
+        commands.trigger(ClientDisconnected(**addr));
     }
 }
