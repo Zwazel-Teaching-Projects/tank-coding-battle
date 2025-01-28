@@ -10,14 +10,14 @@ pub struct MessageContainer {
 }
 
 #[derive(Serialize, Deserialize, Reflect, Default, Clone, Debug)]
-#[repr(u8)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum NetworkMessageType {
     #[default]
     GameStateUpdate,
 }
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug)]
-#[repr(u8)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum MessageTarget {
     #[default]
     Team,
