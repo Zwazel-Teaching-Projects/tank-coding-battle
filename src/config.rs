@@ -2,25 +2,19 @@ use bevy::prelude::*;
 use bevy_common_assets::ron::RonAssetPlugin;
 use serde::Deserialize;
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum ConfigLoadState {
-    #[default]
-    Loading,
-    Loaded,
-}
+use crate::main_state::MyMainState;
 
 pub struct MyConfigPlugin;
 
 impl Plugin for MyConfigPlugin {
     fn build(&self, app: &mut App) {
-        app.init_state::<ConfigLoadState>()
-            .add_plugins(RonAssetPlugin::<MyConfig>::new(&["config.ron"]))
+        app.add_plugins(RonAssetPlugin::<MyConfig>::new(&["config.ron"]))
             .register_type::<MyConfig>()
             .register_type::<MyConfigHandle>()
             .add_systems(Startup, load_config)
             .add_systems(
                 Update,
-                insert_config.run_if(in_state(ConfigLoadState::Loading)),
+                insert_config.run_if(in_state(MyMainState::SettingUp)),
             );
     }
 }
@@ -33,12 +27,12 @@ fn insert_config(
     config_handle: Res<MyConfigHandle>,
     mut configs: ResMut<Assets<MyConfig>>,
     mut commands: Commands,
-    mut state: ResMut<NextState<ConfigLoadState>>,
+    mut state: ResMut<NextState<MyMainState>>,
 ) {
     if let Some(config) = configs.remove(config_handle.id()) {
         commands.insert_resource(config.clone());
         commands.remove_resource::<MyConfigHandle>();
-        state.set(ConfigLoadState::Loaded);
+        state.set(MyMainState::Ready);
     }
 }
 

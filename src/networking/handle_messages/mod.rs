@@ -1,19 +1,25 @@
 use std::io::{Read, Write};
 
 use bevy::prelude::*;
+use lib::QueuedMessages;
 
 use crate::networking::handle_clients::lib::ClientDisconnected;
 
 use super::{lib::MyConnectedClients, system_sets::MyNetworkingSet};
 
+mod handle_sending;
+pub mod lib;
+
 pub struct HandleMessagesPlugin;
 
 impl Plugin for HandleMessagesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            PreUpdate,
-            (handle_client_messages,).in_set(MyNetworkingSet::IncomingMessages),
-        );
+        app.register_type::<QueuedMessages>()
+            .init_resource::<QueuedMessages>()
+            .add_systems(
+                PreUpdate,
+                (handle_client_messages,).in_set(MyNetworkingSet::IncomingMessages),
+            );
     }
 }
 
