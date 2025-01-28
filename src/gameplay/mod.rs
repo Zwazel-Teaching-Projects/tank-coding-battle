@@ -27,5 +27,11 @@ impl Plugin for MyGameplayPlugin {
         .register_type::<GameState>()
         .init_resource::<GameState>()
         .add_event::<TickIncreasedEvent>();
+
+        #[cfg(debug_assertions)]
+        app.add_systems(
+            Update,
+            bevy::dev_tools::states::log_transitions::<MyGameplayState>,
+        );
     }
 }

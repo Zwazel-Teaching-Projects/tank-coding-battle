@@ -12,14 +12,22 @@ pub mod main_state;
 pub mod networking;
 
 fn main() {
-    App::new()
-        .init_state::<MyMainState>()
-        .add_plugins((
-            DefaultPlugins,
-            WorldInspectorPlugin::new(),
-            MyConfigPlugin,
-            MyGameplayPlugin,
-            MyNetworkingPlugin,
-        ))
-        .run();
+    let mut app = App::new();
+
+    app.add_plugins((
+        DefaultPlugins,
+        WorldInspectorPlugin::new(),
+        MyConfigPlugin,
+        MyGameplayPlugin,
+        MyNetworkingPlugin,
+    ))
+    .init_state::<MyMainState>();
+
+    #[cfg(debug_assertions)]
+    app.add_systems(
+        Update,
+        bevy::dev_tools::states::log_transitions::<MyMainState>,
+    );
+
+    app.run();
 }

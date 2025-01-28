@@ -34,6 +34,12 @@ impl Plugin for MyNetworkingPlugin {
             .insert_resource(MyConnectedClients::default())
             .add_plugins((MySharedPlugin, HandleClientsPlugin, HandleMessagesPlugin))
             .add_systems(OnEnter(MyMainState::Ready), setup_listener);
+
+        #[cfg(debug_assertions)]
+        app.add_systems(
+            Update,
+            bevy::dev_tools::states::log_transitions::<MyNetworkingState>,
+        );
     }
 }
 
