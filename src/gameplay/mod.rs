@@ -17,12 +17,7 @@ impl Plugin for MyGameplayPlugin {
             Update,
             (
                 (MyGameplaySet::TickTimerProcessing,),
-                (
-                    MyGameplaySet::CollectBotInput,
-                    MyGameplaySet::ApplyBotInput,
-                    MyGameplaySet::UpdateGameState,
-                    MyGameplaySet::IncrementTick,
-                )
+                (MyGameplaySet::IncrementTick, MyGameplaySet::RunSimulation)
                     .chain()
                     .run_if(on_event::<StartNextTickProcessing>),
             )
@@ -33,12 +28,25 @@ impl Plugin for MyGameplayPlugin {
         .register_type::<GameState>()
         .init_resource::<GameState>()
         .add_event::<StartNextTickProcessing>()
-        .add_plugins(TickSystemsPlugin);
+        .add_plugins(TickSystemsPlugin)
+        .add_systems(
+            Update,
+            start_game.run_if(in_state(MyGameplayState::WaitingForBots)),
+        );
 
         #[cfg(debug_assertions)]
         app.add_systems(
             Update,
             bevy::dev_tools::states::log_transitions::<MyGameplayState>,
         );
+    }
+}
+
+/*
+   TODO: Start only when all bots are ready
+*/
+fn start_game(input: Res<ButtonInput<KeyCode>>, mut state: ResMut<NextState<MyGameplayState>>) {
+    if input.just_pressed(KeyCode::Space) {
+        state.set(MyGameplayState::Running);
     }
 }

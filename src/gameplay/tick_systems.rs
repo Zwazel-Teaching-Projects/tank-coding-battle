@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{config::MyConfig, main_state::MyMainState};
+use crate::{config::MyConfig, gameplay::lib::TickIncreasedTrigger, main_state::MyMainState};
 
 use super::{
     lib::{GameState, StartNextTickProcessing},
@@ -37,10 +37,16 @@ fn init_tick_timer(mut commands: Commands, config: Res<MyConfig>) {
 }
 
 fn process_tick_timer(
+    mut first_run: Local<bool>,
     mut event: EventWriter<StartNextTickProcessing>,
     mut tick_timer: ResMut<TickTimerResource>,
     time: Res<Time>,
 ) {
+    if !*first_run {
+        *first_run = true;
+        event.send(StartNextTickProcessing);
+    }
+
     if tick_timer.0.tick(time.delta()).just_finished() {
         event.send(StartNextTickProcessing);
     }
@@ -49,5 +55,5 @@ fn process_tick_timer(
 fn increment_tick(mut commands: Commands, mut state: ResMut<GameState>) {
     state.tick += 1;
 
-    commands.trigger(StartNextTickProcessing);
+    commands.trigger(TickIncreasedTrigger);
 }

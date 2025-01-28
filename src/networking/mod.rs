@@ -14,7 +14,11 @@ pub mod networking_state;
 pub mod shared;
 pub mod system_sets;
 
-use crate::{config::MyConfig, main_state::MyMainState};
+use crate::{
+    config::MyConfig,
+    gameplay::{lib::StartNextTickProcessing, system_sets::MyGameplaySet},
+    main_state::MyMainState,
+};
 
 pub struct MyNetworkingPlugin;
 
@@ -22,11 +26,15 @@ impl Plugin for MyNetworkingPlugin {
     fn build(&self, app: &mut App) {
         app.add_sub_state::<MyNetworkingState>()
             .configure_sets(
-                PreUpdate,
+                Update,
                 (
                     MyNetworkingSet::AcceptConnections,
-                    MyNetworkingSet::IncomingMessages,
-                    MyNetworkingSet::OutgoingMessages,
+                    (
+                        MyNetworkingSet::ReadingMessages,
+                        MyNetworkingSet::SendingMessages
+                            .run_if(on_event::<StartNextTickProcessing>),
+                    )
+                        .after(MyGameplaySet::RunSimulation),
                 )
                     .run_if(in_state(MyNetworkingState::Running))
                     .chain(),

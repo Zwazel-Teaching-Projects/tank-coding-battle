@@ -1,6 +1,7 @@
 use std::io::{Read, Write};
 
 use bevy::prelude::*;
+use handle_sending::sending_messages;
 use lib::QueuedMessages;
 
 use crate::networking::handle_clients::lib::ClientDisconnectedTrigger;
@@ -17,8 +18,12 @@ impl Plugin for HandleMessagesPlugin {
         app.register_type::<QueuedMessages>()
             .init_resource::<QueuedMessages>()
             .add_systems(
-                PreUpdate,
-                (handle_client_messages,).in_set(MyNetworkingSet::IncomingMessages),
+                Update,
+                (handle_client_messages,).in_set(MyNetworkingSet::ReadingMessages),
+            )
+            .add_systems(
+                Update,
+                sending_messages.in_set(MyNetworkingSet::SendingMessages),
             );
     }
 }

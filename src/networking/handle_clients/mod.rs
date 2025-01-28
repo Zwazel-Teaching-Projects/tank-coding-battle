@@ -13,7 +13,7 @@ pub struct HandleClientsPlugin;
 impl Plugin for HandleClientsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            PreUpdate,
+            Update,
             (accept_connections_system,).in_set(MyNetworkingSet::AcceptConnections),
         )
         .add_observer(handle_client_disconnects);
