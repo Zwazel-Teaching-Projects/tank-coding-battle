@@ -16,9 +16,10 @@ crossbeam-channel = "0.5.14"
 serde = "1.0.217"
 serde_json = "1.0.137"
 
-[dev-dependencies]
-bevy_dev_tools = { version = "0.15" }
-bevy = { version = "0.15", features = ["serialize", "bevy_dev_tools"] }
+[features]
+default = ["bevy_debug"]
+bevy_debug = ["bevy/bevy_dev_tools"]
+
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
