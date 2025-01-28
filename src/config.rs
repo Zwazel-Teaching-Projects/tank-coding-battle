@@ -11,6 +11,7 @@ impl Plugin for MyConfigPlugin {
         app.add_plugins(RonAssetPlugin::<MyConfig>::new(&["config.ron"]))
             .register_type::<MyConfig>()
             .register_type::<MyConfigHandle>()
+            .register_type::<TeamConfig>()
             .add_systems(Startup, load_config)
             .add_systems(
                 Update,
@@ -37,13 +38,16 @@ fn insert_config(
 }
 
 #[derive(Debug, Reflect, Clone, Deref, DerefMut, Resource)]
+#[reflect(Resource)]
 struct MyConfigHandle(pub Handle<MyConfig>);
 
 #[derive(Debug, Default, Deserialize, Asset, Reflect, Resource, Clone)]
+#[reflect(Resource)]
 pub struct MyConfig {
     pub server_ip: String,
     pub server_port: u16,
     pub teams: Vec<TeamConfig>,
+    pub tick_rate: f32,
 }
 
 #[derive(Debug, Deserialize, Clone, Reflect, Default)]

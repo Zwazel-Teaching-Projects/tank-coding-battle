@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use bevy::prelude::*;
 use lib::QueuedMessages;
 
-use crate::networking::handle_clients::lib::ClientDisconnected;
+use crate::networking::handle_clients::lib::ClientDisconnectedTrigger;
 
 use super::{lib::MyConnectedClients, system_sets::MyNetworkingSet};
 
@@ -65,6 +65,6 @@ fn handle_client_messages(mut commands: Commands, mut connections: ResMut<MyConn
     // Remove any disconnected streams from the vector (in reverse order).
     for addr in disconnected.iter() {
         info!("Removing client connection with addr {}", addr);
-        commands.trigger(ClientDisconnected(**addr));
+        commands.trigger(ClientDisconnectedTrigger(**addr));
     }
 }

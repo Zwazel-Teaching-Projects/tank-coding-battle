@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use bevy::prelude::*;
 
 #[derive(Event, Deref, DerefMut)]
-pub struct ClientConnected(pub SocketAddr);
+pub struct ClientConnectedTrigger(pub SocketAddr);
 
 #[derive(Event, Deref, DerefMut)]
-pub struct ClientDisconnected(pub SocketAddr);
+pub struct ClientDisconnectedTrigger(pub SocketAddr);

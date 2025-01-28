@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::networking::{
-    handle_clients::lib::ClientConnected,
+    handle_clients::lib::ClientConnectedTrigger,
     lib::{MyClient, MyConnectedClients, MyTcpListener},
 };
 
@@ -19,7 +19,7 @@ pub fn accept_connections_system(
                 // If you want, set the stream to non-blocking as well:
                 // stream.set_nonblocking(true).unwrap();
                 connections.streams.insert(addr, MyClient::new(stream));
-                commands.trigger(ClientConnected(addr));
+                commands.trigger(ClientConnectedTrigger(addr));
             }
             Err(e) => {
                 use std::io::ErrorKind;

@@ -2,10 +2,10 @@ use bevy::prelude::*;
 
 use crate::networking::lib::MyConnectedClients;
 
-use super::lib::ClientDisconnected;
+use super::lib::ClientDisconnectedTrigger;
 
 pub fn handle_client_disconnects(
-    disconnected_client: Trigger<ClientDisconnected>,
+    disconnected_client: Trigger<ClientDisconnectedTrigger>,
     mut connections: ResMut<MyConnectedClients>,
 ) {
     let disconnected_client = **disconnected_client;

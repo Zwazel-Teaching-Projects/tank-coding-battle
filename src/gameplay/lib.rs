@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 
 #[derive(Debug, Default, Reflect, Event)]
-pub struct TickIncreasedEvent;
+pub struct StartNextTickProcessing;
+
+#[derive(Debug, Default, Reflect, Event)]
+pub struct TickIncreasedTrigger;
 
 #[derive(Debug, Default, Resource, Reflect)]
 #[reflect(Resource)]

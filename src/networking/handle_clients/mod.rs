@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use handle_connect::accept_connections_system;
 use handle_disconnect::handle_client_disconnects;
-use lib::{ClientConnected, ClientDisconnected};
+use lib::{ClientConnectedTrigger, ClientDisconnectedTrigger};
 
 use super::system_sets::MyNetworkingSet;
 
@@ -13,12 +13,10 @@ pub struct HandleClientsPlugin;
 
 impl Plugin for HandleClientsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ClientConnected>()
-            .add_event::<ClientDisconnected>()
-            .add_systems(
-                PreUpdate,
-                (accept_connections_system,).in_set(MyNetworkingSet::AcceptConnections),
-            )
-            .add_observer(handle_client_disconnects);
+        app.add_systems(
+            PreUpdate,
+            (accept_connections_system,).in_set(MyNetworkingSet::AcceptConnections),
+        )
+        .add_observer(handle_client_disconnects);
     }
 }
