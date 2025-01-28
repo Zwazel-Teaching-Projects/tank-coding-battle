@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use handle_connect::accept_connections_system;
 use handle_disconnect::handle_client_disconnects;
-use lib::{ClientConnectedTrigger, ClientDisconnectedTrigger};
 
 use super::system_sets::MyNetworkingSet;
 
