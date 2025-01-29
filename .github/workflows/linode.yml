@@ -3,7 +3,7 @@ name: Deploy Rust App
 on:
   push:
     branches:
-      - main  # Adjust this if needed
+      - master  # Adjust this if needed
 
 jobs:
   deploy:
