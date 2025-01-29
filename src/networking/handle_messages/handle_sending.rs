@@ -5,7 +5,7 @@ use crate::{
     gameplay::lib::GameState,
     networking::{
         lib::MyConnectedClients,
-        shared::lib::{MessageContainer, NetworkMessageType},
+        shared::lib::{MessageContainer, MessageTarget, NetworkMessageType},
     },
 };
 
@@ -14,17 +14,11 @@ pub fn sending_messages(
     mut connected_clients: ResMut<MyConnectedClients>,
 ) {
     let message = MessageContainer {
-        message_type: NetworkMessageType::GameStateUpdate,
-        message_data: serde_json::to_value(&*game_state).unwrap(),
-        target: Default::default(),
+        message: NetworkMessageType::GameStateUpdate(game_state.clone()),
+        target: MessageTarget::Team,
     };
     let message = serde_json::to_vec(&message).expect("Failed to serialize message");
-    let length = message.len() as u32;
-    info!(
-        "Sending message after serialize with length: {}:\n{:?}",
-        length, message
-    );
-    let length = length.to_le_bytes();
+    let length = (message.len() as u32).to_le_bytes();
 
     for (_client_id, stream) in connected_clients.streams.iter_mut() {
         let _ = stream.write_all(&length).expect("Failed to send length");

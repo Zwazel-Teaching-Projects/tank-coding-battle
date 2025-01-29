@@ -1,10 +1,12 @@
 use bevy::prelude::*;
 use gameplay_state::MyGameplayState;
+use handle_players::HandlePlayersPlugin;
 use lib::{GameState, StartNextTickProcessing};
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
 
 pub mod gameplay_state;
+mod handle_players;
 pub mod lib;
 pub mod system_sets;
 mod tick_systems;
@@ -28,7 +30,7 @@ impl Plugin for MyGameplayPlugin {
         .register_type::<GameState>()
         .init_resource::<GameState>()
         .add_event::<StartNextTickProcessing>()
-        .add_plugins(TickSystemsPlugin)
+        .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
         .add_systems(
             Update,
             start_game.run_if(in_state(MyGameplayState::WaitingForBots)),
