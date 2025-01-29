@@ -1,13 +1,14 @@
 use bevy::prelude::*;
 
 use crate::networking::{
-    handle_clients::lib::ClientConnectedTrigger,
+    handle_clients::lib::ClientConnectedEvent,
     lib::{MyClient, MyConnectedClients, MyTcpListener},
 };
 
 /// System that checks the channel for newly accepted connections,
 pub fn accept_connections_system(
     mut commands: Commands,
+    mut event: EventWriter<ClientConnectedEvent>,
     my_listener: Res<MyTcpListener>,
     mut connections: ResMut<MyConnectedClients>,
 ) {
@@ -19,7 +20,8 @@ pub fn accept_connections_system(
                 // If you want, set the stream to non-blocking as well:
                 // stream.set_nonblocking(true).unwrap();
                 connections.streams.insert(addr, MyClient::new(stream));
-                commands.trigger(ClientConnectedTrigger(addr));
+                commands.trigger(ClientConnectedEvent(addr));
+                event.send(ClientConnectedEvent(addr));
             }
             Err(e) => {
                 use std::io::ErrorKind;

@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use bevy::{app::ScheduleRunnerPlugin, prelude::*};
 
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use config::MyConfigPlugin;
 use gameplay::MyGameplayPlugin;
 use main_state::MyMainState;
@@ -20,7 +19,6 @@ fn main() {
         DefaultPlugins.set(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
             1.0 / 60.0,
         ))),
-        WorldInspectorPlugin::new(),
         MyConfigPlugin,
         MyGameplayPlugin,
         MyNetworkingPlugin,
