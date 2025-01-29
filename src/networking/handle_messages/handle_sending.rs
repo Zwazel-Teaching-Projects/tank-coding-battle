@@ -13,6 +13,7 @@ pub fn sending_messages(
     game_state: Res<GameState>,
     mut connected_clients: ResMut<MyConnectedClients>,
 ) {
+    println!("Sending messages");
     let message = MessageContainer {
         message: NetworkMessageType::GameStateUpdate(game_state.clone()),
         target: MessageTarget::Team,

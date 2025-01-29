@@ -19,7 +19,7 @@ pub fn accept_connections_system(
             Ok((stream, addr)) => {
                 println!("New client from: {}", addr);
                 // If you want, set the stream to non-blocking as well:
-                // stream.set_nonblocking(true).unwrap();
+                stream.set_nonblocking(true).unwrap();
                 connections.streams.insert(addr, MyClient::new(stream));
                 commands.trigger(ClientConnectedEvent(addr));
                 event.send(ClientConnectedEvent(addr));
