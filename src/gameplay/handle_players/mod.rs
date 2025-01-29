@@ -26,4 +26,5 @@ fn spawn_new_player(new_client: Trigger<ClientConnectedEvent>) {
 */
 fn start_game(mut state: ResMut<NextState<MyGameplayState>>) {
     state.set(MyGameplayState::Running);
+    println!("Game started");
 }
