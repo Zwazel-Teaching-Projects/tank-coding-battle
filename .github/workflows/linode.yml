@@ -32,7 +32,7 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
           LINODE_IP: "139.162.177.39"  # Replace with your Linode server IP
-          USER: "zwazel"        # Adjust if necessary
+          USER: "root"        # Adjust if necessary
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
           scp -o StrictHostKeyChecking=no -i private_key target/release/tank-coding-battle $USER@$LINODE_IP:/home/$USER/
