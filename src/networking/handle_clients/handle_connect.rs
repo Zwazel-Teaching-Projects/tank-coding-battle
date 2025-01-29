@@ -14,10 +14,9 @@ pub fn accept_connections_system(
 ) {
     // Accept in a loop until we get a WouldBlock error
     loop {
-        println!("Checking for new connections");
         match my_listener.listener.accept() {
             Ok((stream, addr)) => {
-                println!("New client from: {}", addr);
+                info!("New client from: {}", addr);
                 // If you want, set the stream to non-blocking as well:
                 stream.set_nonblocking(true).unwrap();
                 connections.streams.insert(addr, MyClient::new(stream));
@@ -28,7 +27,6 @@ pub fn accept_connections_system(
                 use std::io::ErrorKind;
                 match e.kind() {
                     ErrorKind::WouldBlock => {
-                        println!("No more incoming connections right now");
                         // No more incoming connections right now
                         break;
                     }
@@ -41,6 +39,4 @@ pub fn accept_connections_system(
             }
         }
     }
-
-    println!("Done checking for new connections");
 }

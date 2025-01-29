@@ -33,7 +33,6 @@ impl Plugin for HandleMessagesPlugin {
 fn handle_client_messages(mut commands: Commands, mut connections: ResMut<MyConnectedClients>) {
     let mut disconnected = Vec::new();
 
-    println!("Checking for messages from clients");
     for (addr, stream) in connections.streams.iter_mut() {
         // Non-blocking read attempt
         let mut buf = [0u8; 1024];
@@ -57,7 +56,6 @@ fn handle_client_messages(mut commands: Commands, mut connections: ResMut<MyConn
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 // No more data to read right now
-                println!("No more data to read right now");
             }
             Err(e) => {
                 // Some other read error
