@@ -1,4 +1,6 @@
-use bevy::prelude::*;
+use std::time::Duration;
+
+use bevy::{app::ScheduleRunnerPlugin, prelude::*};
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use config::MyConfigPlugin;
@@ -15,7 +17,9 @@ fn main() {
     let mut app = App::new();
 
     app.add_plugins((
-        DefaultPlugins,
+        DefaultPlugins.set(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
+            1.0 / 60.0,
+        ))),
         WorldInspectorPlugin::new(),
         MyConfigPlugin,
         MyGameplayPlugin,

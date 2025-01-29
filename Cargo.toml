@@ -7,7 +7,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.15", features = ["serialize"] }
+bevy = { version = "0.15", default-features = false, features = [
+    "bevy_state",
+    "bevy_asset",
+    "bevy_color",
+    "serialize",
+    "multi_threaded",
+] }
 bevy-inspector-egui = "0.29.1"
 bevy_common_assets = { version = "0.12.0", features = ["ron"] }
 bevy_renet = "1"
