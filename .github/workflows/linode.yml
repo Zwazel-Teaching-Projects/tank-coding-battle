@@ -35,8 +35,8 @@ jobs:
           USER: "zwazel"        # Adjust if necessary
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
-          scp -o StrictHostKeyChecking=no -i private_key target/release/your-binary-name $USER@$LINODE_IP:/home/$USER/
-          ssh -o StrictHostKeyChecking=no -i private_key $USER@$LINODE_IP "pkill -f your-binary-name || true && nohup /home/$USER/your-binary-name &"
+          scp -o StrictHostKeyChecking=no -i private_key target/release/tank-coding-battle $USER@$LINODE_IP:/home/$USER/
+          ssh -o StrictHostKeyChecking=no -i private_key $USER@$LINODE_IP "pkill -f tank-coding-battle || true && nohup /home/$USER/tank-coding-battle &"
 
       - name: Clean up
         run: rm -f private_key

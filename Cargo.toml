@@ -2,7 +2,7 @@
 resolver = "2"
 
 [package]
-name = "rts-coding-battle"
+name = "tank-coding-battle"
 version = "0.1.0"
 edition = "2021"
 
