@@ -20,6 +20,7 @@ pub fn sending_messages(
     let message = serde_json::to_vec(&message).expect("Failed to serialize message");
     let length = (message.len() as u32).to_le_bytes();
 
+    println!("Sending message to all clients: {:?}", message);
     for (_client_id, stream) in connected_clients.streams.iter_mut() {
         let _ = stream.write_all(&length).expect("Failed to send length");
         let _ = stream.write_all(&message).expect("Failed to send message");
