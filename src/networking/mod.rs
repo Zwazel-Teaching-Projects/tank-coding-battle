@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use handle_clients::HandleClientsPlugin;
 use handle_messages::HandleMessagesPlugin;
-use lib::{MyConnectedClients, MyTcpListener};
+use lib::MyTcpListener;
 use networking_state::MyNetworkingState;
 use shared::MySharedPlugin;
 use std::net::TcpListener;
@@ -10,6 +10,7 @@ use system_sets::MyNetworkingSet;
 pub mod handle_clients;
 pub mod handle_messages;
 pub mod lib;
+pub mod lobby_management;
 pub mod networking_state;
 pub mod shared;
 pub mod system_sets;
@@ -39,7 +40,6 @@ impl Plugin for MyNetworkingPlugin {
                     .run_if(in_state(MyNetworkingState::Running))
                     .chain(),
             )
-            .insert_resource(MyConnectedClients::default())
             .add_plugins((MySharedPlugin, HandleClientsPlugin, HandleMessagesPlugin))
             .add_systems(OnEnter(MyMainState::Ready), setup_listener);
 
@@ -59,13 +59,7 @@ fn setup_listener(
 ) {
     let config = server_config.get(config_asset.server.id()).unwrap();
     let listener = TcpListener::bind(format!("{:}:{:}", config.ip, config.port))
-        .expect(
-            format!(
-                "Failed to bind to port {} on {}",
-                config.port, config.ip
-            )
-            .as_str(),
-        );
+        .expect(format!("Failed to bind to port {} on {}", config.port, config.ip).as_str());
     info!("TCP server listening on {}", listener.local_addr().unwrap());
 
     // Set to non-blocking so `accept()` won't block the main thread

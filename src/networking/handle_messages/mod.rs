@@ -6,7 +6,7 @@ use lib::QueuedMessages;
 
 use crate::networking::handle_clients::lib::ClientDisconnectedTrigger;
 
-use super::{lib::MyConnectedClients, system_sets::MyNetworkingSet};
+use super::system_sets::MyNetworkingSet;
 
 mod handle_sending;
 pub mod lib;
@@ -30,10 +30,10 @@ impl Plugin for HandleMessagesPlugin {
 
 /// Example system that reads data from connected clients.
 /// In a real project, you’d parse structured messages, handle disconnections, etc.
-fn handle_client_messages(mut commands: Commands, mut connections: ResMut<MyConnectedClients>) {
+fn handle_client_messages(mut commands: Commands, mut clients: Query<>) {
     let mut disconnected = Vec::new();
 
-    for (addr, stream) in connections.streams.iter_mut() {
+    for (addr, stream) in clients.streams.iter_mut() {
         // Non-blocking read attempt
         let mut buf = [0u8; 1024];
         match stream.read(&mut buf) {
