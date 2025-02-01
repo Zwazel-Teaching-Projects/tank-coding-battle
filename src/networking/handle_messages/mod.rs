@@ -1,10 +1,12 @@
-use std::io::{Read, Write};
+use std::io::Read;
 
 use bevy::prelude::*;
 use handle_sending::sending_messages;
 use lib::QueuedMessages;
 
-use crate::networking::handle_clients::lib::ClientDisconnectedTrigger;
+use crate::networking::{
+    handle_clients::lib::ClientDisconnectedTrigger, shared::lib::MessageContainer,
+};
 
 use super::{handle_clients::lib::MyNetworkClient, system_sets::MyNetworkingSet};
 
@@ -38,31 +40,58 @@ fn handle_client_messages(
         // Non-blocking read attempt
         let addr = network_client.address;
         let stream = &mut network_client.stream;
-        let mut buf = [0u8; 1024];
-        match stream.read(&mut buf) {
-            Ok(0) => {
-                // 0 = client closed connection
-                info!("Client disconnected: {:?}", addr);
-                commands.trigger(ClientDisconnectedTrigger(entity));
-            }
-            Ok(n) => {
-                // We got `n` bytes
-                if n > 0 {
-                    let data = &buf[..n];
-                    let received = String::from_utf8_lossy(data);
-                    info!("Received from client: {}", received);
+        let mut len_buf = [0u8; 4];
 
-                    // Example: echo the message back
-                    let _ = stream.write_all(b"Echo: ");
-                    let _ = stream.write_all(data);
+        match stream.read_exact(&mut len_buf) {
+            Ok(()) => {
+                let msg_len = u32::from_be_bytes(len_buf) as usize;
+                info!(
+                    "Expecting message of {} bytes from client: {:?}",
+                    msg_len, addr
+                );
+
+                let mut buf = vec![0u8; msg_len];
+                match stream.read_exact(&mut buf) {
+                    Ok(()) => {
+                        // Convert the raw bytes into a UTF-8 string.
+                        let received = match String::from_utf8(buf) {
+                            Ok(s) => s,
+                            Err(e) => {
+                                error!("UTF-8 conversion error from {}: {}", addr, e);
+                                continue;
+                            }
+                        };
+                        info!("Received from client {}: {}", addr, received);
+
+                        // Deserialize the JSON string into a MessageContainer.
+                        match serde_json::from_str::<MessageContainer>(&received) {
+                            Ok(message_container) => {
+                                info!("Successfully parsed JSON: {:?}", message_container);
+                                // Process the message_container as needed...
+                            }
+                            Err(e) => {
+                                error!(
+                                    "Failed to parse JSON from {}: {}. Raw data: {}",
+                                    addr, e, received
+                                );
+                            }
+                        }
+                    }
+                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        // No more messages to read right now
+                    }
+                    Err(e) => {
+                        error!("Error reading message body from {}: {}", addr, e);
+                        commands.trigger(ClientDisconnectedTrigger(entity));
+                    }
                 }
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                // No more data to read right now
+                // No more messages to read right now
             }
             Err(e) => {
                 // Some other read error
-                eprintln!("Read error: {}, {:?}.", e, e.kind());
+                eprintln!("Read error: {}\nKind: {:?}.", e, e.kind());
                 eprintln!("Disconnecting client: {:?}", addr);
                 commands.trigger(ClientDisconnectedTrigger(entity));
             }

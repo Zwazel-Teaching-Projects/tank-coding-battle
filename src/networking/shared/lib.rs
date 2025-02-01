@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::gameplay::lib::GameState;
 
+use super::shared_data::first_contact::FirstContactData;
+
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug)]
 pub struct MessageContainer {
     pub target: MessageTarget,
@@ -12,6 +14,7 @@ pub struct MessageContainer {
 #[derive(Serialize, Deserialize, Reflect, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "message_type")]
 pub enum NetworkMessageType {
+    FirstContact(FirstContactData),
     GameStateUpdate(GameState),
     BotConfig,
 }
@@ -27,6 +30,7 @@ impl Default for NetworkMessageType {
 pub enum MessageTarget {
     #[default]
     Team,
+    ServerOnly,
     All,
     //Client(#[reflect(ignore, default = "default_client")] SocketAddr), // TODO: How to do in java?
 }

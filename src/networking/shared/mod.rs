@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use lib::{MessageContainer, MessageTarget, NetworkMessageType};
 
+pub mod shared_data;
 pub mod lib;
 
 pub struct MySharedPlugin;
