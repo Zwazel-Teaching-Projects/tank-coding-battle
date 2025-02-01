@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 use crate::networking::{
-    handle_clients::lib::ClientConnectedEvent,
-    lib::{MyClient, MyConnectedClients, MyTcpListener},
+    handle_clients::lib::{ClientConnectedEvent, MyNetworkClient},
+    lib::MyTcpListener,
 };
 
 /// System that checks the channel for newly accepted connections,
@@ -10,7 +10,6 @@ pub fn accept_connections_system(
     mut commands: Commands,
     mut event: EventWriter<ClientConnectedEvent>,
     my_listener: Res<MyTcpListener>,
-    mut connections: ResMut<MyConnectedClients>,
 ) {
     // Accept in a loop until we get a WouldBlock error
     loop {
@@ -19,9 +18,11 @@ pub fn accept_connections_system(
                 info!("New client from: {}", addr);
                 // If you want, set the stream to non-blocking as well:
                 stream.set_nonblocking(true).unwrap();
-                connections.streams.insert(addr, MyClient::new(stream));
-                commands.trigger(ClientConnectedEvent(addr));
-                event.send(ClientConnectedEvent(addr));
+
+                let networked_client = commands.spawn(MyNetworkClient::new(addr, stream)).id();
+
+                commands.trigger(ClientConnectedEvent(networked_client));
+                event.send(ClientConnectedEvent(networked_client));
             }
             Err(e) => {
                 use std::io::ErrorKind;

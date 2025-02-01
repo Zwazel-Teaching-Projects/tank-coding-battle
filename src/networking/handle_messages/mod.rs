@@ -6,7 +6,7 @@ use lib::QueuedMessages;
 
 use crate::networking::handle_clients::lib::ClientDisconnectedTrigger;
 
-use super::system_sets::MyNetworkingSet;
+use super::{handle_clients::lib::MyNetworkClient, system_sets::MyNetworkingSet};
 
 mod handle_sending;
 pub mod lib;
@@ -30,17 +30,20 @@ impl Plugin for HandleMessagesPlugin {
 
 /// Example system that reads data from connected clients.
 /// In a real project, you’d parse structured messages, handle disconnections, etc.
-fn handle_client_messages(mut commands: Commands, mut clients: Query<>) {
-    let mut disconnected = Vec::new();
-
-    for (addr, stream) in clients.streams.iter_mut() {
+fn handle_client_messages(
+    mut commands: Commands,
+    mut clients: Query<(Entity, &mut MyNetworkClient)>,
+) {
+    for (entity, mut network_client) in clients.iter_mut() {
         // Non-blocking read attempt
+        let addr = network_client.address;
+        let stream = &mut network_client.stream;
         let mut buf = [0u8; 1024];
         match stream.read(&mut buf) {
             Ok(0) => {
                 // 0 = client closed connection
-                info!("Client closed connection");
-                disconnected.push(addr);
+                info!("Client disconnected: {:?}", addr);
+                commands.trigger(ClientDisconnectedTrigger(entity));
             }
             Ok(n) => {
                 // We got `n` bytes
@@ -59,15 +62,10 @@ fn handle_client_messages(mut commands: Commands, mut clients: Query<>) {
             }
             Err(e) => {
                 // Some other read error
-                eprintln!("Read error: {}", e);
-                disconnected.push(addr);
+                eprintln!("Read error: {}, {:?}.", e, e.kind());
+                eprintln!("Disconnecting client: {:?}", addr);
+                commands.trigger(ClientDisconnectedTrigger(entity));
             }
         }
-    }
-
-    // Remove any disconnected streams from the vector (in reverse order).
-    for addr in disconnected.iter() {
-        info!("Removing client connection with addr {}", addr);
-        commands.trigger(ClientDisconnectedTrigger(**addr));
     }
 }
