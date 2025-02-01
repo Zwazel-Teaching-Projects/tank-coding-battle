@@ -15,7 +15,7 @@ pub mod shared;
 pub mod system_sets;
 
 use crate::{
-    config::MyConfig,
+    asset_handling::config::{MyConfigAsset, ServerConfig},
     gameplay::{lib::StartNextTickProcessing, system_sets::MyGameplaySet},
     main_state::MyMainState,
 };
@@ -53,14 +53,16 @@ impl Plugin for MyNetworkingPlugin {
 
 fn setup_listener(
     mut commands: Commands,
-    config: Res<MyConfig>,
+    config_asset: Res<MyConfigAsset>,
+    server_config: Res<Assets<ServerConfig>>,
     mut networking_state: ResMut<NextState<MyNetworkingState>>,
 ) {
-    let listener = TcpListener::bind(format!("{:}:{:}", config.server_ip, config.server_port))
+    let config = server_config.get(config_asset.server.id()).unwrap();
+    let listener = TcpListener::bind(format!("{:}:{:}", config.ip, config.port))
         .expect(
             format!(
                 "Failed to bind to port {} on {}",
-                config.server_port, config.server_ip
+                config.port, config.ip
             )
             .as_str(),
         );

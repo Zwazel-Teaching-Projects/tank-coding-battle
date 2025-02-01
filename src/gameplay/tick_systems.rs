@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 
-use crate::{config::MyConfig, gameplay::lib::TickIncreasedTrigger, main_state::MyMainState};
+use crate::{
+    asset_handling::config::{MyConfigAsset, ServerConfig},
+    gameplay::lib::TickIncreasedTrigger,
+    main_state::MyMainState,
+};
 
 use super::{
     lib::{GameState, StartNextTickProcessing},
@@ -29,7 +33,12 @@ impl Plugin for TickSystemsPlugin {
 #[reflect(Resource)]
 struct TickTimerResource(Timer);
 
-fn init_tick_timer(mut commands: Commands, config: Res<MyConfig>) {
+fn init_tick_timer(
+    mut commands: Commands,
+    configs: Res<Assets<ServerConfig>>,
+    config: Res<MyConfigAsset>,
+) {
+    let config = configs.get(config.server.id()).unwrap();
     commands.insert_resource(TickTimerResource(Timer::from_seconds(
         1.0 / config.tick_rate,
         TimerMode::Repeating,

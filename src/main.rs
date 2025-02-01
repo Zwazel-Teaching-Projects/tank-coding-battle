@@ -1,13 +1,13 @@
 use std::time::Duration;
 
+use asset_handling::MyAssetHandlingPlugin;
 use bevy::{app::ScheduleRunnerPlugin, prelude::*};
 
-use config::MyConfigPlugin;
 use gameplay::MyGameplayPlugin;
 use main_state::MyMainState;
 use networking::MyNetworkingPlugin;
 
-pub mod config;
+pub mod asset_handling;
 pub mod gameplay;
 pub mod main_state;
 pub mod networking;
@@ -19,7 +19,7 @@ fn main() {
         DefaultPlugins.set(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
             1.0 / 60.0,
         ))),
-        MyConfigPlugin,
+        MyAssetHandlingPlugin,
         MyGameplayPlugin,
         MyNetworkingPlugin,
     ))

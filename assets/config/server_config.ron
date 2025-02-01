@@ -1,0 +1,5 @@
+(
+    ip: "0.0.0.0",
+    port: 9999,
+    tick_rate: 1, // if 1, then 1 tick per second
+)
