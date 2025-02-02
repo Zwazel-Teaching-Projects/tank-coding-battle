@@ -14,7 +14,7 @@ pub fn sending_messages(
     mut connected_clients: Query<&mut MyNetworkClient>,
 ) {
     let message = MessageContainer::new_sent(
-        MessageTarget::Team,
+        MessageTarget::Client,
         NetworkMessageType::GameStateUpdate(game_state.clone()),
         game_state.tick,
     );

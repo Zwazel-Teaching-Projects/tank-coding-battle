@@ -70,9 +70,5 @@ pub enum MessageTarget {
     Team,
     ServerOnly,
     All,
-    //Client(#[reflect(ignore, default = "default_client")] SocketAddr), // TODO: How to do in java?
+    Client, // TODO: we need to store the client ID here. what to use? Entity? SocketAddr? also, not send this out. because the receiver will just receive it, not send it.
 }
-
-/* fn default_client() -> SocketAddr {
-    SocketAddr::new("127.0.0.1".parse().unwrap(), 9999)
-} */
