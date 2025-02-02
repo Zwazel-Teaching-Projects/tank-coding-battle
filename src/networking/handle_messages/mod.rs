@@ -39,7 +39,7 @@ fn handle_reading_messages(
 
         // First, read the 4-byte length prefix
         let mut len_buf = [0u8; 4];
-        if let Err(e) = stream.read(&mut len_buf) {
+        if let Err(e) = stream.read_exact(&mut len_buf) {
             if e.kind() == std::io::ErrorKind::WouldBlock {
                 continue;
             } else {
@@ -58,7 +58,7 @@ fn handle_reading_messages(
 
         // Allocate a buffer to hold the entire message
         let mut buf = vec![0u8; msg_len];
-        if let Err(e) = stream.read(&mut buf) {
+        if let Err(e) = stream.read_exact(&mut buf) {
             error!(
                 "Read error: failed to fill whole buffer from {}: {}",
                 addr, e
