@@ -57,7 +57,8 @@ pub fn handle_reading_messages(
         match serde_json::from_str::<MessageContainer>(&received) {
             Ok(message_container) => {
                 info!("Successfully parsed JSON: {:?}", message_container);
-                // Process the message_container as needed...
+
+                message_container.trigger_message_received(&mut commands);
             }
             Err(e) => {
                 error!(
