@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use shared::game::game_state::GameState;
 
 use crate::{
     asset_handling::config::{MyConfigAsset, ServerConfig},
@@ -6,10 +7,7 @@ use crate::{
     main_state::MyMainState,
 };
 
-use super::{
-    lib::{GameState, StartNextTickProcessing},
-    system_sets::MyGameplaySet,
-};
+use super::{lib::StartNextTickProcessing, system_sets::MyGameplaySet};
 
 pub struct TickSystemsPlugin;
 

@@ -16,12 +16,15 @@ bevy_common_assets = { version = "0.12.0", features = ["ron"] }
 serde = "1"
 serde_json = "1.0.138"
 
-[dependencies]
-bevy = { workspace = true }
-
 server = { path = "server" }
 spectator_client = { path = "spectator_client" }
 shared = { path = "shared" }
+
+[dependencies]
+bevy = { workspace = true }
+server = { workspace = true }
+spectator_client = { workspace = true }
+shared = { workspace = true }
 
 [features]
 default = ["bevy_debug"]

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use gameplay_state::MyGameplayState;
 use handle_players::HandlePlayersPlugin;
-use lib::{GameState, StartNextTickProcessing};
+use lib::StartNextTickProcessing;
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
 
@@ -27,8 +27,6 @@ impl Plugin for MyGameplayPlugin {
                 .run_if(in_state(MyGameplayState::Running)),
         )
         .add_sub_state::<MyGameplayState>()
-        .register_type::<GameState>()
-        .init_resource::<GameState>()
         .add_event::<StartNextTickProcessing>()
         .add_plugins((TickSystemsPlugin, HandlePlayersPlugin));
 

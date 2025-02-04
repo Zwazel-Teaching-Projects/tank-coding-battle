@@ -1,13 +1,14 @@
 use bevy::prelude::*;
-use std::io::Write;
-
-use crate::{
-    gameplay::lib::GameState,
-    networking::{
-        handle_clients::lib::MyNetworkClient,
-        shared::lib::{MessageContainer, MessageTarget, NetworkMessageType},
+use shared::{
+    game::game_state::GameState,
+    networking::messages::{
+        message_container::MessageContainer, message_targets::MessageTarget,
+        message_types::NetworkMessageType,
     },
 };
+use std::io::Write;
+
+use crate::networking::handle_clients::lib::MyNetworkClient;
 
 pub fn sending_messages(
     game_state: Res<GameState>,

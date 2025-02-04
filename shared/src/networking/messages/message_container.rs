@@ -1,9 +1,7 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::gameplay::lib::GameState;
-
-use super::shared_data::first_contact::FirstContactData;
+use super::{message_targets::MessageTarget, message_types::NetworkMessageType};
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -48,27 +46,4 @@ impl MessageContainer {
         self.tick_sent = tick;
         self
     }
-}
-
-#[derive(Serialize, Deserialize, Reflect, Clone, Debug)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "message_type")]
-pub enum NetworkMessageType {
-    FirstContact(FirstContactData),
-    GameStateUpdate(GameState),
-}
-
-impl Default for NetworkMessageType {
-    fn default() -> Self {
-        NetworkMessageType::GameStateUpdate(GameState::default())
-    }
-}
-
-#[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum MessageTarget {
-    #[default]
-    Team,
-    ServerOnly,
-    All,
-    Client, // TODO: we need to store the client ID here. what to use? Entity? SocketAddr? also, not send this out. because the receiver will just receive it, not send it.
 }
