@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use super::{message_targets::MessageTarget, message_types::NetworkMessageType};
+use super::{
+    message_targets::MessageTarget,
+    message_types::{FirstContactTrigger, GameStateUpdateTrigger, NetworkMessageType},
+};
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -45,5 +48,16 @@ impl MessageContainer {
     pub fn with_sent(&mut self, tick: u64) -> &mut Self {
         self.tick_sent = tick;
         self
+    }
+
+    pub fn trigger_message_received(&self, commands: &mut Commands) {
+        match &self.message {
+            NetworkMessageType::FirstContact(data) => {
+                commands.trigger(FirstContactTrigger(data.clone()));
+            }
+            NetworkMessageType::GameStateUpdate(data) => {
+                commands.trigger(GameStateUpdateTrigger(data.clone()));
+            }
+        }
     }
 }

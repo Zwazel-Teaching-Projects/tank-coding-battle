@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+proc_macros = { workspace = true }
+
 bevy = { workspace = true }
 bevy_asset_loader = { workspace = true }
 bevy_common_assets = { workspace = true }

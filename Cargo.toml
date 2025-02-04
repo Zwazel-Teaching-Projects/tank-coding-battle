@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["game_sim", "server", "shared", "spectator_client"]
+members = ["game_sim", "proc_macros", "server", "shared", "spectator_client"]
 
 [package]
 name = "tank-coding-battle"
@@ -19,6 +19,7 @@ serde_json = "1.0.138"
 server = { path = "server" }
 spectator_client = { path = "spectator_client" }
 shared = { path = "shared" }
+proc_macros = { path = "proc_macros" }
 
 [dependencies]
 bevy = { workspace = true }
