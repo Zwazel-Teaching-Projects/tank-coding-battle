@@ -4,3 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+shared = { workspace = true }
+
+bevy = { workspace = true }
+
+[features]
+default = ["game_sim"]
+game_sim = [
+    "bevy/bevy_state",
+    "bevy/bevy_color",
+    "bevy/serialize",
+    "bevy/multi_threaded",
+]
