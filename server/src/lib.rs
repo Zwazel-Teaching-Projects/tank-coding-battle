@@ -5,6 +5,7 @@ use bevy::{app::ScheduleRunnerPlugin, prelude::*};
 use gameplay::MyGameplayPlugin;
 use main_state::MyMainState;
 use networking::MyNetworkingPlugin;
+use shared::MySharedPlugin;
 
 pub mod asset_handling;
 pub mod gameplay;
@@ -19,6 +20,7 @@ impl Plugin for MyServerPlugin {
             DefaultPlugins.set(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
                 1.0 / 60.0,
             ))),
+            MySharedPlugin,
             MyAssetHandlingPlugin,
             MyGameplayPlugin,
             MyNetworkingPlugin,

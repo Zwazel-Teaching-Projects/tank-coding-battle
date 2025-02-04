@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use shared::MySharedPlugin;
 
 fn main() {
     let mut app = App::new();
@@ -11,8 +10,6 @@ fn main() {
     // if feature "client" is enabled
     #[cfg(feature = "spectator_client")]
     app.add_plugins((spectator_client::MySpectatorClientPlugin,));
-
-    app.add_plugins(MySharedPlugin);
 
     app.run();
 }

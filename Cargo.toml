@@ -24,7 +24,6 @@ shared = { path = "shared" }
 bevy = { workspace = true }
 server = { workspace = true }
 spectator_client = { workspace = true }
-shared = { workspace = true }
 
 [features]
 default = ["bevy_debug"]
