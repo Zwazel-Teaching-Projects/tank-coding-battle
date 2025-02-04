@@ -24,17 +24,11 @@ spectator_client = { path = "spectator_client" }
 shared = { path = "shared" }
 
 [features]
-default = ["bevy_debug", "server"]
+default = ["bevy_debug"]
 bevy_debug = ["bevy/bevy_dev_tools"]
 
-server = [
-    "bevy/bevy_state",
-    "bevy/bevy_asset",
-    "bevy/bevy_color",
-    "bevy/serialize",
-    "bevy/multi_threaded",
-]
-spectator_client = []
+server = ["server/server"]
+spectator_client = ["spectator_client/spectator_client"]
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

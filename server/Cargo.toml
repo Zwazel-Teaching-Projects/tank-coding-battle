@@ -11,5 +11,10 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [features]
-default = ["bevy_debug"]
-bevy_debug = ["bevy/bevy_dev_tools"]
+server = [
+    "bevy/bevy_state",
+    "bevy/bevy_asset",
+    "bevy/bevy_color",
+    "bevy/serialize",
+    "bevy/multi_threaded",
+]
