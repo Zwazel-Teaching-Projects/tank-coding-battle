@@ -1,9 +1,18 @@
 [alias]
-# Build with default features
-b = "build"
-# Run with default features
-r = "run"
-# Build with release optimizations
-br = "build --release --no-default-features"
-# Run with release optimizations
-rr = "run --release --no-default-features"
+# Build SERVER with default features 
+bs = "build --features server"
+# Run SERVER with default features
+rs = "run --features server"
+# Build SERVER with release optimizations
+brs = "build --release --no-default-features --features server"
+# Run SERVER with release optimizations
+rrs = "run --release --no-default-features --features server"
+
+# Build SPECTATOR_CLIENT with default features
+bc = "build --features spectator_client"
+# Run SPECTATOR_CLIENT with default features
+rc = "run --features spectator_client"
+# Build SPECTATOR_CLIENT with release optimizations
+brc = "build --release --no-default-features --features spectator_client"
+# Run SPECTATOR_CLIENT with release optimizations
+rrc = "run --release --no-default-features --features spectator_client"

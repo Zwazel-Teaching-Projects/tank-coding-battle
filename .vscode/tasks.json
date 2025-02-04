@@ -8,12 +8,7 @@
             "type": "shell",
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
-                "r",
-                // "--release",
-                // "--",
-                /*                 "--features",
-                "debug", */
-                //"windowed"
+                "rs",
             ],
             "group": {
                 "kind": "build",

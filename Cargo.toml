@@ -1,31 +1,40 @@
 [workspace]
 resolver = "2"
+members = ["game_sim", "server", "shared", "spectator_client"]
 
 [package]
 name = "tank-coding-battle"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-bevy = { version = "0.15", default-features = false, features = [
-    "bevy_state",
-    "bevy_asset",
-    "bevy_color",
-    "serialize",
-    "multi_threaded",
-] }
+[workspace.dependencies]
+bevy = { version = "0.15", default-features = false }
 bevy_asset_loader = { version = "0.22.0", features = [
     "standard_dynamic_assets",
 ] }
 bevy_common_assets = { version = "0.12.0", features = ["ron"] }
-crossbeam-channel = "0.5.14"
 serde = "1"
 serde_json = "1.0.138"
 
+[dependencies]
+bevy = { workspace = true }
+
+server = { path = "server" }
+spectator_client = { path = "spectator_client" }
+shared = { path = "shared" }
+
 [features]
-default = ["bevy_debug"]
+default = ["bevy_debug", "server"]
 bevy_debug = ["bevy/bevy_dev_tools"]
 
+server = [
+    "bevy/bevy_state",
+    "bevy/bevy_asset",
+    "bevy/bevy_color",
+    "bevy/serialize",
+    "bevy/multi_threaded",
+]
+spectator_client = []
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
