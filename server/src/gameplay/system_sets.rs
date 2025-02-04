@@ -4,5 +4,6 @@ use bevy::prelude::*;
 pub enum MyGameplaySet {
     TickTimerProcessing,
     IncrementTick,
-    RunSimulation,
+    RunSimulationStep,
+    SimulationStepDone,
 }

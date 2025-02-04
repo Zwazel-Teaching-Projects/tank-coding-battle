@@ -2,7 +2,7 @@ use std::io::Write;
 
 use bevy::prelude::*;
 
-use crate::networking::client_handling::networked_client::MyNetworkClient;
+use crate::networking::handle_clients::lib::MyNetworkClient;
 
 use super::message_queue::OutgoingMessageQueue;
 

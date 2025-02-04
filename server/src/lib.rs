@@ -1,15 +1,11 @@
 use std::time::Duration;
 
-use asset_handling::MyAssetHandlingPlugin;
 use bevy::{app::ScheduleRunnerPlugin, prelude::*};
 use gameplay::MyGameplayPlugin;
-use main_state::MyMainState;
 use networking::MyNetworkingPlugin;
 use shared::MySharedPlugin;
 
-pub mod asset_handling;
 pub mod gameplay;
-pub mod main_state;
 pub mod networking;
 
 pub struct MyServerPlugin;
@@ -21,16 +17,8 @@ impl Plugin for MyServerPlugin {
                 1.0 / 60.0,
             ))),
             MySharedPlugin,
-            MyAssetHandlingPlugin,
             MyGameplayPlugin,
             MyNetworkingPlugin,
-        ))
-        .init_state::<MyMainState>();
-
-        #[cfg(debug_assertions)]
-        app.add_systems(
-            Update,
-            bevy::dev_tools::states::log_transitions::<MyMainState>,
-        );
+        ));
     }
 }

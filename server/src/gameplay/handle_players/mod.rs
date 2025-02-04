@@ -18,7 +18,7 @@ impl Plugin for HandlePlayersPlugin {
 }
 
 fn spawn_new_player(new_client: Trigger<ClientConnectedEvent>) {
-    println!("New player connected: {:?}, spawning tank", new_client.0);
+    println!("New player connected: {:?}, spawning tank (not implemented)", new_client.0);
 }
 
 /*

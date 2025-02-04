@@ -2,60 +2,43 @@ use bevy::prelude::*;
 use handle_clients::HandleClientsPlugin;
 use handle_messages::HandleMessagesPlugin;
 use lib::MyTcpListener;
-use networking_state::MyNetworkingState;
+use shared::{
+    asset_handling::config::ServerConfigSystemParam,
+    main_state::MyMainState,
+    networking::{networking_state::MyNetworkingState, networking_system_sets::MyNetworkingSet},
+};
 use std::net::TcpListener;
-use system_sets::MyNetworkingSet;
 
 pub mod handle_clients;
 pub mod handle_messages;
 pub mod lib;
 pub mod lobby_management;
-pub mod networking_state;
-pub mod system_sets;
 
-use crate::{
-    asset_handling::config::{MyConfigAsset, ServerConfig},
-    gameplay::{lib::StartNextTickProcessing, system_sets::MyGameplaySet},
-    main_state::MyMainState,
-};
+use crate::gameplay::{lib::StartNextTickProcessing, system_sets::MyGameplaySet};
 
 pub struct MyNetworkingPlugin;
 
 impl Plugin for MyNetworkingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_sub_state::<MyNetworkingState>()
-            .configure_sets(
-                Update,
-                (
-                    MyNetworkingSet::AcceptConnections,
-                    (
-                        MyNetworkingSet::ReadingMessages,
-                        MyNetworkingSet::SendingMessages
-                            .run_if(on_event::<StartNextTickProcessing>),
-                    )
-                        .after(MyGameplaySet::RunSimulation),
-                )
-                    .run_if(in_state(MyNetworkingState::Running))
-                    .chain(),
-            )
-            .add_plugins((HandleClientsPlugin, HandleMessagesPlugin))
-            .add_systems(OnEnter(MyMainState::Ready), setup_listener);
-
-        #[cfg(debug_assertions)]
-        app.add_systems(
+        app.configure_sets(
             Update,
-            bevy::dev_tools::states::log_transitions::<MyNetworkingState>,
-        );
+            (
+                MyNetworkingSet::ReadingMessages,
+                MyNetworkingSet::SendingMessages.run_if(on_event::<StartNextTickProcessing>),
+            )
+                .after(MyGameplaySet::SimulationStepDone),
+        )
+        .add_plugins((HandleClientsPlugin, HandleMessagesPlugin))
+        .add_systems(OnEnter(MyMainState::Ready), setup_listener);
     }
 }
 
 fn setup_listener(
     mut commands: Commands,
-    config_asset: Res<MyConfigAsset>,
-    server_config: Res<Assets<ServerConfig>>,
+    server_config: ServerConfigSystemParam,
     mut networking_state: ResMut<NextState<MyNetworkingState>>,
 ) {
-    let config = server_config.get(config_asset.server.id()).unwrap();
+    let config = server_config.server_config();
     let listener = TcpListener::bind(format!("{:}:{:}", config.ip, config.port))
         .expect(format!("Failed to bind to port {} on {}", config.port, config.ip).as_str());
     info!("TCP server listening on {}", listener.local_addr().unwrap());
