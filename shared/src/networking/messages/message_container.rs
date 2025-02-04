@@ -1,13 +1,22 @@
 use bevy::prelude::*;
+use proc_macros::{auto_trigger_message_received, generate_message_data_triggers};
 use serde::{Deserialize, Serialize};
 
-use super::{
-    message_targets::MessageTarget,
-    message_types::{FirstContactTrigger, GameStateUpdateTrigger, NetworkMessageType},
-};
+use crate::game::game_state::GameState;
+
+use super::{message_data::first_contact::FirstContactData, message_targets::MessageTarget};
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
+#[auto_trigger_message_received(
+    #[derive(Serialize, Deserialize, Reflect, Clone, Debug)]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "message_type")]
+    #[generate_message_data_triggers]
+    pub enum NetworkMessageType {
+        FirstContact(FirstContactData),
+        GameStateUpdate(GameState),
+    }
+)]
 pub struct MessageContainer {
     pub target: MessageTarget,
     pub message: NetworkMessageType,
@@ -49,15 +58,10 @@ impl MessageContainer {
         self.tick_sent = tick;
         self
     }
+}
 
-    pub fn trigger_message_received(&self, commands: &mut Commands) {
-        match &self.message {
-            NetworkMessageType::FirstContact(data) => {
-                commands.trigger(FirstContactTrigger(data.clone()));
-            }
-            NetworkMessageType::GameStateUpdate(data) => {
-                commands.trigger(GameStateUpdateTrigger(data.clone()));
-            }
-        }
+impl Default for NetworkMessageType {
+    fn default() -> Self {
+        NetworkMessageType::GameStateUpdate(GameState::default())
     }
 }

@@ -5,8 +5,8 @@ use lib::StartNextTickProcessing;
 use shared::{
     game::game_state::GameState,
     networking::messages::{
-        message_container::MessageContainer, message_targets::MessageTarget,
-        message_types::NetworkMessageType,
+        message_container::{MessageContainer, NetworkMessageType},
+        message_targets::MessageTarget,
     },
 };
 use system_sets::MyGameplaySet;
