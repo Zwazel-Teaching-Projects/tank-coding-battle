@@ -68,7 +68,7 @@ impl<'w> MapConfigSystemParam<'w> {
         self.maps_asset
             .maps
             .iter()
-            .map(|(stem, _)| stem.as_ref().to_string())
+            .map(|(stem, _)| stem.as_ref().to_string().replace(".map", ""))
             .collect()
     }
 }
