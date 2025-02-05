@@ -27,6 +27,7 @@ impl Plugin for MyLobbyManagementPlugin {
             .init_resource::<MyLobbies>()
             .register_type::<MyLobby>()
             .register_type::<InLobby>()
+            .register_type::<LobbyState>()
             .add_observer(finish_setting_up_lobby);
     }
 }
@@ -47,6 +48,8 @@ pub struct MyLobbies {
 #[derive(Debug, Reflect, Default, Component, PartialEq)]
 #[reflect(Component)]
 pub struct MyLobby {
+    pub state: LobbyState,
+
     pub name: String,
     pub players: Vec<Entity>,
     pub map_name: String,
@@ -57,9 +60,10 @@ pub struct MyLobby {
 impl MyLobby {
     pub fn new(name: String, map_name: String) -> Self {
         Self {
+            state: LobbyState::default(),
+
             name,
             players: Vec::new(),
-
             map_name,
 
             map_config: None,
@@ -70,6 +74,14 @@ impl MyLobby {
         self.players.push(player);
         self
     }
+}
+
+#[derive(Debug, Reflect, Default, PartialEq)]
+pub enum LobbyState {
+    #[default]
+    SettingUp,
+    InProgress,
+    Finished,
 }
 
 pub fn remove_player_from_lobby(
