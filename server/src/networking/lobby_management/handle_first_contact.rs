@@ -1,9 +1,8 @@
 use bevy::prelude::*;
 use shared::networking::messages::message_container::FirstContactTrigger;
 
-use crate::networking::{
-    handle_clients::lib::{AwaitingFirstContact, ClientDisconnectedTrigger},
-    lobby_management::InLobby,
+use crate::networking::handle_clients::lib::{
+    AwaitingFirstContact, ClientDisconnectedTrigger, MyNetworkClient,
 };
 
 use super::lobby_management::LobbyManagementSystemParam;
@@ -27,6 +26,7 @@ pub fn handle_first_contact_message(
     trigger: Trigger<FirstContactTrigger>,
     mut commands: Commands,
     mut lobby_management: LobbyManagementSystemParam,
+    mut clients: Query<&mut MyNetworkClient>,
 ) {
     let message = &trigger.message;
     let sender = trigger.sender;
@@ -35,18 +35,21 @@ pub fn handle_first_contact_message(
         message, sender
     );
 
+    // Update the client's state
+    if let Ok(mut client) = clients.get_mut(sender) {
+        client.name = Some(message.bot_name.clone());
+    }
+
     // get or insert lobby
-    if let Ok(lobby_entity) = lobby_management.get_or_insert_lobby_entity(
-        &message.lobby_id,
-        sender,
-        message.map_name.as_deref(),
-        &mut commands,
-    ) {
-        commands
-            .entity(sender)
-            .remove::<AwaitingFirstContact>()
-            .insert(InLobby(lobby_entity));
-    } else {
+    if lobby_management
+        .get_or_insert_lobby_entity(
+            &message.lobby_id,
+            sender,
+            message.map_name.as_deref(),
+            &mut commands,
+        )
+        .is_err()
+    {
         error!("Failed to get or insert lobby for client {:?}", sender);
     }
 }

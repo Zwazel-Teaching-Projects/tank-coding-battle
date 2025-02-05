@@ -1,5 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*, utils::Entry};
 
+use crate::networking::lobby_management::PlayerRemovedFromLobbyTrigger;
+
 use super::{MyLobbies, MyLobby};
 
 #[derive(SystemParam)]
@@ -9,6 +11,10 @@ pub struct LobbyManagementSystemParam<'w, 's> {
 }
 
 impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
+    pub fn get_lobby_mut(&mut self, entity: Entity) -> Option<(Entity, Mut<MyLobby>)> {
+        self.lobby_entities.get_mut(entity).ok()
+    }
+
     pub fn get_or_insert_lobby_entity(
         &mut self,
         lobby_id: &str,
@@ -39,18 +45,32 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         }
     }
 
-    pub fn remove_player_from_lobby(&mut self, player: Entity, lobby: Entity) {
+    pub fn remove_player_from_lobby(
+        &mut self,
+        player: Entity,
+        lobby: Entity,
+        commands: &mut Commands,
+    ) {
         if let Ok((_, mut lobby)) = self.lobby_entities.get_mut(lobby) {
-            lobby.players.retain(|&x| x != player);
+            lobby.players.retain(|&x| {
+                if x == player {
+                    commands.trigger_targets(PlayerRemovedFromLobbyTrigger, player);
+                    false
+                } else {
+                    true
+                }
+            });
         } else {
             error!(
                 "Failed to get lobby for lobby entity: {}, cannot remove player {} from lobby",
                 lobby, player
             );
         }
+
+        self.cleanup_lobbies(commands);
     }
 
-    pub fn cleanup_lobbies(&mut self, commands: &mut Commands) {
+    fn cleanup_lobbies(&mut self, commands: &mut Commands) {
         self.lobby_resource.lobbies.retain(|_, &mut entity| {
             if let Ok((_, lobby)) = self.lobby_entities.get_mut(entity) {
                 if lobby.players.is_empty() {
@@ -70,6 +90,34 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     entity
                 );
                 false
+            }
+        });
+    }
+
+    pub fn remove_lobby(&mut self, lobby: Entity, commands: &mut Commands) {
+        self.lobby_resource.lobbies.retain(|_, &mut entity| {
+            if entity == lobby {
+                if let Ok((lobby_entity, lobby)) = self.lobby_entities.get_mut(lobby) {
+                    info!(
+                        "Despawning lobby entity \"{}\" with name \"{}\"",
+                        lobby_entity, lobby.name
+                    );
+
+                    for player in lobby.players.iter() {
+                        info!("Removing player {} from lobby {}...", player, lobby_entity);
+                        commands.trigger_targets(PlayerRemovedFromLobbyTrigger, *player);
+                    }
+
+                    commands.entity(lobby_entity).despawn_recursive();
+                } else {
+                    error!(
+                        "Failed to get lobby for lobby entity: {}, cannot remove lobby",
+                        lobby
+                    );
+                }
+                false
+            } else {
+                true
             }
         });
     }

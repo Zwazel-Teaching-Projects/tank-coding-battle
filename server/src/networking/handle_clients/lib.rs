@@ -1,10 +1,22 @@
-use std::net::{SocketAddr, TcpStream};
+use std::{
+    net::{SocketAddr, TcpStream},
+    time::Duration,
+};
 
 use bevy::prelude::*;
 
 #[derive(Debug, Component, Reflect, Deref, DerefMut)]
 #[reflect(Component)]
 pub struct AwaitingFirstContact(pub Timer);
+
+impl AwaitingFirstContact {
+    pub fn new(time_millis: u64) -> Self {
+        Self(Timer::new(
+            Duration::from_millis(time_millis),
+            TimerMode::Once,
+        ))
+    }
+}
 
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]

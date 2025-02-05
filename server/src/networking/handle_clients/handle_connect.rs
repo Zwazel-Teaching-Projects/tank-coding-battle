@@ -1,11 +1,10 @@
-use std::time::Duration;
-
 use bevy::prelude::*;
 use shared::asset_handling::config::ServerConfigSystemParam;
 
 use crate::networking::{
     handle_clients::lib::{AwaitingFirstContact, ClientConnectedTrigger, MyNetworkClient},
     lib::MyTcpListener,
+    lobby_management::remove_player_from_lobby,
 };
 
 /// System that checks the channel for newly accepted connections,
@@ -24,11 +23,9 @@ pub fn accept_connections_system(
                 let networked_client = commands
                     .spawn((
                         MyNetworkClient::new(addr, stream),
-                        AwaitingFirstContact(Timer::new(
-                            Duration::from_millis(config.timeout_first_contact),
-                            TimerMode::Once,
-                        )),
+                        AwaitingFirstContact::new(config.timeout_first_contact),
                     ))
+                    .observe(remove_player_from_lobby)
                     .id();
 
                 commands.trigger(ClientConnectedTrigger(networked_client));

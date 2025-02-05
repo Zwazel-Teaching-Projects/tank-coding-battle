@@ -31,12 +31,12 @@ pub struct AllMapsAsset {
     pub maps: HashMap<AssetFileStem, Handle<MapConfig>>,
 }
 
-#[derive(Debug, Default, Reflect, Clone, Asset, Deserialize)]
+#[derive(Debug, Default, Reflect, Clone, Asset, Deserialize, PartialEq)]
 pub struct MapConfig {
     pub teams: Vec<TeamConfig>,
 }
 
-#[derive(Debug, Clone, Reflect, Default, Deserialize)]
+#[derive(Debug, Clone, Reflect, Default, Deserialize, PartialEq)]
 pub struct TeamConfig {
     pub name: String,
     pub color: Color,
@@ -56,5 +56,13 @@ impl<'w> MapConfigSystemParam<'w> {
             .iter()
             .find(|(stem, _)| stem.as_ref() == map_name)
             .and_then(|(_, handle)| self.map_configs.get(handle))
+    }
+
+    pub fn list_map_names(&self) -> Vec<String> {
+        self.maps_asset
+            .maps
+            .iter()
+            .map(|(stem, _)| stem.as_ref().to_string())
+            .collect()
     }
 }

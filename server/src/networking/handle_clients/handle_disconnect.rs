@@ -28,7 +28,11 @@ pub fn handle_client_disconnects(
     commands.entity(networked_entity).despawn_recursive();
 
     if let Some(in_lobby) = in_lobby {
-        lobby_management.remove_player_from_lobby(networked_entity, **in_lobby);
+        info!(
+            "Client was in lobby: {:?}, removing from lobby...",
+            in_lobby
+        );
+        lobby_management.remove_player_from_lobby(networked_entity, **in_lobby, &mut commands);
     }
 
     commands.trigger(ClientHasBeenDespawnedTrigger);
