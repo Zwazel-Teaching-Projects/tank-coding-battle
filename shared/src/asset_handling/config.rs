@@ -58,14 +58,10 @@ pub struct ServerConfigSystemParam<'w> {
 }
 
 impl<'w> ServerConfigSystemParam<'w> {
-    pub fn get_server_config(&self) -> Option<&ServerConfig> {
-        self.server_configs.get(self.config_asset.server.id())
-    }
-
     pub fn server_config(&self) -> &ServerConfig {
         self.server_configs
             .get(self.config_asset.server.id())
-            .unwrap()
+            .expect("Server config not loaded")
     }
 }
 
@@ -83,6 +79,6 @@ impl<'w> ClientConfigSystemParam<'w> {
     pub fn client_config(&self) -> &ClientConfig {
         self.client_configs
             .get(self.config_asset.client.id())
-            .unwrap()
+            .expect("Client config not loaded")
     }
 }

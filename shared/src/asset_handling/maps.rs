@@ -1,4 +1,4 @@
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{ecs::system::SystemParam, prelude::*, utils::HashMap};
 use bevy_asset_loader::{
     asset_collection::AssetCollection,
     loading_state::{
@@ -41,4 +41,20 @@ pub struct TeamConfig {
     pub name: String,
     pub color: Color,
     pub max_players: usize,
+}
+
+#[derive(SystemParam)]
+pub struct MapConfigSystemParam<'w> {
+    maps_asset: Res<'w, AllMapsAsset>,
+    map_configs: Res<'w, Assets<MapConfig>>,
+}
+
+impl<'w> MapConfigSystemParam<'w> {
+    pub fn get_map_config(&self, map_name: &str) -> Option<&MapConfig> {
+        self.maps_asset
+            .maps
+            .iter()
+            .find(|(stem, _)| stem.as_ref() == map_name)
+            .and_then(|(_, handle)| self.map_configs.get(handle))
+    }
 }

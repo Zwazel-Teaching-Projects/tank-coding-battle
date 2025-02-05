@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use gameplay_state::MyGameplayState;
 use handle_players::HandlePlayersPlugin;
 use lib::StartNextTickProcessing;
 use shared::{
@@ -14,7 +13,6 @@ use tick_systems::TickSystemsPlugin;
 
 use crate::networking::handle_messages::message_queue::OutgoingMessageQueue;
 
-pub mod gameplay_state;
 mod handle_players;
 pub mod lib;
 pub mod system_sets;
@@ -36,21 +34,13 @@ impl Plugin for MyGameplayPlugin {
                     .chain()
                     .run_if(on_event::<StartNextTickProcessing>),
             )
-                .chain()
-                .run_if(in_state(MyGameplayState::Running)),
+                .chain(),
         )
-        .add_sub_state::<MyGameplayState>()
         .add_event::<StartNextTickProcessing>()
         .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
         .add_systems(
             Update,
             add_current_game_state_to_message_queue.in_set(MyGameplaySet::SimulationStepDone),
-        );
-
-        #[cfg(debug_assertions)]
-        app.add_systems(
-            Update,
-            bevy::dev_tools::states::log_transitions::<MyGameplayState>,
         );
     }
 }

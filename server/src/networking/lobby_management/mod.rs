@@ -1,7 +1,7 @@
 use bevy::{prelude::*, utils::HashMap};
 use handle_first_contact::{handle_awaiting_first_contact, handle_first_contact_message};
 use lobby_management::LobbyManagementSystemParam;
-use shared::networking::networking_state::MyNetworkingState;
+use shared::{asset_handling::maps::MapConfig, networking::networking_state::MyNetworkingState};
 
 use super::handle_clients::lib::ClientHasBeenDespawnedTrigger;
 
@@ -40,6 +40,27 @@ pub struct MyLobbies {
 pub struct MyLobby {
     pub name: String,
     pub players: Vec<Entity>,
+    pub map_name: String,
+
+    pub map_config: Option<MapConfig>,
+}
+
+impl MyLobby {
+    pub fn new(name: String, map_name: String) -> Self {
+        Self {
+            name,
+            players: Vec::new(),
+
+            map_name,
+
+            map_config: None,
+        }
+    }
+
+    pub fn with_player(mut self, player: Entity) -> Self {
+        self.players.push(player);
+        self
+    }
 }
 
 fn despawn_lobby_if_empty(

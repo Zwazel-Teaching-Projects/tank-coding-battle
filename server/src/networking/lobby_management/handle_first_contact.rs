@@ -36,11 +36,17 @@ pub fn handle_first_contact_message(
     );
 
     // get or insert lobby
-    let lobby_entity =
-        lobby_management.get_or_insert_lobby_entity(&message.lobby_id, sender, &mut commands);
-
-    commands
-        .entity(sender)
-        .remove::<AwaitingFirstContact>()
-        .insert(InLobby(lobby_entity));
+    if let Ok(lobby_entity) = lobby_management.get_or_insert_lobby_entity(
+        &message.lobby_id,
+        sender,
+        message.map_name.as_deref(),
+        &mut commands,
+    ) {
+        commands
+            .entity(sender)
+            .remove::<AwaitingFirstContact>()
+            .insert(InLobby(lobby_entity));
+    } else {
+        error!("Failed to get or insert lobby for client {:?}", sender);
+    }
 }
