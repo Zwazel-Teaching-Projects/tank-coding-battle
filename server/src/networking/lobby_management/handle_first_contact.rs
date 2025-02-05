@@ -1,12 +1,12 @@
-use bevy::{ecs::system::SystemParam, prelude::*};
+use bevy::prelude::*;
 use shared::networking::messages::message_container::FirstContactTrigger;
 
 use crate::networking::{
     handle_clients::lib::{AwaitingFirstContact, ClientDisconnectedTrigger},
-    lobby_management::{InLobby, MyLobby},
+    lobby_management::InLobby,
 };
 
-use super::MyLobbies;
+use super::lobby_management::LobbyManagementSystemParam;
 
 pub fn handle_awaiting_first_contact(
     mut commands: Commands,
@@ -17,56 +17,6 @@ pub fn handle_awaiting_first_contact(
         if timer.0.tick(time.delta()).finished() {
             info!("Client {:?} timed out waiting for first contact", entity);
             commands.trigger(ClientDisconnectedTrigger(entity));
-        }
-    }
-}
-
-#[derive(SystemParam)]
-pub struct LobbyManagementSystemParam<'w, 's> {
-    lobby_resource: ResMut<'w, MyLobbies>,
-    lobby_entities: Query<'w, 's, &'static mut MyLobby>,
-}
-
-impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
-    pub fn get_or_insert_lobby(
-        &mut self,
-        lobby_id: &str,
-        commands: &mut Commands,
-    ) -> (Entity, Mut<MyLobby>) {
-        let lobby_entity = self
-            .lobby_resource
-            .lobbies
-            .entry(lobby_id.to_string())
-            .or_insert(
-                commands
-                    .spawn(MyLobby {
-                        name: lobby_id.to_string(),
-                        players: Vec::new(),
-                    })
-                    .id(),
-            );
-
-        (
-            *lobby_entity,
-            self.lobby_entities.get_mut(*lobby_entity).unwrap(),
-        )
-    }
-
-    pub fn remove_player_from_lobby(&mut self, player: Entity, lobby_id: &str) {
-        if let Some(lobby_entity) = self.lobby_resource.lobbies.get(lobby_id) {
-            if let Ok(mut lobby) = self.lobby_entities.get_mut(*lobby_entity) {
-                lobby.players.retain(|&x| x != player);
-            } else {
-                error!(
-                    "Failed to get lobby for lobby id: {}, cannot remove player {} from lobby",
-                    lobby_id, player
-                );
-            }
-        } else {
-            error!(
-                "Failed to get lobby entity for lobby id: {}, cannot remove player {} from lobby",
-                lobby_id, player
-            );
         }
     }
 }

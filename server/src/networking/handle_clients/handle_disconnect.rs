@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::networking::lobby_management::{handle_first_contact::LobbyManagementSystemParam, InLobby};
+use crate::networking::lobby_management::{lobby_management::LobbyManagementSystemParam, InLobby};
 
 use super::lib::{ClientDisconnectedTrigger, MyNetworkClient};
 
@@ -25,6 +25,6 @@ pub fn handle_client_disconnects(
     commands.entity(networked_entity).despawn_recursive();
 
     if let Some(in_lobby) = in_lobby {
-        lobby_management.remove_player_from_lobby(networked_entity, &lobby_id);
+        lobby_management.remove_player_from_lobby(networked_entity, **in_lobby);
     }
 }

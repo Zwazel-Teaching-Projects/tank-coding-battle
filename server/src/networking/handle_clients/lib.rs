@@ -37,5 +37,5 @@ pub struct ClientConnectedTrigger(pub Entity);
 #[derive(Event, Deref, DerefMut)]
 pub struct ClientDisconnectedTrigger(pub Entity);
 
-#[derive(Event, Deref, DerefMut)]
-pub struct ClientJoinedLobbyTrigger(pub Entity);
+#[derive(Event)]
+pub struct ClientHasBeenDespawnedTrigger;

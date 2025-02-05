@@ -1,8 +1,12 @@
 use bevy::{prelude::*, utils::HashMap};
 use handle_first_contact::{handle_awaiting_first_contact, handle_first_contact_message};
+use lobby_management::LobbyManagementSystemParam;
 use shared::networking::networking_state::MyNetworkingState;
 
+use super::handle_clients::lib::ClientHasBeenDespawnedTrigger;
+
 pub mod handle_first_contact;
+pub mod lobby_management;
 
 pub struct MyLobbyManagementPlugin;
 
@@ -11,16 +15,17 @@ impl Plugin for MyLobbyManagementPlugin {
         app.add_observer(handle_first_contact_message)
             .add_systems(
                 Update,
-                handle_awaiting_first_contact.run_if(in_state(MyNetworkingState::Running)),
+                (handle_awaiting_first_contact.run_if(in_state(MyNetworkingState::Running)),),
             )
             .register_type::<MyLobbies>()
             .init_resource::<MyLobbies>()
             .register_type::<MyLobby>()
-            .register_type::<InLobby>();
+            .register_type::<InLobby>()
+            .add_observer(despawn_lobby_if_empty);
     }
 }
 
-#[derive(Debug, Reflect, Component)]
+#[derive(Debug, Reflect, Component, Deref, DerefMut)]
 #[reflect(Component)]
 pub struct InLobby(pub Entity);
 
@@ -35,4 +40,12 @@ pub struct MyLobbies {
 pub struct MyLobby {
     pub name: String,
     pub players: Vec<Entity>,
+}
+
+fn despawn_lobby_if_empty(
+    _: Trigger<ClientHasBeenDespawnedTrigger>,
+    mut lobby_management: LobbyManagementSystemParam,
+    mut commands: Commands,
+) {
+    lobby_management.cleanup_lobbies(&mut commands);
 }
