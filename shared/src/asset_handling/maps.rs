@@ -51,6 +51,12 @@ pub struct MapConfigSystemParam<'w> {
 
 impl<'w> MapConfigSystemParam<'w> {
     pub fn get_map_config(&self, map_name: &str) -> Option<&MapConfig> {
+        let map_name = if map_name.ends_with(".map") {
+            map_name.to_string()
+        } else {
+            format!("{}.map", map_name)
+        };
+
         self.maps_asset
             .maps
             .iter()
