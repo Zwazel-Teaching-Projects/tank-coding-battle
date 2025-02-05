@@ -13,25 +13,25 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Generate match arms for each enum variant.
     let arms = message_enum.variants.iter().map(|variant| {
-        let variant_ident = &variant.ident;
-        match &variant.fields {
-            syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
-                // Create trigger type name by appending "Trigger" to the variant name.
-                let trigger_ident = syn::Ident::new(&format!("{}Trigger", variant_ident), variant_ident.span());
-                quote! {
-                    #enum_ident::#variant_ident(data) => {
-                        commands.trigger(#trigger_ident(data.clone()));
-                    }
+    let variant_ident = &variant.ident;
+    match &variant.fields {
+        syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
+            // Create trigger type name by appending "Trigger" to the variant name.
+            let trigger_ident = syn::Ident::new(&format!("{}Trigger", variant_ident), variant_ident.span());
+            quote! {
+                #enum_ident::#variant_ident(data) => {
+                    commands.trigger(#trigger_ident { message: data.clone(), sender: self.sender.clone().unwrap() });
                 }
-            },
-            _ => {
-                return syn::Error::new_spanned(
-                    variant,
-                    "Each enum variant must be a tuple with exactly one field"
-                )
-                .to_compile_error();
             }
+        },
+        _ => {
+            return syn::Error::new_spanned(
+                variant,
+                "Each enum variant must be a tuple with exactly one field"
+            )
+            .to_compile_error();
         }
+    }
     });
 
     // Generate the impl block for MessageContainer.
@@ -56,4 +56,3 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     expanded.into()
 }
-    

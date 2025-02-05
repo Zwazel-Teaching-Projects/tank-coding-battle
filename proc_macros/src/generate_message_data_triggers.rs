@@ -20,10 +20,13 @@ pub fn generate(item: TokenStream) -> TokenStream {
         match &variant.fields {
             Fields::Unnamed(ref fields) if fields.unnamed.len() == 1 => {
                 let field_type = &fields.unnamed.first().unwrap().ty;
-                // Forge the new struct with the required derives
                 let generated = quote! {
                     #[derive(Event, Debug, Deref, DerefMut)]
-                    pub struct #trigger_name(pub #field_type);
+                    pub struct #trigger_name {
+                        #[deref]
+                        pub message: #field_type,
+                        pub sender: Entity,
+                    }
                 };
                 generated_structs.push(generated);
             }

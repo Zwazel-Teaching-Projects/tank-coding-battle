@@ -21,6 +21,9 @@ pub struct MessageContainer {
     pub target: MessageTarget,
     pub message: NetworkMessageType,
 
+    #[serde(skip)]
+    pub sender: Option<Entity>,
+
     pub tick_sent: u64,
     pub tick_received: u64,
 }
@@ -33,9 +36,14 @@ impl MessageContainer {
         message
     }
 
-    pub fn new_received(target: MessageTarget, message: NetworkMessageType, tick: u64) -> Self {
+    pub fn new_received(
+        target: MessageTarget,
+        message: NetworkMessageType,
+        tick: u64,
+        sender: Entity,
+    ) -> Self {
         let mut message = MessageContainer::new(target, message);
-        message.with_received(tick);
+        message.with_received(tick, sender);
 
         message
     }
@@ -44,13 +52,17 @@ impl MessageContainer {
         MessageContainer {
             target,
             message,
+
+            sender: None,
+
             tick_sent: 0,
             tick_received: 0,
         }
     }
 
-    pub fn with_received(&mut self, tick: u64) -> &mut Self {
+    pub fn with_received(&mut self, tick: u64, sender: Entity) -> &mut Self {
         self.tick_received = tick;
+        self.sender = Some(sender);
         self
     }
 

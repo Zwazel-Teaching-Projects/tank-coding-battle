@@ -28,6 +28,29 @@ impl Plugin for MyConfigPlugin {
     }
 }
 
+#[derive(Debug, Default, Reflect, Resource, Clone, AssetCollection)]
+#[reflect(Resource)]
+struct MyConfigAsset {
+    #[asset(path = "config/server_config.ron")]
+    server: Handle<ServerConfig>,
+    #[asset(path = "config/spectator_client_config.ron")]
+    client: Handle<ClientConfig>,
+}
+
+#[derive(Debug, Default, Reflect, Clone, Asset, Deserialize)]
+pub struct ServerConfig {
+    pub ip: String,
+    pub port: u16,
+    pub tick_rate: u32,
+    pub timeout_first_contact: u64, // in milliseconds
+}
+
+#[derive(Debug, Default, Reflect, Clone, Asset, Deserialize)]
+pub struct ClientConfig {
+    pub ip: String,
+    pub port: u16,
+}
+
 #[derive(SystemParam)]
 pub struct ServerConfigSystemParam<'w> {
     config_asset: Res<'w, MyConfigAsset>,
@@ -62,26 +85,4 @@ impl<'w> ClientConfigSystemParam<'w> {
             .get(self.config_asset.client.id())
             .unwrap()
     }
-}
-
-#[derive(Debug, Default, Reflect, Resource, Clone, AssetCollection)]
-#[reflect(Resource)]
-struct MyConfigAsset {
-    #[asset(path = "config/server_config.ron")]
-    server: Handle<ServerConfig>,
-    #[asset(path = "config/spectator_client_config.ron")]
-    client: Handle<ClientConfig>,
-}
-
-#[derive(Debug, Default, Reflect, Clone, Asset, Deserialize)]
-pub struct ServerConfig {
-    pub ip: String,
-    pub port: u16,
-    pub tick_rate: f32,
-}
-
-#[derive(Debug, Default, Reflect, Clone, Asset, Deserialize)]
-pub struct ClientConfig {
-    pub ip: String,
-    pub port: u16,
 }

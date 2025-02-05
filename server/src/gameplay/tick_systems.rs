@@ -33,7 +33,7 @@ struct TickTimerResource(Timer);
 fn init_tick_timer(mut commands: Commands, server_config: ServerConfigSystemParam) {
     let config = server_config.server_config();
     commands.insert_resource(TickTimerResource(Timer::from_seconds(
-        1.0 / config.tick_rate,
+        1.0 / config.tick_rate as f32,
         TimerMode::Repeating,
     )));
 }

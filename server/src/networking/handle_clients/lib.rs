@@ -2,6 +2,10 @@ use std::net::{SocketAddr, TcpStream};
 
 use bevy::prelude::*;
 
+#[derive(Debug, Component, Reflect, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct AwaitingFirstContact(pub Timer);
+
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
 pub struct MyLocalClient {
@@ -30,7 +34,10 @@ impl MyNetworkClient {
 }
 
 #[derive(Event, Deref, DerefMut)]
-pub struct ClientConnectedEvent(pub Entity);
+pub struct ClientConnectedTrigger(pub Entity);
 
 #[derive(Event, Deref, DerefMut)]
 pub struct ClientDisconnectedTrigger(pub Entity);
+
+#[derive(Event, Deref, DerefMut)]
+pub struct ClientJoinedLobbyTrigger(pub Entity);

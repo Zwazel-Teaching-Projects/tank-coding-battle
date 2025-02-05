@@ -25,7 +25,6 @@ pub fn handle_reading_messages(
             }
         }
         let msg_len = u32::from_be_bytes(len_buf) as usize;
-        info!("Expecting {} bytes from {}", msg_len, addr);
 
         if msg_len == 0 {
             // No message to read
@@ -51,13 +50,11 @@ pub fn handle_reading_messages(
                 continue;
             }
         };
-        info!("Received from {}: {}", addr, received);
 
         // Deserialize the JSON into your MessageContainer
         match serde_json::from_str::<MessageContainer>(&received) {
-            Ok(message_container) => {
-                info!("Successfully parsed JSON: {:?}", message_container);
-
+            Ok(mut message_container) => {
+                message_container.sender = Some(entity);
                 message_container.trigger_message_received(&mut commands);
             }
             Err(e) => {
