@@ -9,11 +9,12 @@ pub struct LobbyManagementSystemParam<'w, 's> {
 }
 
 impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
-    pub fn get_or_insert_lobby(
+    pub fn get_or_insert_lobby_entity(
         &mut self,
         lobby_id: &str,
+        player: Entity,
         commands: &mut Commands,
-    ) -> (Entity, Mut<MyLobby>) {
+    ) -> Entity {
         let lobby_entity = self
             .lobby_resource
             .lobbies
@@ -22,12 +23,12 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 commands
                     .spawn(MyLobby {
                         name: lobby_id.to_string(),
-                        players: Vec::new(),
+                        players: vec![player],
                     })
                     .id(),
             );
 
-        self.lobby_entities.get_mut(*lobby_entity).unwrap()
+        *lobby_entity
     }
 
     pub fn remove_player_from_lobby(&mut self, player: Entity, lobby: Entity) {

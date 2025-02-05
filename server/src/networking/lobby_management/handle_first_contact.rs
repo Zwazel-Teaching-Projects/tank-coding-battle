@@ -36,9 +36,8 @@ pub fn handle_first_contact_message(
     );
 
     // get or insert lobby
-    let (lobby_entity, mut lobby) =
-        lobby_management.get_or_insert_lobby(&message.lobby_id, &mut commands);
-    lobby.players.push(sender);
+    let lobby_entity =
+        lobby_management.get_or_insert_lobby_entity(&message.lobby_id, sender, &mut commands);
 
     commands
         .entity(sender)
