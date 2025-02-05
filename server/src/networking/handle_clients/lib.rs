@@ -17,7 +17,6 @@ pub struct MyNetworkClient {
     pub name: Option<String>,
     pub address: SocketAddr,
     pub stream: TcpStream,
-    pub room_id: Option<u32>,
     pub my_local_client: Option<Entity>,
 }
 
@@ -27,7 +26,6 @@ impl MyNetworkClient {
             name: None,
             address,
             stream,
-            room_id: None,
             my_local_client: None,
         }
     }

@@ -1,14 +1,17 @@
 use bevy::prelude::*;
 
+use crate::networking::lobby_management::{handle_first_contact::LobbyManagementSystemParam, InLobby};
+
 use super::lib::{ClientDisconnectedTrigger, MyNetworkClient};
 
 pub fn handle_client_disconnects(
     disconnected_client: Trigger<ClientDisconnectedTrigger>,
-    clients: Query<(Entity, &MyNetworkClient)>,
+    clients: Query<(Entity, &MyNetworkClient, Option<&InLobby>)>,
     mut commands: Commands,
+    mut lobby_management: LobbyManagementSystemParam,
 ) {
     let disconnected_client = **disconnected_client;
-    let (networked_entity, networked_client) = clients.get(disconnected_client).unwrap();
+    let (networked_entity, networked_client, in_lobby) = clients.get(disconnected_client).unwrap();
 
     info!(
         "Client disconnected: {:?} ({})",
@@ -20,4 +23,8 @@ pub fn handle_client_disconnects(
     }
 
     commands.entity(networked_entity).despawn_recursive();
+
+    if let Some(in_lobby) = in_lobby {
+        lobby_management.remove_player_from_lobby(networked_entity, &lobby_id);
+    }
 }

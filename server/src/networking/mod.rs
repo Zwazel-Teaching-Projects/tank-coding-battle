@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use handle_clients::HandleClientsPlugin;
 use handle_messages::HandleMessagesPlugin;
 use lib::MyTcpListener;
-use lobby_management::MyLobbyManagement;
+use lobby_management::MyLobbyManagementPlugin;
 use shared::{
     asset_handling::config::ServerConfigSystemParam,
     main_state::MyMainState,
@@ -29,7 +29,11 @@ impl Plugin for MyNetworkingPlugin {
             )
                 .after(MyGameplaySet::SimulationStepDone),
         )
-        .add_plugins((HandleClientsPlugin, HandleMessagesPlugin, MyLobbyManagement))
+        .add_plugins((
+            HandleClientsPlugin,
+            HandleMessagesPlugin,
+            MyLobbyManagementPlugin,
+        ))
         .add_systems(OnEnter(MyMainState::Ready), setup_listener);
     }
 }
