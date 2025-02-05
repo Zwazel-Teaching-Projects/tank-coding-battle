@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 pub mod first_contact;
+pub mod simple_text_message;
 
 pub struct MySharedMessageDataPlugin;
 

@@ -9,6 +9,8 @@ use shared::{
     networking::networking_state::MyNetworkingState,
 };
 
+use crate::gameplay::handle_players::team_handling::InTeam;
+
 use super::handle_clients::lib::AwaitingFirstContact;
 
 pub mod handle_first_contact;
@@ -74,6 +76,12 @@ impl MyLobby {
         self.players.push(player);
         self
     }
+
+    pub fn get_team(&self, team_name: &str) -> Option<&Vec<Entity>> {
+        self.map_config
+            .as_ref()
+            .and_then(|map_config| map_config.get_team(team_name).map(|team| &team.players))
+    }
 }
 
 #[derive(Debug, Reflect, Default, PartialEq)]
@@ -99,6 +107,7 @@ pub fn remove_player_from_lobby(
     commands
         .entity(player)
         .remove::<InLobby>()
+        .remove::<InTeam>()
         .insert(AwaitingFirstContact::new(
             server_config.timeout_first_contact,
         ));
@@ -109,6 +118,7 @@ fn finish_setting_up_lobby(
     mut lobby_management: LobbyManagementSystemParam,
     map_config: MapConfigSystemParam,
     mut commands: Commands,
+    players: Query<&InTeam>,
 ) {
     let (lobby_entity, mut lobby) = lobby_management.get_lobby_mut(trigger.entity()).unwrap();
     if lobby.map_config.is_none() {
@@ -120,12 +130,27 @@ fn finish_setting_up_lobby(
 
             lobby.map_config = Some(map_config.clone());
 
-            lobby.players.iter().for_each(|&player| {
-                commands
-                    .entity(player)
-                    .remove::<AwaitingFirstContact>()
-                    .insert(InLobby(lobby_entity));
-            });
+            let player_teams = lobby
+                .players
+                .iter()
+                .map(|&player| {
+                    commands
+                        .entity(player)
+                        .remove::<AwaitingFirstContact>()
+                        .insert(InLobby(lobby_entity));
+
+                    let player_team = players.get(player).unwrap().team_name.clone();
+                    (player, player_team)
+                })
+                .collect::<Vec<_>>();
+
+            for (player, team_name) in player_teams {
+                lobby
+                    .map_config
+                    .as_mut()
+                    .unwrap()
+                    .insert_player_into_team(&team_name, player);
+            }
         } else {
             error!(
                 "Failed to get map config for lobby \"{}\" with map name \"{}\"",

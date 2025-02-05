@@ -33,14 +33,34 @@ pub struct AllMapsAsset {
 
 #[derive(Debug, Default, Reflect, Clone, Asset, Deserialize, PartialEq)]
 pub struct MapConfig {
-    pub teams: Vec<TeamConfig>,
+    pub teams: HashMap<String, TeamConfig>,
+}
+
+impl MapConfig {
+    pub fn insert_player_into_team(&mut self, team_name: &str, player: Entity) {
+        if let Some(team) = self.teams.get_mut(team_name) {
+            team.players.push(player);
+        }
+    }
+
+    pub fn remove_player_from_team(&mut self, player: Entity) {
+        for team in self.teams.values_mut() {
+            team.players.retain(|&x| x != player);
+        }
+    }
+
+    pub fn get_team(&self, team_name: &str) -> Option<&TeamConfig> {
+        self.teams.get(team_name)
+    }
 }
 
 #[derive(Debug, Clone, Reflect, Default, Deserialize, PartialEq)]
 pub struct TeamConfig {
-    pub name: String,
     pub color: Color,
     pub max_players: usize,
+
+    #[serde(skip)]
+    pub players: Vec<Entity>,
 }
 
 #[derive(SystemParam)]

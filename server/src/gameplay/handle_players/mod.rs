@@ -1,12 +1,15 @@
 use bevy::prelude::*;
+use team_handling::InTeam;
 
 use crate::networking::handle_clients::lib::ClientConnectedTrigger;
+
+pub mod team_handling;
 
 pub struct HandlePlayersPlugin;
 
 impl Plugin for HandlePlayersPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(spawn_new_player);
+        app.register_type::<InTeam>().add_observer(spawn_new_player);
     }
 }
 

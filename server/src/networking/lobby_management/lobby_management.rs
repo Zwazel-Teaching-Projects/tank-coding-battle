@@ -52,14 +52,16 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         commands: &mut Commands,
     ) {
         if let Ok((_, mut lobby)) = self.lobby_entities.get_mut(lobby) {
-            lobby.players.retain(|&x| {
-                if x == player {
-                    commands.trigger_targets(PlayerRemovedFromLobbyTrigger, player);
-                    false
-                } else {
-                    true
-                }
-            });
+            lobby
+                .players
+                .retain(|&x| if x == player { false } else { true });
+
+            // Also remove from team
+            if let Some(ref mut map_config) = &mut lobby.map_config {
+                map_config.remove_player_from_team(player);
+            }
+
+            commands.trigger_targets(PlayerRemovedFromLobbyTrigger, player);
         } else {
             error!(
                 "Failed to get lobby for lobby entity: {}, cannot remove player {} from lobby",

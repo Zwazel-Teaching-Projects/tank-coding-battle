@@ -20,7 +20,11 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
             let trigger_ident = syn::Ident::new(&format!("{}Trigger", variant_ident), variant_ident.span());
             quote! {
                 #enum_ident::#variant_ident(data) => {
-                    commands.trigger(#trigger_ident { message: data.clone(), sender: self.sender.clone().unwrap() });
+                    if targets.is_empty() {
+                        commands.trigger(#trigger_ident { message: data.clone(), sender: self.sender.clone().unwrap() });
+                    } else {
+                        commands.trigger_targets(#trigger_ident { message: data.clone(), sender: self.sender.clone().unwrap() }, targets);
+                    }
                 }
             }
         },
@@ -37,7 +41,7 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Generate the impl block for MessageContainer.
     let impl_block = quote! {
         impl #container_ident {
-            pub fn trigger_message_received(&self, commands: &mut Commands) {
+            pub fn trigger_message_received(&self, commands: &mut Commands, targets: Vec<Entity>) {
                 match &self.message {
                     #(#arms),*
                 }

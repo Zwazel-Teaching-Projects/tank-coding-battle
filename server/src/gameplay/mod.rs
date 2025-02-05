@@ -13,7 +13,7 @@ use tick_systems::TickSystemsPlugin;
 
 use crate::networking::handle_messages::message_queue::OutgoingMessageQueue;
 
-mod handle_players;
+pub mod handle_players;
 pub mod lib;
 pub mod system_sets;
 mod tick_systems;
@@ -51,6 +51,6 @@ fn add_current_game_state_to_message_queue(
 ) {
     message_queue.push_back(MessageContainer::new(
         MessageTarget::All,
-        NetworkMessageType::GameStateUpdate(game_state.clone()),
+        NetworkMessageType::GameState(game_state.clone()),
     ));
 }

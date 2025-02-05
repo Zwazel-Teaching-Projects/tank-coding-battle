@@ -1,15 +1,29 @@
 use std::io::Read;
 
 use bevy::prelude::*;
-use shared::networking::messages::message_container::MessageContainer;
+use shared::networking::messages::{
+    message_container::MessageContainer, message_targets::MessageTarget,
+};
 
-use crate::networking::handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient};
+use crate::{
+    gameplay::handle_players::team_handling::InTeam,
+    networking::{
+        handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient},
+        lobby_management::{InLobby, MyLobby},
+    },
+};
 
 pub fn handle_reading_messages(
     mut commands: Commands,
-    mut clients: Query<(Entity, &mut MyNetworkClient)>,
+    mut clients: Query<(
+        Entity,
+        &mut MyNetworkClient,
+        Option<&InLobby>,
+        Option<&InTeam>,
+    )>,
+    lobbies: Query<(Entity, &MyLobby)>,
 ) {
-    for (entity, mut network_client) in clients.iter_mut() {
+    for (entity, mut network_client, in_lobby, in_team) in clients.iter_mut() {
         let addr = network_client.address;
         let stream = &mut network_client.stream;
 
@@ -55,7 +69,65 @@ pub fn handle_reading_messages(
         match serde_json::from_str::<MessageContainer>(&received) {
             Ok(mut message_container) => {
                 message_container.sender = Some(entity);
-                message_container.trigger_message_received(&mut commands);
+
+                info!(
+                    "Received message from client \"{:?}\":\n{:?}",
+                    addr, message_container
+                );
+
+                let targets = match message_container.target {
+                    MessageTarget::Team => {
+                        if let Some(lobby) = in_lobby {
+                            if let Some(in_team) = in_team {
+                                let team_name = &in_team.team_name;
+                                if let Some(team) =
+                                    lobbies.get(lobby.0).unwrap().1.get_team(team_name)
+                                {
+                                    // Filter myself out
+                                    Some(team.iter().copied().filter(|&x| x != entity).collect())
+                                } else {
+                                    error!("Received a message with target \"Team\" from client \"{:?}\", but the team \"{}\" does not exist in the lobby:\n{:?}", addr, team_name, message_container);
+                                    None
+                                }
+                            } else {
+                                error!("Received a message with target \"Team\" from client \"{:?}\" that is not in a team:\n{:?}", addr, message_container);
+                                None
+                            }
+                        } else {
+                            error!("Received a message with target \"Team\" from client \"{:?}\" that is not in a lobby:\n{:?}", addr, message_container);
+                            None
+                        }
+                    }
+                    MessageTarget::ServerOnly => Some(vec![]),
+                    MessageTarget::All => {
+                        if let Some(lobby) = in_lobby {
+                            // Filter out myself
+                            let players = lobbies
+                                .get(lobby.0)
+                                .unwrap()
+                                .1
+                                .players
+                                .iter()
+                                .copied()
+                                .filter(|&x| x != entity)
+                                .collect();
+                            Some(players)
+                        } else {
+                            error!("Received a message with target \"All\" from client \"{:?}\" that is not in a lobby:\n{:?}", addr, message_container);
+                            None
+                        }
+                    }
+                    MessageTarget::Client => todo!(),
+                };
+
+                if let Some(targets) = targets {
+                    message_container.trigger_message_received(&mut commands, targets);
+                } else {
+                    error!(
+                        "Failed to handle message from client \"{:?}\":\n{:?}",
+                        addr, message_container
+                    );
+                }
             }
             Err(e) => {
                 error!(

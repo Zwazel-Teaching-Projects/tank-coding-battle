@@ -4,17 +4,21 @@ use serde::{Deserialize, Serialize};
 
 use crate::game::game_state::GameState;
 
-use super::{message_data::first_contact::FirstContactData, message_targets::MessageTarget};
+use super::{
+    message_data::{first_contact::FirstContactData, simple_text_message::SimpleTextMessage},
+    message_targets::MessageTarget,
+};
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 #[auto_trigger_message_received(
     #[derive(Serialize, Deserialize, Reflect, Clone, Debug)]
-    #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "message_type")]
+    #[serde(tag = "message_type")]
     #[generate_message_data_triggers]
     pub enum NetworkMessageType {
         FirstContact(FirstContactData),
-        GameStateUpdate(GameState),
+        GameState(GameState),
+        SimpleTextMessage(SimpleTextMessage)
     }
 )]
 pub struct MessageContainer {
@@ -24,6 +28,7 @@ pub struct MessageContainer {
     #[serde(skip)]
     pub sender: Option<Entity>,
 
+    // TODO: Do we need that? maybe just store the tick_received, maybe even store in the list of messages?
     pub tick_sent: u64,
     pub tick_received: u64,
 }
@@ -74,6 +79,6 @@ impl MessageContainer {
 
 impl Default for NetworkMessageType {
     fn default() -> Self {
-        NetworkMessageType::GameStateUpdate(GameState::default())
+        NetworkMessageType::GameState(GameState::default())
     }
 }

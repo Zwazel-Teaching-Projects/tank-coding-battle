@@ -1,8 +1,11 @@
 use bevy::prelude::*;
 use shared::networking::messages::message_container::FirstContactTrigger;
 
-use crate::networking::handle_clients::lib::{
-    AwaitingFirstContact, ClientDisconnectedTrigger, MyNetworkClient,
+use crate::{
+    gameplay::handle_players::team_handling::InTeam,
+    networking::handle_clients::lib::{
+        AwaitingFirstContact, ClientDisconnectedTrigger, MyNetworkClient,
+    },
 };
 
 use super::lobby_management::LobbyManagementSystemParam;
@@ -26,7 +29,7 @@ pub fn handle_first_contact_message(
     trigger: Trigger<FirstContactTrigger>,
     mut commands: Commands,
     mut lobby_management: LobbyManagementSystemParam,
-    mut clients: Query<&mut MyNetworkClient>,
+    mut clients: Query<(Entity, &mut MyNetworkClient)>,
 ) {
     let message = &trigger.message;
     let sender = trigger.sender;
@@ -36,8 +39,12 @@ pub fn handle_first_contact_message(
     );
 
     // Update the client's state
-    if let Ok(mut client) = clients.get_mut(sender) {
+    if let Ok((client_entity, mut client)) = clients.get_mut(sender) {
         client.name = Some(message.bot_name.clone());
+
+        commands.entity(client_entity).insert(InTeam {
+            team_name: message.team_name.clone(),
+        });
     }
 
     // get or insert lobby

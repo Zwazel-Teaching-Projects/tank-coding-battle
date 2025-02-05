@@ -1,7 +1,6 @@
 (
-    teams: [
-        (
-            name: "Red",
+    teams: {
+        "Red": (
             color: Srgba(
                 Srgba(
                     red: 1.0,
@@ -12,9 +11,8 @@
             ),
             max_players: 4,
         ),
-        (
-            name: "Blue",
-            color: Srgba (
+        "Blue": (
+            color: Srgba(
                 Srgba(
                     red: 0.0,
                     green: 0.0,
@@ -24,5 +22,5 @@
             ),
             max_players: 4,
         ),
-    ],
+    },
 )
