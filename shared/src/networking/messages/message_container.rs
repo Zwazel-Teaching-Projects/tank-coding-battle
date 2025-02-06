@@ -4,21 +4,40 @@ use serde::{Deserialize, Serialize};
 
 use crate::game::game_state::GameState;
 
-use super::{
-    message_data::{first_contact::FirstContactData, simple_text_message::SimpleTextMessage},
-    message_targets::MessageTarget,
+use super::message_data::{
+    first_contact::FirstContactData, simple_text_message::SimpleTextMessage,
 };
 
-#[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[auto_trigger_message_received(
-    #[derive(Serialize, Deserialize, Reflect, Clone, Debug)]
-    #[serde(tag = "message_type")]
-    #[generate_message_data_triggers]
-    pub enum NetworkMessageType {
-        FirstContact(FirstContactData),
-        GameState(GameState),
-        SimpleTextMessage(SimpleTextMessage)
+    target = {
+        #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
+        #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+        pub enum MessageTarget {
+            #[default]
+            Team,
+            ServerOnly,
+            All,
+            Client,
+        }
+    },
+    message = {
+        #[derive(Serialize, Deserialize, Reflect, Clone, Debug, PartialEq)]
+        #[serde(tag = "message_type")]
+        #[generate_message_data_triggers]
+        pub enum NetworkMessageType {
+            // Allowed targets declared by simple attributes.
+            #[ServerOnly]
+            FirstContact(FirstContactData),
+            // No attribute means all targets are allowed.
+            GameState(GameState),
+            // Multiple allowed targets.
+            #[Client]
+            #[All]
+            #[Team]
+            SimpleTextMessage(SimpleTextMessage)
+        }
     }
 )]
 pub struct MessageContainer {

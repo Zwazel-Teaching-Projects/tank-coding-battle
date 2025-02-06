@@ -3,9 +3,8 @@ use handle_players::HandlePlayersPlugin;
 use lib::StartNextTickProcessing;
 use shared::{
     game::game_state::GameState,
-    networking::messages::{
-        message_container::{MessageContainer, NetworkMessageType},
-        message_targets::MessageTarget,
+    networking::messages::message_container::{
+        MessageContainer, MessageTarget, NetworkMessageType,
     },
 };
 use system_sets::MyGameplaySet;

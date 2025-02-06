@@ -1,9 +1,7 @@
 use std::io::Read;
 
 use bevy::prelude::*;
-use shared::networking::messages::{
-    message_container::MessageContainer, message_targets::MessageTarget,
-};
+use shared::networking::messages::message_container::{MessageContainer, MessageTarget};
 
 use crate::{
     gameplay::handle_players::team_handling::InTeam,
