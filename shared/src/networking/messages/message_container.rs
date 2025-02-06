@@ -2,7 +2,12 @@ use bevy::prelude::*;
 use proc_macros::{auto_trigger_message_received, generate_message_data_triggers};
 use serde::{Deserialize, Serialize};
 
-use crate::game::game_state::GameState;
+use crate::{
+    game::game_state::GameState,
+    networking::lobby_management::lobby_management::{
+        LobbyManagementArgument, LobbyManagementSystemParam,
+    },
+};
 
 use super::message_data::{
     first_contact::FirstContactData, simple_text_message::SimpleTextMessage,
@@ -16,6 +21,7 @@ use super::message_data::{
         #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
         pub enum MessageTarget {
             #[default]
+            #[get_players_in_lobby_team]
             Team,
             ServerOnly,
             All,

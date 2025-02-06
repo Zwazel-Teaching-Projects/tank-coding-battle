@@ -6,6 +6,7 @@ use networking_system_sets::MyNetworkingSet;
 pub mod messages;
 pub mod networking_state;
 pub mod networking_system_sets;
+pub mod lobby_management;
 
 pub struct MySharedNetworkingPlugin;
 

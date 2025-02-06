@@ -3,8 +3,6 @@ use team_handling::InTeam;
 
 use crate::networking::handle_clients::lib::ClientConnectedTrigger;
 
-pub mod team_handling;
-
 pub struct HandlePlayersPlugin;
 
 impl Plugin for HandlePlayersPlugin {

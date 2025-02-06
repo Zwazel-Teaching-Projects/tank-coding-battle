@@ -1,13 +1,13 @@
 use std::io::Read;
 
 use bevy::prelude::*;
-use shared::networking::messages::message_container::{MessageContainer, MessageTarget};
+use shared::networking::messages::message_container::MessageContainer;
 
 use crate::{
     gameplay::handle_players::team_handling::InTeam,
     networking::{
         handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient},
-        lobby_management::{InLobby, MyLobby},
+        lobby_management::{lobby_management::LobbyManagementSystemParam, InLobby, MyLobby},
     },
 };
 
@@ -20,6 +20,7 @@ pub fn handle_reading_messages(
         Option<&InTeam>,
     )>,
     lobbies: Query<(Entity, &MyLobby)>,
+    lobby_management: LobbyManagementSystemParam,
 ) {
     for (entity, mut network_client, in_lobby, in_team) in clients.iter_mut() {
         let addr = network_client.address;
@@ -73,57 +74,12 @@ pub fn handle_reading_messages(
                     addr, message_container
                 );
 
-                let targets = match message_container.target {
-                    MessageTarget::Team => {
-                        if let Some(lobby) = in_lobby {
-                            if let Some(in_team) = in_team {
-                                let team_name = &in_team.team_name;
-                                if let Some(team) =
-                                    lobbies.get(lobby.0).unwrap().1.get_team(team_name)
-                                {
-                                    // Filter myself out
-                                    Some(team.iter().copied().filter(|&x| x != entity).collect())
-                                } else {
-                                    error!("Received a message with target \"Team\" from client \"{:?}\", but the team \"{}\" does not exist in the lobby:\n{:?}", addr, team_name, message_container);
-                                    None
-                                }
-                            } else {
-                                error!("Received a message with target \"Team\" from client \"{:?}\" that is not in a team:\n{:?}", addr, message_container);
-                                None
-                            }
-                        } else {
-                            error!("Received a message with target \"Team\" from client \"{:?}\" that is not in a lobby:\n{:?}", addr, message_container);
-                            None
-                        }
-                    }
-                    MessageTarget::ServerOnly => Some(vec![]),
-                    MessageTarget::All => {
-                        if let Some(lobby) = in_lobby {
-                            // Filter out myself
-                            let players = lobbies
-                                .get(lobby.0)
-                                .unwrap()
-                                .1
-                                .players
-                                .iter()
-                                .copied()
-                                .filter(|&x| x != entity)
-                                .collect();
-                            Some(players)
-                        } else {
-                            error!("Received a message with target \"All\" from client \"{:?}\" that is not in a lobby:\n{:?}", addr, message_container);
-                            None
-                        }
-                    }
-                    MessageTarget::Client => todo!(),
-                };
+                let result = message_container.trigger_message_received(&mut commands, &lobby_management);
 
-                if let Some(targets) = targets {
-                    message_container.trigger_message_received(&mut commands, targets);
-                } else {
+                if let Err(e) = result {
                     error!(
                         "Failed to handle message from client \"{:?}\":\n{:?}",
-                        addr, message_container
+                        addr, e
                     );
                 }
             }
