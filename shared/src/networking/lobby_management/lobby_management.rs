@@ -4,6 +4,7 @@ use crate::networking::lobby_management::PlayerRemovedFromLobbyTrigger;
 
 use super::{MyLobbies, MyLobby};
 
+#[derive(Debug, Default, Clone)]
 pub struct LobbyManagementArgument {
     pub lobby: Option<Entity>,
     pub player: Option<Entity>,
@@ -133,26 +134,25 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
 
     pub fn get_lobby(&self, arg: LobbyManagementArgument) -> Result<(Entity, &MyLobby), String> {
         let lobby = arg.lobby.ok_or("No lobby entity provided")?;
-        self.lobby_entities.get(lobby).ok()
+        self.lobby_entities
+            .get(lobby)
+            .map_err(|_| "Lobby not found".to_string())
     }
 
     pub fn get_players_in_lobby(
         &self,
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
-        let lobby = arg.lobby.ok_or("No lobby entity provided")?;
-        self.get_lobby(lobby)
-            .map(|(_, lobby)| lobby.players.clone())
+        self.get_lobby(arg).map(|(_, lobby)| lobby.players.clone())
     }
 
     pub fn get_players_in_lobby_team(
         &self,
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
-        let lobby = arg.lobby.ok_or("No lobby entity provided")?;
-        let team_name = arg.team_name.ok_or("No team name provided")?;
+        let team_name = arg.clone().team_name.ok_or("No team name provided")?;
 
-        self.get_lobby(lobby).and_then(|(_, lobby)| {
+        self.get_lobby(arg).and_then(|(_, lobby)| {
             lobby
                 .map_config
                 .as_ref()

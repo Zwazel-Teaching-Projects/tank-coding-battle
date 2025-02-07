@@ -1,9 +1,41 @@
+use std::time::Duration;
+
 use bevy::{prelude::*, utils::HashMap};
 use lobby_management::LobbyManagementSystemParam;
 
-use crate::asset_handling::{config::ServerConfigSystemParam, maps::{MapConfig, MapConfigSystemParam}};
+use crate::asset_handling::{
+    config::ServerConfigSystemParam,
+    maps::{MapConfig, MapConfigSystemParam},
+};
 
 pub mod lobby_management;
+
+pub struct MyLobbyManagementPlugin;
+
+impl Plugin for MyLobbyManagementPlugin {
+    fn build(&self, app: &mut App) {
+        app.register_type::<MyLobbies>()
+            .init_resource::<MyLobbies>()
+            .register_type::<MyLobby>()
+            .register_type::<InLobby>()
+            .register_type::<LobbyState>()
+            .register_type::<AwaitingFirstContact>()
+            .add_observer(finish_setting_up_lobby);
+    }
+}
+
+#[derive(Debug, Component, Reflect, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct AwaitingFirstContact(pub Timer);
+
+impl AwaitingFirstContact {
+    pub fn new(time_millis: u64) -> Self {
+        Self(Timer::new(
+            Duration::from_millis(time_millis),
+            TimerMode::Once,
+        ))
+    }
+}
 
 #[derive(Debug, Default, Reflect, Clone, Component)]
 #[reflect(Component)]

@@ -1,39 +1,40 @@
 use proc_macro::TokenStream;
+use quote::{format_ident, quote};
 use syn::{
     braced,
-    parse::{Parse, ParseStream},
-    parse_macro_input, Error, Ident, ItemEnum, ItemStruct, Result, Token,
+    parse::{Parse, ParseStream, Parser},
+    parse_macro_input,
+    punctuated::Punctuated,
+    Attribute, DeriveInput, Ident, ItemEnum, Token,
 };
 
-/// Structure to parse the attribute input with two enums: target and message.
+// Structure to capture our unholy macro arguments.
 struct AutoTriggerArgs {
     target_enum: ItemEnum,
     message_enum: ItemEnum,
 }
 
 impl Parse for AutoTriggerArgs {
-    fn parse(input: ParseStream) -> Result<Self> {
-        // Expect: target = { ... }
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        // Parse: target = { ... }
         let target_ident: Ident = input.parse()?;
         if target_ident != "target" {
-            return Err(Error::new(target_ident.span(), "Expected 'target'"));
+            return Err(syn::Error::new(target_ident.span(), "Expected 'target'"));
         }
         input.parse::<Token![=]>()?;
-        let target_content;
-        braced!(target_content in input);
-        let target_enum: ItemEnum = target_content.parse()?;
+        let content;
+        braced!(content in input);
+        let target_enum: ItemEnum = content.parse()?;
         input.parse::<Token![,]>()?;
-
-        // Expect: message = { ... }
+        // Parse: message = { ... }
         let message_ident: Ident = input.parse()?;
         if message_ident != "message" {
-            return Err(Error::new(message_ident.span(), "Expected 'message'"));
+            return Err(syn::Error::new(message_ident.span(), "Expected 'message'"));
         }
         input.parse::<Token![=]>()?;
-        let message_content;
-        braced!(message_content in input);
-        let message_enum: ItemEnum = message_content.parse()?;
-
+        let content_msg;
+        braced!(content_msg in input);
+        let message_enum: ItemEnum = content_msg.parse()?;
         Ok(AutoTriggerArgs {
             target_enum,
             message_enum,
@@ -41,159 +42,179 @@ impl Parse for AutoTriggerArgs {
     }
 }
 
+// Helper function to extract the get_targets function name from an attribute.
+// Example: #[get_targets(get_players_in_lobby_team)]
+fn get_get_targets_fn(attrs: &[Attribute]) -> Option<Ident> {
+    for attr in attrs {
+        if attr.path().is_ident("get_targets") {
+            // In syn 2.0, `meta` is a field, not a method.
+            if let syn::Meta::List(meta_list) = &attr.meta {
+                // Parse the tokens into a punctuated list of Meta items using parse_terminated.
+                let nested = Punctuated::<syn::Meta, Token![,]>::parse_terminated
+                    .parse2(meta_list.tokens.clone())
+                    .ok()?;
+                // Extract the first meta item if it is a simple path.
+                if let Some(syn::Meta::Path(path)) = nested.into_iter().next() {
+                    return path.get_ident().cloned();
+                }
+            }
+        }
+    }
+    None
+}
+
+// Helper function to extract allowed targets from a message enum variant attribute.
+// Example: #[target(ServerOnly)] or #[target(Client, Team)]
+fn get_allowed_targets(attrs: &[Attribute]) -> Option<Vec<Ident>> {
+    for attr in attrs {
+        if attr.path().is_ident("target") {
+            // Use parse_terminated to extract the inner tokens as a list of Meta items.
+            if let syn::Meta::List(meta_list) = &attr.meta {
+                let nested = Punctuated::<syn::Meta, Token![,]>::parse_terminated
+                    .parse2(meta_list.tokens.clone())
+                    .ok()?;
+                let mut targets = Vec::new();
+                for meta in nested {
+                    if let syn::Meta::Path(path) = meta {
+                        if let Some(ident) = path.get_ident() {
+                            targets.push(ident.clone());
+                        }
+                    }
+                }
+                return Some(targets);
+            }
+        }
+    }
+    None
+}
+
 pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
-    // Parse the attribute input into our two enums.
+    // Parse the vile macro arguments and the pitiful structure to be enhanced.
     let args = parse_macro_input!(attr as AutoTriggerArgs);
-    let mut target_enum = args.target_enum;
+    let input_ast = parse_macro_input!(item as DeriveInput);
+
+    // Capture the two cursed enums of our dark design.
+    let target_enum = args.target_enum;
     let message_enum = args.message_enum;
-    let container = parse_macro_input!(item as ItemStruct);
-    let container_ident = &container.ident;
+
     let target_enum_ident = &target_enum.ident;
     let message_enum_ident = &message_enum.ident;
 
-    // Collect valid target names from the target enum.
-    let valid_targets: Vec<Ident> = target_enum
-        .variants
-        .iter()
-        .map(|v| v.ident.clone())
-        .collect();
-    let valid_target_names: Vec<String> = valid_targets.iter().map(|id| id.to_string()).collect();
+    // Create cleaned copies by stripping our unrecognized attributes.
+    // Remove #[get_targets(...)] from target enum variants.
+    let mut cleaned_target_enum = target_enum.clone();
+    for variant in cleaned_target_enum.variants.iter_mut() {
+        variant
+            .attrs
+            .retain(|attr| !attr.path().is_ident("get_targets"));
+    }
 
-    // Create a mapping from each variant to an optional function name.
-    // For each variant, remove any attribute whose simple identifier starts with "get_".
-    let target_mapping: Vec<(Ident, Option<String>)> = target_enum
-        .variants
-        .iter_mut()
-        .map(|variant| {
-            let variant_ident = variant.ident.clone();
-            let mut func_name: Option<String> = None;
-            // Retain only attributes that are not function-name markers.
-            variant.attrs.retain(|attr| {
-                if let syn::Meta::Path(path) = &attr.meta {
-                    if let Some(ident) = path.get_ident() {
-                        let ident_str = ident.to_string();
-                        if ident_str.starts_with("get_") {
-                            func_name = Some(ident_str);
-                            return false; // remove this attribute from the variant
-                        }
-                    }
-                }
-                true
+    // Remove #[target(...)] from message enum variants.
+    let mut cleaned_message_enum = message_enum.clone();
+    for variant in cleaned_message_enum.variants.iter_mut() {
+        variant.attrs.retain(|attr| !attr.path().is_ident("target"));
+    }
+
+    // Forge match arms for each target variant to invoke its get_targets function.
+    // For each variant, extract the get_targets function from the original attributes.
+    let target_match_arms = target_enum.variants.iter().map(|variant| {
+    let variant_ident = &variant.ident;
+        // Extract the get_targets function using the original attributes.
+        let get_targets_fn = get_get_targets_fn(&variant.attrs)
+            .unwrap_or_else(|| format_ident!("undefined_get_targets"));
+        quote! {
+            #target_enum_ident::#variant_ident => lobby_management.#get_targets_fn(lobby_management_arg)
+        }
+    }).collect::<Vec<_>>();
+
+    // Now, create a cleaned copy for emitting the enum without the get_targets attributes.
+    let mut cleaned_target_enum = target_enum.clone();
+    for variant in cleaned_target_enum.variants.iter_mut() {
+        variant
+            .attrs
+            .retain(|attr| !attr.path().is_ident("get_targets"));
+    }
+
+    // For each message variant, craft its dreadful trigger arm.
+    let mut message_match_arms = Vec::new();
+    for variant in cleaned_message_enum.variants.iter() {
+        let variant_ident = &variant.ident;
+        // Name the trigger struct for this variant.
+        let trigger_struct_ident = format_ident!("{}Trigger", variant_ident);
+        // Retrieve allowed targets from the original variant attributes.
+        let allowed_targets = get_allowed_targets(&variant.attrs);
+        let target_check = if let Some(targets) = allowed_targets {
+            // Build a pattern like: TargetEnum::A | TargetEnum::B | ...
+            let allowed_patterns = targets.iter().map(|t| {
+                quote! { #target_enum_ident::#t }
             });
-            (variant_ident, func_name)
-        })
-        .collect();
-
-    // 2. Build the match expression for target function calls.
-    // For each target variant, if a function name was specified (e.g. "get_players_in_lobby"),
-    // generate a match arm that calls: lobby_management.get_players_in_lobby(lobby_management_arg);
-    let target_function_match = {
-        let target_function_arms = target_mapping.iter().map(|(variant_ident, func_opt)| {
-            if let Some(func_name) = func_opt {
-                // Convert the function name string into an identifier.
-                let func_ident = syn::Ident::new(&func_name, variant_ident.span());
-                quote::quote! {
-                    #target_enum_ident::#variant_ident => {
-                        // The following call is generated at compile time.
-                        // Adjust "lobby_management" and "lobby_management_arg" as needed.
-                        lobby_management.#func_ident(lobby_management_arg);
-                    }
+            quote! {
+                if !matches!(self.target, #( #allowed_patterns )|* ) {
+                    return Err(concat!("Invalid target for ", stringify!(#variant_ident)).to_string());
                 }
-            } else {
-                quote::quote! {
-                    #target_enum_ident::#variant_ident => { },
+            }
+        } else {
+            quote! {}
+        };
+
+        message_match_arms.push(quote! {
+            #message_enum_ident::#variant_ident(data) => {
+                // Validate that the target is proper.
+                #target_check
+                // Determine recipients using the designated get_targets function.
+                let targets = match self.target {
+                    #( #target_match_arms , )*
+                }?;
+                // If no targets are found, trigger without specific recipients.
+                if targets.is_empty() {
+                    commands.trigger(#trigger_struct_ident {
+                        message: data.clone(),
+                        sender: self.sender.clone().unwrap()
+                    });
+                } else {
+                    // Otherwise, trigger for the designated targets.
+                    commands.trigger_targets(#trigger_struct_ident {
+                        message: data.clone(),
+                        sender: self.sender.clone().unwrap()
+                    }, targets);
                 }
             }
         });
-        quote::quote! {
-            match self.target {
-                #(#target_function_arms)*
-            }
-        }
-    };
+    }
 
-    // 3. Process the message enum variants as before, generating match arms for each variant.
-    let arms = message_enum.variants.iter().map(|variant| {
-        let variant_ident = &variant.ident;
-        let trigger_ident = syn::Ident::new(&format!("{}Trigger", variant_ident), variant_ident.span());
-        // Extract allowed target attributes from the variant (already done earlier)
-        let mut allowed_targets: Vec<Ident> = variant
-            .attrs
-            .iter()
-            .filter_map(|attr| {
-                if let syn::Meta::Path(path) = &attr.meta {
-                    if let Some(ident) = path.get_ident() {
-                        if valid_target_names.contains(&ident.to_string()) {
-                            return Some(ident.clone());
-                        }
-                    }
-                }
-                None
-            })
-            .collect();
-        if allowed_targets.is_empty() {
-            allowed_targets = valid_targets.clone();
-        }
-        let allowed_array = quote::quote! {
-            [ #( #target_enum_ident::#allowed_targets ),* ]
-        };
-        match &variant.fields {
-            syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
-                quote::quote! {
-                    #message_enum_ident::#variant_ident(data) => {
-                        if !#allowed_array.contains(&self.target) {
-                            eprintln!(
-                                "Error: Message variant {} cannot be sent to target {:?}",
-                                stringify!(#variant_ident),
-                                self.target
-                            );
-                            return Err(format!(
-                                "Invalid target for message variant {}",
-                                stringify!(#variant_ident)
-                            ));
-                        }
-                        // Insert the target-specific function call.
-                        #target_function_match
-                        /* if targets.is_empty() {
-                            commands.trigger(#trigger_ident { message: data.clone(), sender: self.sender.clone().unwrap() });
-                        } else {
-                            commands.trigger_targets(#trigger_ident { message: data.clone(), sender: self.sender.clone().unwrap() }, targets);
-                        } */
-                        Ok(())
-                    }
-                }
-            },
-            _ => {
-                return Error::new_spanned(
-                    variant,
-                    "Each enum variant must be a tuple with exactly one field"
-                )
-                .to_compile_error();
-            }
-        }
-    });
-
-    // 4. Generate the final impl block including our new target function call.
-    let impl_block = quote::quote! {
-        impl #container_ident {
-            pub fn trigger_message_received(&self, commands: &mut Commands, lobby_management: &LobbyManagementSystemParam, lobby_management_arg: LobbyManagementArgument) -> Result<(), String> {
+    // Extract the identifier of the pitiful structure.
+    let struct_ident = &input_ast.ident;
+    // Generate the infernal implementation of trigger_message_received.
+    let generated_impl = quote! {
+        impl #struct_ident {
+            // Invoke this function to trigger the message upon receiving.
+            pub fn trigger_message_received(
+                &self,
+                commands: &mut Commands,
+                lobby_management: &LobbyManagementSystemParam,
+                lobby_management_arg: LobbyManagementArgument
+            ) -> Result<(), String> {
                 match &self.message {
-                    #(#arms),*
+                    #( #message_match_arms , )*
                 }
+                Ok(())
             }
         }
     };
 
-    // 5. Re-emit everything.
-    let expanded = quote::quote! {
-        #container
+    // Assemble our unholy creation using the cleaned enums.
+    let output = quote! {
+        // Generated target enum – the first pillar of our dark design.
+        #cleaned_target_enum
 
-        #target_enum
+        // Generated message enum – the second pillar of our dark scheme.
+        #cleaned_message_enum
 
-        #message_enum
+        // The original structure, now empowered by eldritch forces.
+        #input_ast
 
-        #impl_block
+        // The infernal implementation of trigger_message_received.
+        #generated_impl
     };
-
-    expanded.into()
+    output.into()
 }

@@ -1,14 +1,12 @@
 use bevy::prelude::*;
-use shared::networking::messages::message_container::FirstContactTrigger;
-
-use crate::{
-    gameplay::handle_players::team_handling::InTeam,
-    networking::handle_clients::lib::{
-        AwaitingFirstContact, ClientDisconnectedTrigger, MyNetworkClient,
+use shared::networking::{
+    lobby_management::{
+        lobby_management::LobbyManagementSystemParam, AwaitingFirstContact, InTeam,
     },
+    messages::message_container::FirstContactTrigger,
 };
 
-use super::lobby_management::LobbyManagementSystemParam;
+use crate::networking::handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient};
 
 pub fn handle_awaiting_first_contact(
     mut commands: Commands,

@@ -21,10 +21,13 @@ use super::message_data::{
         #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
         pub enum MessageTarget {
             #[default]
-            #[get_players_in_lobby_team]
+            #[get_targets(get_players_in_lobby_team)]
             Team,
+            #[get_targets(get_players_in_lobby_team)]
             ServerOnly,
+            #[get_targets(get_players_in_lobby_team)]
             All,
+            #[get_targets(get_players_in_lobby_team)]
             Client,
         }
     },
@@ -34,14 +37,10 @@ use super::message_data::{
         #[generate_message_data_triggers]
         pub enum NetworkMessageType {
             // Allowed targets declared by simple attributes.
-            #[ServerOnly]
+            #[target(ServerOnly)]
             FirstContact(FirstContactData),
-            // No attribute means all targets are allowed.
             GameState(GameState),
-            // Multiple allowed targets.
-            #[Client]
-            #[All]
-            #[Team]
+            #[target(Client, Team)]
             SimpleTextMessage(SimpleTextMessage)
         }
     }

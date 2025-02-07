@@ -1,10 +1,9 @@
 use bevy::prelude::*;
-use shared::asset_handling::config::ServerConfigSystemParam;
+use shared::{asset_handling::config::ServerConfigSystemParam, networking::lobby_management::{remove_player_from_lobby, AwaitingFirstContact}};
 
 use crate::networking::{
-    handle_clients::lib::{AwaitingFirstContact, ClientConnectedTrigger, MyNetworkClient},
+    handle_clients::lib::{ClientConnectedTrigger, MyNetworkClient},
     lib::MyTcpListener,
-    lobby_management::remove_player_from_lobby,
 };
 
 /// System that checks the channel for newly accepted connections,

@@ -1,18 +1,19 @@
 use bevy::prelude::*;
+use lobby_management::MyLobbyManagementPlugin;
 use messages::MySharedNetworkMessagesPlugin;
 use networking_state::MyNetworkingState;
 use networking_system_sets::MyNetworkingSet;
 
+pub mod lobby_management;
 pub mod messages;
 pub mod networking_state;
 pub mod networking_system_sets;
-pub mod lobby_management;
 
 pub struct MySharedNetworkingPlugin;
 
 impl Plugin for MySharedNetworkingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((MySharedNetworkMessagesPlugin,))
+        app.add_plugins((MySharedNetworkMessagesPlugin, MyLobbyManagementPlugin))
             .add_sub_state::<MyNetworkingState>()
             .configure_sets(
                 Update,

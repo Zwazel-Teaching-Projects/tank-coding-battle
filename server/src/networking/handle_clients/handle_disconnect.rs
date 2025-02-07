@@ -1,9 +1,7 @@
 use bevy::prelude::*;
+use shared::networking::lobby_management::{lobby_management::LobbyManagementSystemParam, InLobby};
 
-use crate::networking::{
-    handle_clients::lib::ClientHasBeenDespawnedTrigger,
-    lobby_management::{lobby_management::LobbyManagementSystemParam, InLobby},
-};
+use crate::networking::handle_clients::lib::ClientHasBeenDespawnedTrigger;
 
 use super::lib::{ClientDisconnectedTrigger, MyNetworkClient};
 

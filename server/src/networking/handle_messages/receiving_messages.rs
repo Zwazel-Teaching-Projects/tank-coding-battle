@@ -1,15 +1,15 @@
 use std::io::Read;
 
 use bevy::prelude::*;
-use shared::networking::messages::message_container::MessageContainer;
-
-use crate::{
-    gameplay::handle_players::team_handling::InTeam,
-    networking::{
-        handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient},
-        lobby_management::{lobby_management::LobbyManagementSystemParam, InLobby, MyLobby},
+use shared::networking::{
+    lobby_management::{
+        lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+        InLobby, InTeam, MyLobby,
     },
+    messages::message_container::MessageContainer,
 };
+
+use crate::networking::handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient};
 
 pub fn handle_reading_messages(
     mut commands: Commands,
@@ -74,7 +74,11 @@ pub fn handle_reading_messages(
                     addr, message_container
                 );
 
-                let result = message_container.trigger_message_received(&mut commands, &lobby_management);
+                let result = message_container.trigger_message_received(
+                    &mut commands,
+                    &lobby_management,
+                    LobbyManagementArgument::default(),
+                );
 
                 if let Err(e) = result {
                     error!(
