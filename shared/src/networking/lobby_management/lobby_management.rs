@@ -144,7 +144,14 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         &self,
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
-        self.get_lobby(arg).map(|(_, lobby)| lobby.players.clone())
+        self.get_lobby(arg.clone()).map(|(_, lobby)| {
+            lobby
+                .players
+                .iter()
+                .filter(|&&player| Some(player) != arg.sender)
+                .cloned()
+                .collect()
+        })
     }
 
     pub fn get_players_in_lobby_team(
@@ -153,14 +160,19 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     ) -> Result<Vec<Entity>, String> {
         let team_name = arg.clone().team_name.ok_or("No team name provided")?;
 
-        self.get_lobby(arg).and_then(|(_, lobby)| {
+        self.get_lobby(arg.clone()).and_then(|(_, lobby)| {
             lobby
                 .map_config
                 .as_ref()
                 .ok_or(format!("Map config not found in lobby {}", lobby.name))
                 .and_then(|map_config| {
                     if let Some(team) = map_config.get_team(&team_name) {
-                        Ok(team.players.clone())
+                        Ok(team
+                            .players
+                            .iter()
+                            .filter(|&&player| Some(player) != arg.sender)
+                            .cloned()
+                            .collect())
                     } else {
                         Err(format!(
                             "Team {} not found in lobby {}",
@@ -172,6 +184,9 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     }
 
     pub fn get_single_player(&self, arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
+        if arg.target_player == arg.sender {
+            return Err("Target player cannot be the sender".to_string());
+        }
         arg.target_player
             .map(|player| Ok(vec![player]))
             .unwrap_or(Err("No target player provided".to_string()))
