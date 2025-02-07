@@ -139,47 +139,49 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut message_match_arms = Vec::new();
     for variant in cleaned_message_enum.variants.iter() {
         let variant_ident = &variant.ident;
-        // Name the trigger struct for this variant.
         let trigger_struct_ident = format_ident!("{}Trigger", variant_ident);
         // Retrieve allowed targets from the original variant attributes.
         let allowed_targets = get_allowed_targets(&variant.attrs);
-        let target_check = if let Some(targets) = allowed_targets {
+
+        // Generate a distinct match arm depending on whether allowed targets exist.
+        let match_arm = if let Some(targets) = allowed_targets {
             // Build a pattern like: TargetEnum::A | TargetEnum::B | ...
             let allowed_patterns = targets.iter().map(|t| {
                 quote! { #target_enum_ident::#t }
             });
             quote! {
-                if !matches!(self.target, #( #allowed_patterns )|* ) {
-                    return Err(concat!("Invalid target for ", stringify!(#variant_ident)).to_string());
+                #message_enum_ident::#variant_ident(data) => {
+                    // Validate that the target is proper.
+                    if !matches!(self.target, #( #allowed_patterns )|* ) {
+                        return Err(concat!("Invalid target for ", stringify!(#variant_ident)).to_string());
+                    }
+                    // Determine recipients using the designated get_targets function.
+                    let targets = match self.target {
+                        #( #target_match_arms, )*
+                    }?;
+                    // Trigger accordingly.
+                    if targets.is_empty() {
+                        commands.trigger(#trigger_struct_ident {
+                            message: data.clone(),
+                            sender: self.sender.clone().unwrap()
+                        });
+                    } else {
+                        commands.trigger_targets(#trigger_struct_ident {
+                            message: data.clone(),
+                            sender: self.sender.clone().unwrap()
+                        }, targets);
+                    }
                 }
             }
         } else {
-            quote! {}
-        };
-
-        message_match_arms.push(quote! {
-            #message_enum_ident::#variant_ident(data) => {
-                // Validate that the target is proper.
-                #target_check
-                // Determine recipients using the designated get_targets function.
-                let targets = match self.target {
-                    #( #target_match_arms , )*
-                }?;
-                // If no targets are found, trigger without specific recipients.
-                if targets.is_empty() {
-                    commands.trigger(#trigger_struct_ident {
-                        message: data.clone(),
-                        sender: self.sender.clone().unwrap()
-                    });
-                } else {
-                    // Otherwise, trigger for the designated targets.
-                    commands.trigger_targets(#trigger_struct_ident {
-                        message: data.clone(),
-                        sender: self.sender.clone().unwrap()
-                    }, targets);
+            // When no targets are defined, the match arm is solely an immediate error.
+            quote! {
+                #message_enum_ident::#variant_ident(data) => {
+                    return Err(concat!("No allowed target defined for ", stringify!(#variant_ident)).to_string());
                 }
             }
-        });
+        };
+        message_match_arms.push(match_arm);
     }
 
     // Extract the identifier of the pitiful structure.
