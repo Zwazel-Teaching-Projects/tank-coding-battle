@@ -109,7 +109,10 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
             .retain(|attr| !attr.path().is_ident("get_targets"));
     }
 
-    // Remove #[target(...)] from message enum variants.
+    // Clone the original message enum for match arm generation.
+    let message_enum_for_match = message_enum.clone();
+
+    // Create a cleaned copy for final emission (removing #[target] attributes).
     let mut cleaned_message_enum = message_enum.clone();
     for variant in cleaned_message_enum.variants.iter_mut() {
         variant.attrs.retain(|attr| !attr.path().is_ident("target"));
@@ -137,29 +140,25 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // For each message variant, craft its dreadful trigger arm.
     let mut message_match_arms = Vec::new();
-    for variant in cleaned_message_enum.variants.iter() {
+    for variant in message_enum_for_match.variants.iter() {
         let variant_ident = &variant.ident;
         let trigger_struct_ident = format_ident!("{}Trigger", variant_ident);
-        // Retrieve allowed targets from the original variant attributes.
+        // Now, allowed_targets is correctly extracted from the original attributes.
         let allowed_targets = get_allowed_targets(&variant.attrs);
 
-        // Generate a distinct match arm depending on whether allowed targets exist.
         let match_arm = if let Some(targets) = allowed_targets {
-            // Build a pattern like: TargetEnum::A | TargetEnum::B | ...
+            // Build pattern for allowed targets.
             let allowed_patterns = targets.iter().map(|t| {
                 quote! { #target_enum_ident::#t }
             });
             quote! {
                 #message_enum_ident::#variant_ident(data) => {
-                    // Validate that the target is proper.
                     if !matches!(self.target, #( #allowed_patterns )|* ) {
                         return Err(concat!("Invalid target for ", stringify!(#variant_ident)).to_string());
                     }
-                    // Determine recipients using the designated get_targets function.
                     let targets = match self.target {
                         #( #target_match_arms, )*
                     }?;
-                    // Trigger accordingly.
                     if targets.is_empty() {
                         commands.trigger(#trigger_struct_ident {
                             message: data.clone(),
@@ -174,7 +173,6 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
         } else {
-            // When no targets are defined, the match arm is solely an immediate error.
             quote! {
                 #message_enum_ident::#variant_ident(data) => {
                     return Err(concat!("No allowed target defined for ", stringify!(#variant_ident)).to_string());
