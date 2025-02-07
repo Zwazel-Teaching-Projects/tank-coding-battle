@@ -184,6 +184,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     }
 
     pub fn get_single_player(&self, arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
+        todo!();
         if arg.target_player == arg.sender {
             return Err("Target player cannot be the sender".to_string());
         }
