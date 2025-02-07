@@ -154,7 +154,10 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
         } else {
-            quote! {}
+            // If no allowed targets are defined, the message is forbidden!
+            quote! {
+                return Err(concat!("No allowed target defined for message variant ", stringify!(#variant_ident)).to_string());
+            }
         };
 
         message_match_arms.push(quote! {
