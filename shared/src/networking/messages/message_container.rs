@@ -30,7 +30,7 @@ use super::message_data::{
             #[get_targets(get_single_player)]
             Client,
         }
-    },
+    },a
     message = {
         #[derive(Serialize, Deserialize, Reflect, Clone, Debug, PartialEq)]
         #[serde(tag = "message_type")]
