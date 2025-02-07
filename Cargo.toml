@@ -32,7 +32,10 @@ default = ["bevy_debug"]
 bevy_debug = ["bevy/bevy_dev_tools"]
 
 server = ["server/server", "shared/server"]
-spectator_client = ["spectator_client/spectator_client", "shared/spectator_client"]
+spectator_client = [
+    "spectator_client/spectator_client",
+    "shared/spectator_client",
+]
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

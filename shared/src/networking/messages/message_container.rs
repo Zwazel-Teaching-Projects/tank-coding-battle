@@ -23,11 +23,11 @@ use super::message_data::{
             #[default]
             #[get_targets(get_players_in_lobby_team)]
             Team,
-            #[get_targets(get_players_in_lobby_team)]
+            #[get_targets(get_empty)]
             ServerOnly,
-            #[get_targets(get_players_in_lobby_team)]
-            All,
-            #[get_targets(get_players_in_lobby_team)]
+            #[get_targets(get_players_in_lobby)]
+            AllInLobby,
+            #[get_targets(get_single_player)]
             Client,
         }
     },
@@ -40,7 +40,7 @@ use super::message_data::{
             #[target(ServerOnly)]
             FirstContact(FirstContactData),
             GameState(GameState),
-            #[target(Client, Team)]
+            #[target(Client, Team, AllInLobby)]
             SimpleTextMessage(SimpleTextMessage)
         }
     }

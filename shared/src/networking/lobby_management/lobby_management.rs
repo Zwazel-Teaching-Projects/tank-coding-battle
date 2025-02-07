@@ -7,7 +7,8 @@ use super::{MyLobbies, MyLobby};
 #[derive(Debug, Default, Clone)]
 pub struct LobbyManagementArgument {
     pub lobby: Option<Entity>,
-    pub player: Option<Entity>,
+    pub sender: Option<Entity>,
+    pub target_player: Option<Entity>,
     pub team_name: Option<String>,
     pub team: Option<Entity>,
 }
@@ -168,5 +169,16 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     }
                 })
         })
+    }
+
+    pub fn get_single_player(&self, arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
+        arg.target_player
+            .map(|player| Ok(vec![player]))
+            .unwrap_or(Err("No target player provided".to_string()))
+    }
+
+    /// Returns an empty vec. this is a workaround for the "ServerOnly" message target
+    pub fn get_empty(&self, _arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
+        Ok(Vec::new())
     }
 }

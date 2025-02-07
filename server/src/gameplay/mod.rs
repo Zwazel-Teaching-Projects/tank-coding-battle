@@ -49,7 +49,7 @@ fn add_current_game_state_to_message_queue(
     game_state: Res<GameState>,
 ) {
     message_queue.push_back(MessageContainer::new(
-        MessageTarget::All,
+        MessageTarget::AllInLobby,
         NetworkMessageType::GameState(game_state.clone()),
     ));
 }

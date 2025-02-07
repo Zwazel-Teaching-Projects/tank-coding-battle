@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use shared::networking::{
     lobby_management::{
         lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-        InLobby, InTeam, MyLobby,
+        InLobby, InTeam,
     },
     messages::message_container::MessageContainer,
 };
@@ -19,7 +19,6 @@ pub fn handle_reading_messages(
         Option<&InLobby>,
         Option<&InTeam>,
     )>,
-    lobbies: Query<(Entity, &MyLobby)>,
     lobby_management: LobbyManagementSystemParam,
 ) {
     for (entity, mut network_client, in_lobby, in_team) in clients.iter_mut() {
@@ -74,10 +73,18 @@ pub fn handle_reading_messages(
                     addr, message_container
                 );
 
+                let lobby_arg = LobbyManagementArgument {
+                    lobby: in_lobby.map(|l| **l),
+                    sender: Some(entity),
+                    target_player: None,
+                    team_name: in_team.map(|t| t.team_name.clone()),
+                    team: None,
+                };
+
                 let result = message_container.trigger_message_received(
                     &mut commands,
                     &lobby_management,
-                    LobbyManagementArgument::default(),
+                    lobby_arg,
                 );
 
                 if let Err(e) = result {
