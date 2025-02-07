@@ -36,7 +36,6 @@ use super::message_data::{
         #[serde(tag = "message_type")]
         #[generate_message_data_triggers]
         pub enum NetworkMessageType {
-            // Allowed targets declared by simple attributes.
             #[target(ServerOnly)]
             FirstContact(FirstContactData),
             GameState(GameState),
