@@ -1,9 +1,12 @@
 use bevy::prelude::*;
-use shared::networking::{
-    lobby_management::{
-        lobby_management::LobbyManagementSystemParam, AwaitingFirstContact, InTeam,
+use shared::{
+    asset_handling::config::ServerConfigSystemParam,
+    networking::{
+        lobby_management::{
+            lobby_management::LobbyManagementSystemParam, AwaitingFirstContact, InTeam,
+        },
+        messages::message_container::FirstContactTrigger,
     },
-    messages::message_container::FirstContactTrigger,
 };
 
 use crate::networking::handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient};
@@ -28,7 +31,9 @@ pub fn handle_first_contact_message(
     mut commands: Commands,
     mut lobby_management: LobbyManagementSystemParam,
     mut clients: Query<(Entity, &mut MyNetworkClient)>,
+    server_config: ServerConfigSystemParam,
 ) {
+    let server_config = server_config.server_config();
     let message = &trigger.message;
     let sender = trigger.sender;
     info!(
@@ -52,6 +57,7 @@ pub fn handle_first_contact_message(
             sender,
             message.map_name.as_deref(),
             &mut commands,
+            server_config,
         )
         .is_err()
     {

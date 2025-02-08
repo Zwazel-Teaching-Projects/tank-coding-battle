@@ -7,7 +7,6 @@ pub struct MySharedGamePlugin;
 
 impl Plugin for MySharedGamePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<GameState>()
-            .init_resource::<GameState>();
+        app.register_type::<GameState>();
     }
 }

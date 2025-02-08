@@ -6,7 +6,7 @@ use shared::networking::{
         lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
         InLobby, InTeam,
     },
-    messages::message_container::MessageContainer,
+    messages::message_container::{MessageContainer, MessageTarget, NetworkMessageType},
 };
 
 use crate::networking::handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient};
@@ -21,7 +21,7 @@ pub fn handle_reading_messages(
     )>,
     lobby_management: LobbyManagementSystemParam,
 ) {
-    for (entity, mut network_client, in_lobby, in_team) in clients.iter_mut() {
+    for (sender, mut network_client, in_lobby, in_team) in clients.iter_mut() {
         let addr = network_client.address;
         let stream = &mut network_client.stream;
 
@@ -32,7 +32,7 @@ pub fn handle_reading_messages(
                 continue;
             } else {
                 error!("Error reading length prefix from {}: {}", addr, e);
-                commands.trigger(ClientDisconnectedTrigger(entity));
+                commands.trigger(ClientDisconnectedTrigger(sender));
                 continue;
             }
         }
@@ -50,7 +50,7 @@ pub fn handle_reading_messages(
                 "Read error: failed to fill whole buffer from {}: {}",
                 addr, e
             );
-            commands.trigger(ClientDisconnectedTrigger(entity));
+            commands.trigger(ClientDisconnectedTrigger(sender));
             continue;
         }
 
@@ -66,7 +66,7 @@ pub fn handle_reading_messages(
         // Deserialize the JSON into your MessageContainer
         match serde_json::from_str::<MessageContainer>(&received) {
             Ok(mut message_container) => {
-                message_container.sender = Some(entity);
+                message_container.sender = Some(sender);
 
                 info!(
                     "Received message from client \"{:?}\":\n{:?}",
@@ -75,7 +75,7 @@ pub fn handle_reading_messages(
 
                 let lobby_arg = LobbyManagementArgument {
                     lobby: in_lobby.map(|l| **l),
-                    sender: Some(entity),
+                    sender: Some(sender),
                     target_player: None,
                     team_name: in_team.map(|t| t.team_name.clone()),
                     team: None,
@@ -92,6 +92,12 @@ pub fn handle_reading_messages(
                         "Failed to handle message from client \"{:?}\":\n{:?}",
                         addr, e
                     );
+                    network_client
+                        .outgoing_messages_queue
+                        .push_back(MessageContainer::new(
+                            MessageTarget::Client,
+                            NetworkMessageType::MessageError(e),
+                        ));
                 }
             }
             Err(e) => {

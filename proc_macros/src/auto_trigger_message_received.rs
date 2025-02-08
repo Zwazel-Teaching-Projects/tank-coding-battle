@@ -154,11 +154,11 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
             quote! {
                 #message_enum_ident::#variant_ident(data) => {
                     if !matches!(self.target, #( #allowed_patterns )|* ) {
-                        return Err(concat!("Invalid target for ", stringify!(#variant_ident)).to_string());
+                        return Err(ErrorMessageTypes::InvalidTarget(concat!("Invalid target for ", stringify!(#variant_ident)).to_string()));
                     }
                     let targets = match self.target {
                         #( #target_match_arms, )*
-                    }?;
+                    }.map_err(|e| ErrorMessageTypes::LobbyManagementError(e))?;
                     if targets.is_empty() {
                         commands.trigger(#trigger_struct_ident {
                             message: data.clone(),
@@ -175,7 +175,7 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
         } else {
             quote! {
                 #message_enum_ident::#variant_ident(data) => {
-                    return Err(concat!("No allowed target defined for ", stringify!(#variant_ident)).to_string());
+                    return Err(ErrorMessageTypes::InvalidTarget(concat!("No allowed target defined for ", stringify!(#variant_ident)).to_string()));
                 }
             }
         };
@@ -193,7 +193,7 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                 commands: &mut Commands,
                 lobby_management: &LobbyManagementSystemParam,
                 lobby_management_arg: LobbyManagementArgument
-            ) -> Result<(), String> {
+            ) -> Result<(), ErrorMessageTypes> {
                 match &self.message {
                     #( #message_match_arms , )*
                 }

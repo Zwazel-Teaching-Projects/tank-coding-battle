@@ -1,61 +1,49 @@
 use bevy::prelude::*;
-use shared::{
-    asset_handling::config::ServerConfigSystemParam, game::game_state::GameState,
-    main_state::MyMainState,
+use shared::networking::lobby_management::{LobbyState, MyLobby};
+
+use super::{
+    system_sets::MyGameplaySet,
+    triggers::{StartNextSimulationStepTrigger, StartNextTickProcessingTrigger},
 };
-
-use crate::gameplay::lib::TickIncreasedTrigger;
-
-use super::{lib::StartNextTickProcessing, system_sets::MyGameplaySet};
 
 pub struct TickSystemsPlugin;
 
 impl Plugin for TickSystemsPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<TickTimerResource>()
-            .add_systems(OnEnter(MyMainState::Ready), init_tick_timer)
-            .add_systems(
-                Update,
-                (
-                    process_tick_timer
-                        .in_set(MyGameplaySet::TickTimerProcessing)
-                        .run_if(resource_exists::<TickTimerResource>),
-                    increment_tick.in_set(MyGameplaySet::IncrementTick),
-                ),
-            );
+        app.add_systems(
+            Update,
+            (process_tick_timer.in_set(MyGameplaySet::TickTimerProcessing),),
+        )
+        .add_observer(add_trigger_to_lobby);
     }
-}
-
-#[derive(Debug, Default, Reflect, Resource, Deref, DerefMut)]
-#[reflect(Resource)]
-struct TickTimerResource(Timer);
-
-fn init_tick_timer(mut commands: Commands, server_config: ServerConfigSystemParam) {
-    let config = server_config.server_config();
-    commands.insert_resource(TickTimerResource(Timer::from_seconds(
-        1.0 / config.tick_rate as f32,
-        TimerMode::Repeating,
-    )));
 }
 
 fn process_tick_timer(
-    mut first_run: Local<bool>,
-    mut event: EventWriter<StartNextTickProcessing>,
-    mut tick_timer: ResMut<TickTimerResource>,
+    mut commands: Commands,
+    mut lobbies: Query<(Entity, &mut MyLobby)>,
     time: Res<Time>,
 ) {
-    if !*first_run {
-        *first_run = true;
-        event.send(StartNextTickProcessing);
-    }
-
-    if tick_timer.0.tick(time.delta()).just_finished() {
-        event.send(StartNextTickProcessing);
+    for (entity, mut lobby) in lobbies.iter_mut() {
+        if LobbyState::InProgress == lobby.state {
+            if lobby.tick_timer.tick(time.delta()).just_finished() {
+                commands.trigger_targets(StartNextTickProcessingTrigger, entity);
+            }
+        }
     }
 }
 
-fn increment_tick(mut commands: Commands, mut state: ResMut<GameState>) {
-    state.tick += 1;
+fn add_trigger_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
+    commands.entity(trigger.entity()).observe(increment_tick);
+}
 
-    commands.trigger(TickIncreasedTrigger);
+fn increment_tick(
+    trigger: Trigger<StartNextTickProcessingTrigger>,
+    mut commands: Commands,
+    mut lobbies: Query<&mut MyLobby>,
+) {
+    let lobby_entity = trigger.entity();
+    let mut lobby = lobbies.get_mut(lobby_entity).unwrap();
+    lobby.game_state.tick += 1;
+
+    commands.trigger_targets(StartNextSimulationStepTrigger, lobby_entity);
 }

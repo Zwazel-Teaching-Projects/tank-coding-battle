@@ -1,6 +1,9 @@
 use bevy::{ecs::system::SystemParam, prelude::*, utils::Entry};
 
-use crate::networking::lobby_management::PlayerRemovedFromLobbyTrigger;
+use crate::{
+    asset_handling::config::ServerConfig,
+    networking::lobby_management::PlayerRemovedFromLobbyTrigger,
+};
 
 use super::{MyLobbies, MyLobby};
 
@@ -30,6 +33,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         player: Entity,
         map_name: Option<&str>,
         commands: &mut Commands,
+        server_config: &ServerConfig,
     ) -> Result<Entity, ()> {
         let lobby_entity_entry = self.lobby_resource.lobbies.entry(lobby_id.to_string());
 
@@ -40,7 +44,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     let map_name = map_name.to_string();
 
                     let entity = commands
-                        .spawn(MyLobby::new(lobby_id.to_string(), map_name).with_player(player))
+                        .spawn(
+                            MyLobby::new(lobby_id.to_string(), map_name, server_config.tick_rate)
+                                .with_player(player),
+                        )
                         .id();
 
                     entry.insert(entity);
@@ -87,7 +94,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 if lobby.players.is_empty() {
                     info!(
                         "Despawning lobby entity \"{}\" with name \"{}\" as it is empty",
-                        entity, lobby.name
+                        entity, lobby.lobby_name
                     );
 
                     commands.entity(entity).despawn_recursive();
@@ -111,10 +118,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 if let Ok((lobby_entity, lobby)) = self.lobby_entities.get_mut(lobby) {
                     info!(
                         "Despawning lobby entity \"{}\" with name \"{}\"",
-                        lobby_entity, lobby.name
+                        lobby_entity, lobby.lobby_name
                     );
 
-                    for player in lobby.players.iter() {
+                    for player in lobby.players.iter().chain(lobby.spectators.iter()) {
                         info!("Removing player {} from lobby {}...", player, lobby_entity);
                         commands.trigger_targets(PlayerRemovedFromLobbyTrigger, *player);
                     }
@@ -131,6 +138,13 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 true
             }
         });
+    }
+
+    pub fn get_lobby_from_player(&self, player: Entity) -> Option<(Entity, &MyLobby)> {
+        self.lobby_entities
+            .iter()
+            .find(|(_, lobby)| lobby.players.contains(&player))
+            .map(|(entity, lobby)| (entity, lobby))
     }
 
     pub fn get_lobby(&self, arg: LobbyManagementArgument) -> Result<(Entity, &MyLobby), String> {
@@ -154,6 +168,20 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         })
     }
 
+    pub fn get_spectators_in_lobby(
+        &self,
+        arg: LobbyManagementArgument,
+    ) -> Result<Vec<Entity>, String> {
+        self.get_lobby(arg.clone()).map(|(_, lobby)| {
+            lobby
+                .spectators
+                .iter()
+                .filter(|&&player| Some(player) != arg.sender)
+                .cloned()
+                .collect()
+        })
+    }
+
     pub fn get_players_in_lobby_team(
         &self,
         arg: LobbyManagementArgument,
@@ -164,7 +192,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
             lobby
                 .map_config
                 .as_ref()
-                .ok_or(format!("Map config not found in lobby {}", lobby.name))
+                .ok_or(format!(
+                    "Map config not found in lobby {}",
+                    lobby.lobby_name
+                ))
                 .and_then(|map_config| {
                     if let Some(team) = map_config.get_team(&team_name) {
                         Ok(team
@@ -176,7 +207,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     } else {
                         Err(format!(
                             "Team {} not found in lobby {}",
-                            team_name, lobby.name
+                            team_name, lobby.lobby_name
                         ))
                     }
                 })

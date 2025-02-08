@@ -10,7 +10,8 @@ use crate::{
 };
 
 use super::message_data::{
-    first_contact::FirstContactData, simple_text_message::SimpleTextMessage,
+    first_contact::FirstContactData, message_error_types::ErrorMessageTypes,
+    simple_text_message::SimpleTextMessage,
 };
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
@@ -40,7 +41,8 @@ use super::message_data::{
             FirstContact(FirstContactData),
             GameState(GameState),
             #[target(Client, Team, AllInLobby)]
-            SimpleTextMessage(SimpleTextMessage)
+            SimpleTextMessage(SimpleTextMessage),
+            MessageError(ErrorMessageTypes),
         }
     }
 )]
@@ -54,6 +56,9 @@ pub struct MessageContainer {
     // TODO: Do we need that? maybe just store the tick_received, maybe even store in the list of messages?
     pub tick_sent: u64,
     pub tick_received: u64,
+
+    #[serde(skip)]
+    pub tick_added_to_queue: u64,
 }
 
 impl MessageContainer {
@@ -85,6 +90,7 @@ impl MessageContainer {
 
             tick_sent: 0,
             tick_received: 0,
+            tick_added_to_queue: 0,
         }
     }
 

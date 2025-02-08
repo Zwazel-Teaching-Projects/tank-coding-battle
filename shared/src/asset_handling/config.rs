@@ -41,7 +41,7 @@ struct MyConfigAsset {
 pub struct ServerConfig {
     pub ip: String,
     pub port: u16,
-    pub tick_rate: u32,
+    pub tick_rate: u64,
     pub timeout_first_contact: u64, // in milliseconds
 }
 
