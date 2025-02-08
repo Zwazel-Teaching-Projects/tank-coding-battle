@@ -68,6 +68,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 .players
                 .retain(|&x| if x == player { false } else { true });
 
+            lobby
+                .spectators
+                .retain(|&x| if x == player { false } else { true });
+
             // Also remove from team
             if let Some(ref mut map_config) = &mut lobby.map_config {
                 map_config.remove_player_from_team(player);
@@ -118,7 +122,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     );
 
                     for player in lobby.players.iter().chain(lobby.spectators.iter()) {
-                        info!("Removing player {} from lobby {}...", player, lobby_entity);
+                        info!(
+                            "Removing player/spectator {} from lobby {}...",
+                            player, lobby_entity
+                        );
                         commands.trigger_targets(PlayerRemovedFromLobbyTrigger, *player);
                     }
 

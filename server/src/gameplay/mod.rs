@@ -1,10 +1,7 @@
 use bevy::prelude::*;
 use handle_players::HandlePlayersPlugin;
 use shared::networking::{
-    lobby_management::{
-        lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-        LobbyState, MyLobby,
-    },
+    lobby_management::{lobby_management::LobbyManagementSystemParam, LobbyState, MyLobby},
     messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
         message_queue::OutMessageQueue,
@@ -72,11 +69,8 @@ fn add_current_game_state_to_message_queue(
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let (_, lobby) = lobby_management
-        .get_lobby(LobbyManagementArgument {
-            lobby: Some(lobby_entity),
-            ..Default::default()
-        })
+    let lobby = lobby_management
+        .get_lobby(lobby_entity)
         .expect("Failed to get lobby");
 
     info!(

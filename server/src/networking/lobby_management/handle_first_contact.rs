@@ -3,7 +3,8 @@ use shared::{
     asset_handling::config::ServerConfigSystemParam,
     networking::{
         lobby_management::{
-            lobby_management::LobbyManagementSystemParam, AwaitingFirstContact, InTeam,
+            lobby_management::LobbyManagementSystemParam, AwaitingFirstContact,
+            PlayerWantsToJoinLobbyTrigger,
         },
         messages::message_container::FirstContactTrigger,
     },
@@ -45,19 +46,26 @@ pub fn handle_first_contact_message(
     if let Ok((client_entity, mut client)) = clients.get_mut(sender) {
         client.name = Some(message.bot_name.clone());
 
-        commands.entity(client_entity).insert(InTeam {
-            team_name: message.team_name.clone(),
-        });
+        commands
+            .entity(client_entity)
+            .insert(message.client_type.clone());
     }
 
     // get or insert lobby
     match lobby_management.get_or_insert_lobby_entity(
-        &message.lobby_id,
+        &message.lobby_name,
         message.map_name.as_deref(),
         &mut commands,
         server_config,
     ) {
-        Ok(lobby_entity) => {}
+        Ok(lobby_entity) => {
+            commands.trigger(PlayerWantsToJoinLobbyTrigger {
+                player: sender,
+                lobby: lobby_entity,
+                player_type: message.client_type.clone(),
+                team_name: message.team_name.clone(),
+            });
+        }
         Err(e) => {
             error!(
                 "Error getting or inserting lobby entity: {:?} for sender: {:?}",

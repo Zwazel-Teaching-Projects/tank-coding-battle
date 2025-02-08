@@ -23,16 +23,6 @@ pub fn sending_client_messages(
         ..default()
     }) {
         Ok(players_in_lobby) => {
-            let (_, lobby) = lobby_management
-                .get_lobby(LobbyManagementArgument {
-                    lobby: Some(lobby),
-                    ..default()
-                })
-                .expect("Failed to get lobby");
-            info!(
-                "Sending out all messages that are in the Message Queues of players in lobby: {:?}",
-                lobby.lobby_name
-            );
             for player in players_in_lobby {
                 let (mut client, mut out_message_queue) = connected_clients
                     .get_mut(player)
@@ -66,11 +56,8 @@ pub fn broadcast_lobby_messages(
         ..default()
     }) {
         Ok(players_in_lobby) => {
-            let (_, lobby) = lobby_management
-                .get_lobby(LobbyManagementArgument {
-                    lobby: Some(lobby),
-                    ..default()
-                })
+            let lobby = lobby_management
+                .get_lobby(lobby)
                 .expect("Failed to get lobby");
             info!(
                 "Sending out all messages that are in the Message Queues of players in lobby: {:?}",

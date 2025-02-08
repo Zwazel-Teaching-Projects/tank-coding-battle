@@ -7,12 +7,12 @@ use super::message_container::MessageContainer;
 /// All Messages we RECEIVE
 #[derive(Debug, Default, Reflect, Clone, PartialEq, Component, Deref, DerefMut)]
 #[reflect(Component)]
-pub struct InMessageQueue(MessageQueue);
+pub struct InMessageQueue(pub MessageQueue);
 
 /// All Messages we SEND
 #[derive(Debug, Default, Reflect, Clone, PartialEq, Component, Deref, DerefMut)]
 #[reflect(Component)]
-pub struct OutMessageQueue(MessageQueue);
+pub struct OutMessageQueue(pub MessageQueue);
 
 #[derive(Debug, Default, Reflect, Clone, Deref, DerefMut, PartialEq)]
 pub struct MessageQueue(VecDeque<MessageContainer>);
