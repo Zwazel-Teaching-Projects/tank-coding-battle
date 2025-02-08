@@ -62,11 +62,10 @@ pub struct MessageContainer {
     pub sender: Option<Entity>,
 
     // TODO: Do we need that? maybe just store the tick_received, maybe even store in the list of messages?
+    /// The tick when the message was sent
     pub tick_sent: u64,
+    /// The tick when the message was received
     pub tick_received: u64,
-
-    #[serde(skip)]
-    pub tick_added_to_queue: u64,
 }
 
 impl MessageContainer {
@@ -98,7 +97,6 @@ impl MessageContainer {
 
             tick_sent: 0,
             tick_received: 0,
-            tick_added_to_queue: 0,
         }
     }
 

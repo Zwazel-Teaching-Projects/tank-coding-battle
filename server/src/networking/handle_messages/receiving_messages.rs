@@ -72,6 +72,12 @@ pub fn handle_reading_messages(
         match serde_json::from_str::<MessageContainer>(&received) {
             Ok(mut message_container) => {
                 message_container.sender = Some(sender);
+                if let Some(in_lobby) = in_lobby {
+                    message_container.tick_received = lobby_management
+                        .get_lobby_gamestate(**in_lobby)
+                        .expect("Failed to get lobby game state")
+                        .tick;
+                }
 
                 info!(
                     "Received message from client \"{:?}\":\n{:?}",

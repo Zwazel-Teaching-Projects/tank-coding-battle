@@ -23,13 +23,18 @@ pub fn sending_client_messages(
         ..default()
     }) {
         Ok(players_in_lobby) => {
+            let game_state = lobby_management
+                .get_lobby_gamestate(lobby)
+                .expect("Failed to get game state");
             for player in players_in_lobby {
                 let (mut client, mut out_message_queue) = connected_clients
                     .get_mut(player)
                     .expect("Failed to get client");
                 let stream = &mut client.stream;
 
-                for message in out_message_queue.drain(..) {
+                for mut message in out_message_queue.drain(..) {
+                    message.tick_sent = game_state.tick;
+
                     let message =
                         serde_json::to_vec(&message).expect("Failed to serialize message");
                     let length = (message.len() as u32).to_le_bytes();

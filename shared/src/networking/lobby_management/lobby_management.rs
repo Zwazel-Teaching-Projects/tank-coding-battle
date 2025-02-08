@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*, utils::Entry};
 
 use crate::{
-    asset_handling::config::ServerConfig,
+    asset_handling::config::ServerConfig, game::game_state::GameState,
     networking::lobby_management::PlayerRemovedFromLobbyTrigger,
 };
 
@@ -162,6 +162,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
             .get_mut(lobby)
             .map(|(_, lobby)| lobby)
             .map_err(|_| format!("Failed to get lobby for lobby entity: {}", lobby))
+    }
+
+    pub fn get_lobby_gamestate(&self, lobby: Entity) -> Result<&GameState, String> {
+        self.get_lobby(lobby).map(|lobby| &lobby.game_state)
     }
 
     pub fn targets_get_players_in_lobby(
