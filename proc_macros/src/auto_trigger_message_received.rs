@@ -160,15 +160,16 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                         #( #target_match_arms, )*
                     }.map_err(|e| ErrorMessageTypes::LobbyManagementError(e))?;
                     if targets.is_empty() {
+                        // No targets defined, we trigger to global. We must have gotten a server only message.
                         commands.trigger(#trigger_struct_ident {
                             message: data.clone(),
                             sender: self.sender.clone().unwrap()
                         });
                     } else {
-                        commands.trigger_targets(#trigger_struct_ident {
-                            message: data.clone(),
-                            sender: self.sender.clone().unwrap()
-                        }, targets);
+                        for target in targets {
+                            let mut queue = in_message_queues.get_mut(target).map_err(|e| ErrorMessageTypes::LobbyManagementError("Failed to get message queue".to_string()))?;
+                            queue.push_back(self.clone());
+                        }
                     }
                 }
             }
@@ -192,7 +193,8 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                 &self,
                 commands: &mut Commands,
                 lobby_management: &LobbyManagementSystemParam,
-                lobby_management_arg: LobbyManagementArgument
+                lobby_management_arg: LobbyManagementArgument,
+                in_message_queues: &mut Query<&mut InMessageQueue>,
             ) -> Result<(), ErrorMessageTypes> {
                 match &self.message {
                     #( #message_match_arms , )*

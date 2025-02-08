@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     game::game_state::GameState,
-    networking::lobby_management::lobby_management::{
-        LobbyManagementArgument, LobbyManagementSystemParam,
+    networking::{
+        lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+        messages::message_queue::InMessageQueue,
     },
 };
 
@@ -22,14 +23,21 @@ use super::message_data::{
         #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
         pub enum MessageTarget {
             #[default]
-            #[get_targets(get_players_in_lobby_team)]
+            #[get_targets(targets_get_players_in_lobby_team)]
+            // To everyone in the same team in the same lobby
             Team,
-            #[get_targets(get_empty)]
+            #[get_targets(targets_get_empty)]
+            // To the server directly, no lobby or client. Used for first contact
             ServerOnly,
-            #[get_targets(get_players_in_lobby)]
+            #[get_targets(targets_get_players_in_lobby)]
+            // To everyone in the same lobby
             AllInLobby,
-            #[get_targets(get_single_player)]
+            #[get_targets(targets_get_single_player)]
+            // To a single player
             Client,
+            #[get_targets(targets_get_lobby_directly)]
+            // To the lobby itself
+            ToLobbyDirectly,
         }
     },
     message = {

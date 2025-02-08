@@ -3,10 +3,14 @@ use std::time::Duration;
 use bevy::{prelude::*, utils::HashMap};
 use lobby_management::LobbyManagementSystemParam;
 
-use crate::{asset_handling::{
-    config::ServerConfigSystemParam,
-    maps::{MapConfig, MapConfigSystemParam},
-}, game::game_state::GameState};
+use crate::{
+    asset_handling::{
+        config::ServerConfigSystemParam,
+        maps::{MapConfig, MapConfigSystemParam},
+    },
+    game::game_state::GameState,
+    networking::messages::message_queue::{InMessageQueue, OutMessageQueue},
+};
 
 pub mod lobby_management;
 
@@ -164,7 +168,9 @@ fn finish_setting_up_lobby(
                     commands
                         .entity(player)
                         .remove::<AwaitingFirstContact>()
-                        .insert(InLobby(lobby_entity));
+                        .insert(InLobby(lobby_entity))
+                        .insert(InMessageQueue::default())
+                        .insert(OutMessageQueue::default());
 
                     commands.trigger_targets(PlayerAddedToLobbyTrigger, lobby_entity);
 
@@ -181,7 +187,10 @@ fn finish_setting_up_lobby(
                     .insert_player_into_team(&team_name, player);
             }
 
-            // TODO: commands.entity(lobby_entity).observe()
+            commands
+                .entity(lobby_entity)
+                .insert(InMessageQueue::default())
+                .insert(OutMessageQueue::default());
         } else {
             error!(
                 "Failed to get map config for lobby \"{}\" with map name \"{}\"",

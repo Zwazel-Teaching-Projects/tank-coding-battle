@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use receiving_messages::handle_reading_messages;
-use sending_messages::sending_messages;
+use sending_messages::sending_client_messages;
 use shared::networking::{lobby_management::MyLobby, networking_system_sets::MyNetworkingSet};
 
 pub mod receiving_messages;
@@ -19,5 +19,7 @@ impl Plugin for HandleMessagesPlugin {
 }
 
 fn add_triggers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
-    commands.entity(trigger.entity()).observe(sending_messages);
+    commands
+        .entity(trigger.entity())
+        .observe(sending_client_messages);
 }

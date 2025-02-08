@@ -154,7 +154,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
             .map_err(|_| "Lobby not found".to_string())
     }
 
-    pub fn get_players_in_lobby(
+    pub fn targets_get_players_in_lobby(
         &self,
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
@@ -168,7 +168,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         })
     }
 
-    pub fn get_spectators_in_lobby(
+    pub fn targets_get_spectators_in_lobby(
         &self,
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
@@ -182,7 +182,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         })
     }
 
-    pub fn get_players_in_lobby_team(
+    pub fn targets_get_players_in_lobby_team(
         &self,
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
@@ -214,7 +214,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         })
     }
 
-    pub fn get_single_player(&self, arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
+    pub fn targets_get_single_player(
+        &self,
+        arg: LobbyManagementArgument,
+    ) -> Result<Vec<Entity>, String> {
         todo!();
         if arg.target_player == arg.sender {
             return Err("Target player cannot be the sender".to_string());
@@ -225,7 +228,14 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     }
 
     /// Returns an empty vec. this is a workaround for the "ServerOnly" message target
-    pub fn get_empty(&self, _arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
+    pub fn targets_get_empty(&self, _arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
         Ok(Vec::new())
+    }
+
+    pub fn targets_get_lobby_directly(
+        &self,
+        arg: LobbyManagementArgument,
+    ) -> Result<Vec<Entity>, String> {
+        self.get_lobby(arg.clone()).map(|(entity, _)| vec![entity])
     }
 }

@@ -1,0 +1,18 @@
+use bevy::prelude::*;
+
+use std::collections::VecDeque;
+
+use super::message_container::MessageContainer;
+
+/// All Messages we RECEIVE
+#[derive(Debug, Default, Reflect, Clone, PartialEq, Component, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct InMessageQueue(MessageQueue);
+
+/// All Messages we SEND
+#[derive(Debug, Default, Reflect, Clone, PartialEq, Component, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct OutMessageQueue(MessageQueue);
+
+#[derive(Debug, Default, Reflect, Clone, Deref, DerefMut, PartialEq)]
+pub struct MessageQueue(VecDeque<MessageContainer>);

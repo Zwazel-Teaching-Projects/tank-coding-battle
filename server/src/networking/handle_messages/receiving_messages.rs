@@ -6,7 +6,10 @@ use shared::networking::{
         lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
         InLobby, InTeam,
     },
-    messages::message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+    messages::{
+        message_container::MessageContainer,
+        message_queue::{InMessageQueue, OutMessageQueue},
+    },
 };
 
 use crate::networking::handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient};
@@ -19,6 +22,8 @@ pub fn handle_reading_messages(
         Option<&InLobby>,
         Option<&InTeam>,
     )>,
+    mut incoming_message_queues: Query<&mut InMessageQueue>,
+    mut outgoing_message_queues: Query<&mut OutMessageQueue>,
     lobby_management: LobbyManagementSystemParam,
 ) {
     for (sender, mut network_client, in_lobby, in_team) in clients.iter_mut() {
@@ -85,6 +90,7 @@ pub fn handle_reading_messages(
                     &mut commands,
                     &lobby_management,
                     lobby_arg,
+                    &mut incoming_message_queues,
                 );
 
                 if let Err(e) = result {
@@ -92,12 +98,11 @@ pub fn handle_reading_messages(
                         "Failed to handle message from client \"{:?}\":\n{:?}",
                         addr, e
                     );
-                    network_client
-                        .outgoing_messages_queue
-                        .push_back(MessageContainer::new(
-                            MessageTarget::Client,
-                            NetworkMessageType::MessageError(e),
-                        ));
+
+                    let mut out_queue = outgoing_message_queues
+                        .get_mut(sender)
+                        .expect("Failed to get outgoing message queue from sender");
+                    out_queue.push_back(message_container);
                 }
             }
             Err(e) => {
