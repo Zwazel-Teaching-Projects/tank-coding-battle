@@ -1,0 +1,26 @@
+(
+    teams: {
+        "Red": (
+            color: Srgba(
+                Srgba(
+                    red: 1.0,
+                    green: 0.0,
+                    blue: 0.0,
+                    alpha: 1.0,
+                )
+            ),
+            max_players: 4,
+        ),
+        "Blue": (
+            color: Srgba(
+                Srgba(
+                    red: 0.0,
+                    green: 0.0,
+                    blue: 1.0,
+                    alpha: 1.0,
+                )
+            ),
+            max_players: 4,
+        ),
+    },
+)

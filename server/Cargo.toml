@@ -1,0 +1,20 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared = { workspace = true }
+
+bevy = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+default = ["server"]
+server = [
+    "bevy/bevy_state",
+    "bevy/bevy_color",
+    "bevy/serialize",
+    "bevy/multi_threaded",
+]

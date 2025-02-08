@@ -1,0 +1,14 @@
+[package]
+name = "spectator_client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared = { workspace = true }
+
+bevy = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+spectator_client = ["bevy/default"]
