@@ -36,7 +36,7 @@ use super::message_data::{
             // To a single player
             Client,
             #[get_targets(targets_get_lobby_directly)]
-            // To the lobby itself
+            // To the lobby itself (is there even a usecase for that?)
             ToLobbyDirectly,
         }
     },

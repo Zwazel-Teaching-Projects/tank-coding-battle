@@ -1,7 +1,6 @@
 use std::net::{SocketAddr, TcpStream};
 
 use bevy::prelude::*;
-use shared::networking::messages::message_queue::MessageQueue;
 
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]

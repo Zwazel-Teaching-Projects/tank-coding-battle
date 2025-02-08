@@ -5,14 +5,15 @@ use shared::networking::{
         lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
         LobbyState, MyLobby,
     },
-    messages::message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+    messages::{
+        message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+        message_queue::OutMessageQueue,
+    },
 };
 use simulation::run_next_simulation_tick;
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
 use triggers::{NextSimulationStepDoneTrigger, SendOutgoingMessagesTrigger};
-
-use crate::networking::handle_clients::lib::MyNetworkClient;
 
 pub mod handle_players;
 pub mod simulation;
@@ -67,7 +68,7 @@ fn add_triggers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Command
 fn add_current_game_state_to_message_queue(
     trigger: Trigger<NextSimulationStepDoneTrigger>,
     lobby_management: LobbyManagementSystemParam,
-    mut networked_clients: Query<&mut MyNetworkClient>,
+    mut out_message_queues: Query<&mut OutMessageQueue>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
@@ -84,7 +85,7 @@ fn add_current_game_state_to_message_queue(
     );
 
     for player_entity in lobby.players.iter() {
-        let mut client = networked_clients
+        let mut out_message_queue = out_message_queues
             .get_mut(*player_entity)
             .expect("Failed to get client");
 
@@ -92,7 +93,7 @@ fn add_current_game_state_to_message_queue(
             MessageTarget::Client,
             NetworkMessageType::GameState(lobby.game_state.clone()),
         );
-        client.outgoing_messages_queue.push_back(message);
+        out_message_queue.push_back(message);
     }
 
     commands.trigger_targets(SendOutgoingMessagesTrigger, lobby_entity);

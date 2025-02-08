@@ -12,6 +12,8 @@ use crate::{
     networking::messages::message_queue::{InMessageQueue, OutMessageQueue},
 };
 
+use super::messages::message_data::first_contact::ClientType;
+
 pub mod lobby_management;
 
 pub struct MyLobbyManagementPlugin;
@@ -56,6 +58,13 @@ pub struct PlayerRemovedFromLobbyTrigger;
 
 #[derive(Debug, Event)]
 pub struct PlayerAddedToLobbyTrigger;
+
+#[derive(Debug, Event)]
+pub struct PlayerWantsToJoinLobbyTrigger {
+    pub player: Entity,
+    pub lobby: Entity,
+    pub player_type: ClientType,
+}
 
 #[derive(Default, Resource, Reflect, Debug)]
 #[reflect(Resource)]
@@ -142,6 +151,28 @@ pub fn remove_player_from_lobby(
         .insert(AwaitingFirstContact::new(
             server_config.timeout_first_contact,
         ));
+}
+
+fn adding_player_to_lobby(
+    trigger: Trigger<PlayerWantsToJoinLobbyTrigger>,
+    mut lobby_management: LobbyManagementSystemParam,
+) {
+    let PlayerWantsToJoinLobbyTrigger {
+        player,
+        lobby,
+        player_type,
+    } = trigger.event();
+    // TODO
+    if let Ok(mut lobby) = lobby_management.get_lobby_mut(*lobby) {
+        match player_type {
+            ClientType::Player => {
+                lobby.players.push(*player);
+            }
+            ClientType::Spectator => {
+                lobby.spectators.push(*player);
+            }
+        }
+    }
 }
 
 fn finish_setting_up_lobby(

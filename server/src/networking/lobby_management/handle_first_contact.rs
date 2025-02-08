@@ -51,16 +51,18 @@ pub fn handle_first_contact_message(
     }
 
     // get or insert lobby
-    if lobby_management
-        .get_or_insert_lobby_entity(
-            &message.lobby_id,
-            sender,
-            message.map_name.as_deref(),
-            &mut commands,
-            server_config,
-        )
-        .is_err()
-    {
-        error!("Failed to get or insert lobby for client {:?}", sender);
+    match lobby_management.get_or_insert_lobby_entity(
+        &message.lobby_id,
+        message.map_name.as_deref(),
+        &mut commands,
+        server_config,
+    ) {
+        Ok(lobby_entity) => {}
+        Err(e) => {
+            error!(
+                "Error getting or inserting lobby entity: {:?} for sender: {:?}",
+                e, sender
+            );
+        }
     }
 }
