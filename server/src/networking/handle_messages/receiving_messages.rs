@@ -8,7 +8,7 @@ use shared::networking::{
     },
     messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
-        message_queue::{InMessageQueue, OutMessageQueue},
+        message_queue::{ErrorMessageQueue, InMessageQueue},
     },
 };
 
@@ -23,7 +23,7 @@ pub fn handle_reading_messages(
         Option<&InTeam>,
     )>,
     mut incoming_message_queues: Query<&mut InMessageQueue>,
-    mut outgoing_message_queues: Query<&mut OutMessageQueue>,
+    mut error_message_queues: Query<&mut ErrorMessageQueue>,
     lobby_management: LobbyManagementSystemParam,
 ) {
     for (sender, mut network_client, in_lobby, in_team) in clients.iter_mut() {
@@ -75,6 +75,7 @@ pub fn handle_reading_messages(
                 if let Some(in_lobby) = in_lobby {
                     message_container.tick_received = lobby_management
                         .get_lobby_gamestate(**in_lobby)
+                        // TODO Replace with adding error to queue, not panicking
                         .expect("Failed to get lobby game state")
                         .tick;
                 }
@@ -108,10 +109,11 @@ pub fn handle_reading_messages(
                         addr, e
                     );
 
-                    let mut out_queue = outgoing_message_queues
+                    let mut error_queue = error_message_queues
                         .get_mut(sender)
+                        // TODO Replace with adding error to queue, not panicking
                         .expect("Failed to get outgoing message queue from sender");
-                    out_queue.push_back(MessageContainer::new(
+                    error_queue.push_back(MessageContainer::new(
                         MessageTarget::Client(sender),
                         NetworkMessageType::MessageError(e),
                     ));
@@ -122,6 +124,7 @@ pub fn handle_reading_messages(
                     "Failed to parse JSON from {}: {}. Raw data: {}",
                     addr, e, received
                 );
+                // TODO add error message to queue
             }
         }
     }
