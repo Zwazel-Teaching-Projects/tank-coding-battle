@@ -11,7 +11,9 @@ use crate::{
     game::game_state::GameState,
     networking::messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
-        message_data::message_error_types::ErrorMessageTypes,
+        message_data::{
+            message_error_types::ErrorMessageTypes, server_config::ServerConfigMessageData,
+        },
         message_queue::{InMessageQueue, OutMessageQueue},
     },
 };
@@ -165,6 +167,8 @@ fn adding_player_to_lobby(
     mut lobby_management: LobbyManagementSystemParam,
     mut commands: Commands,
     mut player_error_message_queues: Query<&mut ErrorMessageQueue>,
+    mut player_message_queues: Query<&mut OutMessageQueue>,
+    server_config: ServerConfigSystemParam,
 ) {
     let PlayerWantsToJoinLobbyTrigger {
         player,
@@ -210,6 +214,16 @@ fn adding_player_to_lobby(
                     commands.entity(*player).insert((InTeam {
                         team_name: team_name.clone(),
                     },));
+
+                    let server_config = server_config.server_config();
+                    let mut out_message_queue = player_message_queues.get_mut(*player).unwrap();
+                    out_message_queue.push_back(MessageContainer::new(
+                        MessageTarget::Client(*player),
+                        NetworkMessageType::ServerConfig(ServerConfigMessageData {
+                            tick_rate: server_config.tick_rate,
+                            client_id: *player,
+                        }),
+                    ));
                 } else {
                     error!("Player wants to join lobby without specifying a team name");
                 }

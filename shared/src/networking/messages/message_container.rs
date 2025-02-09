@@ -12,7 +12,7 @@ use crate::{
 
 use super::message_data::{
     first_contact::FirstContactData, message_error_types::ErrorMessageTypes,
-    simple_text_message::SimpleTextMessage,
+    server_config::ServerConfigMessageData, simple_text_message::SimpleTextMessage,
 };
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
@@ -51,6 +51,7 @@ use super::message_data::{
             #[target(Client, Team, AllInLobby)]
             SimpleTextMessage(SimpleTextMessage),
             MessageError(ErrorMessageTypes),
+            ServerConfig(ServerConfigMessageData),
         }
     }
 )]

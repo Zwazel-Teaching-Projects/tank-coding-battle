@@ -3,6 +3,7 @@ use bevy::prelude::*;
 pub mod first_contact;
 pub mod message_error_types;
 pub mod simple_text_message;
+pub mod server_config;
 
 pub struct MySharedMessageDataPlugin;
 
