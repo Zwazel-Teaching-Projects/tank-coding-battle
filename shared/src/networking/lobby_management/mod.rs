@@ -168,6 +168,14 @@ fn adding_player_to_lobby(
     } = trigger.event();
 
     if let Ok(mut lobby) = lobby_management.get_lobby_mut(*lobby_entity) {
+        if lobby.state != LobbyState::SettingUp {
+            error!(
+                "Player {:?} wants to join lobby {:?} but it is not in the setting up state",
+                player, lobby_entity
+            );
+            return;
+        }
+
         match player_type {
             ClientType::Player => {
                 if let Some(team_name) = team_name {
