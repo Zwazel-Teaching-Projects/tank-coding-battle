@@ -9,10 +9,14 @@ use crate::{
         maps::{MapConfig, MapConfigSystemParam},
     },
     game::game_state::GameState,
-    networking::messages::message_queue::{InMessageQueue, OutMessageQueue},
+    networking::messages::{
+        message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+        message_data::message_error_types::ErrorMessageTypes,
+        message_queue::{InMessageQueue, OutMessageQueue},
+    },
 };
 
-use super::messages::message_data::first_contact::ClientType;
+use super::messages::{message_data::first_contact::ClientType, message_queue::ErrorMessageQueue};
 
 pub mod lobby_management;
 
@@ -73,6 +77,7 @@ pub struct MyLobbies {
 
 #[derive(Debug, Reflect, Default, Component, PartialEq)]
 #[reflect(Component)]
+#[require(InMessageQueue, OutMessageQueue)]
 pub struct MyLobby {
     pub state: LobbyState,
     pub lobby_name: String,
@@ -159,6 +164,7 @@ fn adding_player_to_lobby(
     trigger: Trigger<PlayerWantsToJoinLobbyTrigger>,
     mut lobby_management: LobbyManagementSystemParam,
     mut commands: Commands,
+    mut player_error_message_queues: Query<&mut ErrorMessageQueue>,
 ) {
     let PlayerWantsToJoinLobbyTrigger {
         player,
@@ -173,6 +179,15 @@ fn adding_player_to_lobby(
                 "Player {:?} wants to join lobby {:?} but it is not in the setting up state",
                 player, lobby_entity
             );
+
+            let mut queue = player_error_message_queues.get_mut(*player).unwrap();
+            queue.push_back(MessageContainer::new(
+                MessageTarget::Client(*player),
+                NetworkMessageType::MessageError(ErrorMessageTypes::LobbyAlreadyRunning(
+                    "Lobby is already running".to_string(),
+                )),
+            ));
+
             return;
         }
 
@@ -206,11 +221,7 @@ fn adding_player_to_lobby(
 
         commands
             .entity(*player)
-            .insert((
-                InLobby(*lobby_entity),
-                InMessageQueue::default(),
-                OutMessageQueue::default(),
-            ))
+            .insert((InLobby(*lobby_entity),))
             .remove::<AwaitingFirstContact>();
     }
 }
@@ -231,11 +242,6 @@ fn finish_setting_up_lobby(
             );
 
             lobby.map_config = Some(map_config.clone());
-
-            commands
-                .entity(lobby_entity)
-                .insert(InMessageQueue::default())
-                .insert(OutMessageQueue::default());
         } else {
             error!(
                 "Failed to get map config for lobby \"{}\" with map name \"{}\"",

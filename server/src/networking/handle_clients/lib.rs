@@ -1,6 +1,9 @@
 use std::net::{SocketAddr, TcpStream};
 
 use bevy::prelude::*;
+use shared::networking::messages::message_queue::{
+    ErrorMessageQueue, InMessageQueue, OutMessageQueue,
+};
 
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
@@ -9,6 +12,7 @@ pub struct MyLocalClient {
 }
 
 #[derive(Debug, Component)]
+#[require(InMessageQueue, OutMessageQueue, ErrorMessageQueue)]
 pub struct MyNetworkClient {
     pub name: Option<String>,
     pub address: SocketAddr,

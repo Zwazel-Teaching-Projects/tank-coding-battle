@@ -3,13 +3,32 @@ use std::io::Write;
 use bevy::prelude::*;
 use shared::networking::{
     lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-    messages::message_queue::OutMessageQueue,
+    messages::message_queue::{ErrorMessageQueue, OutMessageQueue},
 };
 
 use crate::{
     gameplay::triggers::SendOutgoingMessagesTrigger,
     networking::handle_clients::lib::MyNetworkClient,
 };
+
+pub fn sending_error_messages(
+    mut connected_clients: Query<
+        (&mut MyNetworkClient, &mut ErrorMessageQueue),
+        Changed<ErrorMessageQueue>,
+    >,
+) {
+    for (mut client, mut error_message_queue) in connected_clients.iter_mut() {
+        let stream = &mut client.stream;
+
+        for message in error_message_queue.drain(..) {
+            let message = serde_json::to_vec(&message).expect("Failed to serialize message");
+            let length = (message.len() as u32).to_le_bytes();
+
+            let _ = stream.write_all(&length).expect("Failed to send length");
+            let _ = stream.write_all(&message).expect("Failed to send message");
+        }
+    }
+}
 
 pub fn sending_client_messages(
     trigger: Trigger<SendOutgoingMessagesTrigger>,

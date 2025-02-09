@@ -15,7 +15,7 @@ pub mod handle_messages;
 pub mod lib;
 pub mod lobby_management;
 
-use crate::gameplay::{triggers::StartNextTickProcessingTrigger, system_sets::MyGameplaySet};
+use crate::gameplay::system_sets::MyGameplaySet;
 
 pub struct MyNetworkingPlugin;
 
@@ -25,7 +25,7 @@ impl Plugin for MyNetworkingPlugin {
             Update,
             (
                 MyNetworkingSet::ReadingMessages,
-                MyNetworkingSet::SendingMessages.run_if(on_event::<StartNextTickProcessingTrigger>),
+                MyNetworkingSet::SendingMessages,
             )
                 .after(MyGameplaySet::SimulationStepDone),
         )

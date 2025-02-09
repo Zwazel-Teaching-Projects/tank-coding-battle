@@ -10,4 +10,5 @@ use serde::{Deserialize, Serialize};
 pub enum ErrorMessageTypes {
     InvalidTarget(String),
     LobbyManagementError(String),
+    LobbyAlreadyRunning(String),
 }

@@ -16,3 +16,8 @@ pub struct OutMessageQueue(pub MessageQueue);
 
 #[derive(Debug, Default, Reflect, Clone, Deref, DerefMut, PartialEq)]
 pub struct MessageQueue(VecDeque<MessageContainer>);
+
+/// All Errors the server sends to the client
+#[derive(Debug, Default, Reflect, Clone, PartialEq, Component, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct ErrorMessageQueue(pub MessageQueue);
