@@ -73,18 +73,13 @@ fn add_current_game_state_to_message_queue(
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby");
 
-    info!(
-        "Sending game state of lobby {} to clients",
-        lobby.lobby_name
-    );
-
     for player_entity in lobby.players.iter() {
         let mut out_message_queue = out_message_queues
             .get_mut(*player_entity)
             .expect("Failed to get client");
 
         let message = MessageContainer::new(
-            MessageTarget::Client,
+            MessageTarget::Client(*player_entity),
             NetworkMessageType::GameState(lobby.game_state.clone()),
         );
         out_message_queue.push_back(message);

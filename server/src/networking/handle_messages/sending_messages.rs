@@ -35,8 +35,11 @@ pub fn sending_client_messages(
                 for mut message in out_message_queue.drain(..) {
                     message.tick_sent = game_state.tick;
 
+                    info!("Sending message to player: {:?}", message);
+
                     let message =
                         serde_json::to_vec(&message).expect("Failed to serialize message");
+
                     let length = (message.len() as u32).to_le_bytes();
 
                     let _ = stream.write_all(&length).expect("Failed to send length");

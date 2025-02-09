@@ -1,6 +1,6 @@
 (
     ip: "0.0.0.0",
     port: 9999,
-    tick_rate: 10, // if 10, then 10 ticks per second
+    tick_rate: 1, // if 10, then 10 ticks per second
     timeout_first_contact: 5000, // in milliseconds (1000 = 1 second)
 )

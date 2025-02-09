@@ -120,15 +120,25 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Forge match arms for each target variant to invoke its get_targets function.
     // For each variant, extract the get_targets function from the original attributes.
-    let target_match_arms = target_enum.variants.iter().map(|variant| {
-    let variant_ident = &variant.ident;
-        // Extract the get_targets function using the original attributes.
-        let get_targets_fn = get_get_targets_fn(&variant.attrs)
-            .unwrap_or_else(|| format_ident!("undefined_get_targets"));
-        quote! {
-            #target_enum_ident::#variant_ident => lobby_management.#get_targets_fn(lobby_management_arg)
-        }
-    }).collect::<Vec<_>>();
+    let target_match_arms = target_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_ident = &variant.ident;
+            // Extract the get_targets function from the variant's attributes.
+            let get_targets_fn = get_get_targets_fn(&variant.attrs)
+                .unwrap_or_else(|| format_ident!("undefined_get_targets"));
+            // Generate the correct match pattern based on the variant's fields.
+            let pattern = match &variant.fields {
+                syn::Fields::Unit => quote! { #target_enum_ident::#variant_ident },
+                syn::Fields::Unnamed(_) => quote! { #target_enum_ident::#variant_ident (..) },
+                syn::Fields::Named(_) => quote! { #target_enum_ident::#variant_ident { .. } },
+            };
+            quote! {
+                #pattern => lobby_management.#get_targets_fn(lobby_management_arg)
+            }
+        })
+        .collect::<Vec<_>>();
 
     // Now, create a cleaned copy for emitting the enum without the get_targets attributes.
     let mut cleaned_target_enum = target_enum.clone();
@@ -143,13 +153,31 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
     for variant in message_enum_for_match.variants.iter() {
         let variant_ident = &variant.ident;
         let trigger_struct_ident = format_ident!("{}Trigger", variant_ident);
-        // Now, allowed_targets is correctly extracted from the original attributes.
+        // Extract allowed targets from the variant's attributes.
         let allowed_targets = get_allowed_targets(&variant.attrs);
 
         let match_arm = if let Some(targets) = allowed_targets {
-            // Build pattern for allowed targets.
-            let allowed_patterns = targets.iter().map(|t| {
-                quote! { #target_enum_ident::#t }
+            // Build patterns for allowed targets by referencing the target enum definitions.
+            let allowed_patterns = targets.iter().map(|allowed_ident| {
+                // Seek the variant in the target enum matching the allowed target name.
+                let target_variant = target_enum
+                    .variants
+                    .iter()
+                    .find(|v| v.ident == *allowed_ident);
+                if let Some(var) = target_variant {
+                    match &var.fields {
+                        syn::Fields::Unit => quote! { #target_enum_ident::#allowed_ident },
+                        syn::Fields::Unnamed(_) => {
+                            quote! { #target_enum_ident::#allowed_ident (..) }
+                        }
+                        syn::Fields::Named(_) => {
+                            quote! { #target_enum_ident::#allowed_ident { .. } }
+                        }
+                    }
+                } else {
+                    // Fallback (should not occur if your allowed target is valid).
+                    quote! { #target_enum_ident::#allowed_ident }
+                }
             });
             quote! {
                 #message_enum_ident::#variant_ident(data) => {
@@ -160,7 +188,7 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                         #( #target_match_arms, )*
                     }.map_err(|e| ErrorMessageTypes::LobbyManagementError(e))?;
                     if targets.is_empty() {
-                        // No targets defined, we trigger to global. We must have gotten a server only message.
+                        // No targets defined; trigger to global (for server-only messages).
                         commands.trigger(#trigger_struct_ident {
                             message: data.clone(),
                             sender: self.sender.clone().unwrap()

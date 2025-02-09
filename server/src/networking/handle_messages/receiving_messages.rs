@@ -7,7 +7,7 @@ use shared::networking::{
         InLobby, InTeam,
     },
     messages::{
-        message_container::MessageContainer,
+        message_container::{MessageContainer, MessageTarget, NetworkMessageType},
         message_queue::{InMessageQueue, OutMessageQueue},
     },
 };
@@ -87,7 +87,10 @@ pub fn handle_reading_messages(
                 let lobby_arg = LobbyManagementArgument {
                     lobby: in_lobby.map(|l| **l),
                     sender: Some(sender),
-                    target_player: None,
+                    target_player: match message_container.target {
+                        MessageTarget::Client(e) => Some(e),
+                        _ => None,
+                    },
                     team_name: in_team.map(|t| t.team_name.clone()),
                     team: None,
                 };
@@ -108,7 +111,10 @@ pub fn handle_reading_messages(
                     let mut out_queue = outgoing_message_queues
                         .get_mut(sender)
                         .expect("Failed to get outgoing message queue from sender");
-                    out_queue.push_back(message_container);
+                    out_queue.push_back(MessageContainer::new(
+                        MessageTarget::Client(sender),
+                        NetworkMessageType::MessageError(e),
+                    ));
                 }
             }
             Err(e) => {
