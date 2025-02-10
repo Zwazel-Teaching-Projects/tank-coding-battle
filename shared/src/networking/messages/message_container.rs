@@ -64,7 +64,6 @@ pub struct MessageContainer {
     pub target: MessageTarget,
     pub message: NetworkMessageType,
 
-    #[serde(skip)]
     pub sender: Option<Entity>,
 
     /// The tick when the message was sent
