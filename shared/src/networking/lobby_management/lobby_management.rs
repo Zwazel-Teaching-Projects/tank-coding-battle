@@ -17,7 +17,6 @@ pub struct LobbyManagementArgument {
     pub sender: Option<Entity>,
     pub target_player: Option<Entity>,
     pub team_name: Option<String>,
-    pub team: Option<Entity>,
 }
 
 #[derive(SystemParam)]

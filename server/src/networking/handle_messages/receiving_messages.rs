@@ -92,8 +92,7 @@ pub fn handle_reading_messages(
                         MessageTarget::Client(e) => Some(e),
                         _ => None,
                     },
-                    team_name: in_team.map(|t| t.team_name.clone()),
-                    team: None,
+                    team_name: in_team.map(|t| t.0.clone()),
                 };
 
                 let result = message_container.trigger_message_received(

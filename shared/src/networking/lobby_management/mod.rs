@@ -50,11 +50,9 @@ impl AwaitingFirstContact {
     }
 }
 
-#[derive(Debug, Default, Reflect, Clone, Component)]
+#[derive(Debug, Default, Reflect, Clone, Component, Deref, DerefMut)]
 #[reflect(Component)]
-pub struct InTeam {
-    pub team_name: String,
-}
+pub struct InTeam(pub String);
 
 #[derive(Debug, Reflect, Component, Deref, DerefMut)]
 #[reflect(Component)]
@@ -217,9 +215,9 @@ fn adding_player_to_lobby(
                         .expect("Map config should be set up by now")
                         .insert_player_into_team(team_name, *player);
 
-                    commands.entity(*player).insert((InTeam {
-                        team_name: team_name.clone(),
-                    },));
+                    commands
+                        .entity(*player)
+                        .insert((InTeam(team_name.clone()),));
 
                     let mut queue = player_immediate_message_queues.get_mut(*player).unwrap();
                     queue.push_back(MessageContainer::new(
