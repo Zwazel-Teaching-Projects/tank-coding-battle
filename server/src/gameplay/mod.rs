@@ -71,7 +71,9 @@ fn add_current_game_state_to_message_queue(
             MessageTarget::Client(*player_entity),
             NetworkMessageType::GameState(lobby.game_state.clone()),
         );
-        out_message_queue.push_back(message);
+
+        // Make sure the game state is sent before any other messages
+        out_message_queue.push_front(message);
     }
 
     commands.trigger_targets(SendOutgoingMessagesTrigger, lobby_entity);

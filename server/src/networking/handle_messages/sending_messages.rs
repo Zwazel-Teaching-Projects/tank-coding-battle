@@ -17,15 +17,16 @@ pub fn sending_immediate_messages(
         Changed<ImmediateOutMessageQueue>,
     >,
 ) {
-    for (mut client, mut error_message_queue) in connected_clients.iter_mut() {
+    for (mut client, mut immediate_message_queue) in connected_clients.iter_mut() {
         let stream = &mut client.stream;
 
-        for message in error_message_queue.drain(..) {
-            let message = serde_json::to_vec(&message).expect("Failed to serialize message");
-            let length = (message.len() as u32).to_le_bytes();
+        let messages: Vec<_> = immediate_message_queue.drain(..).collect();
+        if !messages.is_empty() {
+            let messages = serde_json::to_vec(&messages).expect("Failed to serialize messages");
+            let length = (messages.len() as u32).to_le_bytes();
 
             let _ = stream.write_all(&length).expect("Failed to send length");
-            let _ = stream.write_all(&message).expect("Failed to send message");
+            let _ = stream.write_all(&messages).expect("Failed to send messages");
         }
     }
 }
@@ -51,18 +52,20 @@ pub fn sending_client_messages(
                     .expect("Failed to get client");
                 let stream = &mut client.stream;
 
-                for mut message in out_message_queue.drain(..) {
+                let mut messages: Vec<_> = out_message_queue.drain(..).collect();
+                for message in &mut messages {
                     message.tick_sent = game_state.tick;
+                }
 
-                    info!("Sending message to player: {:?}", message);
+                if !messages.is_empty() {
+                    info!("Sending messages to player: {:?}", messages);
 
-                    let message =
-                        serde_json::to_vec(&message).expect("Failed to serialize message");
+                    let messages = serde_json::to_vec(&messages).expect("Failed to serialize messages");
 
-                    let length = (message.len() as u32).to_le_bytes();
+                    let length = (messages.len() as u32).to_le_bytes();
 
                     let _ = stream.write_all(&length).expect("Failed to send length");
-                    let _ = stream.write_all(&message).expect("Failed to send message");
+                    let _ = stream.write_all(&messages).expect("Failed to send messages");
                 }
             }
         }
@@ -70,7 +73,7 @@ pub fn sending_client_messages(
     }
 }
 
-// TODO
+// TODO (do we even need this?)
 pub fn broadcast_lobby_messages(
     trigger: Trigger<SendOutgoingMessagesTrigger>,
     lobby_management: LobbyManagementSystemParam,
