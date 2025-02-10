@@ -8,7 +8,7 @@ use shared::networking::{
     },
     messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
-        message_queue::{ImmediateOutMessageQueue, InMessageQueue},
+        message_queue::{ImmediateOutMessageQueue, InMessageQueue, OutMessageQueue},
     },
 };
 
@@ -23,7 +23,8 @@ pub fn handle_reading_messages(
         Option<&InTeam>,
     )>,
     mut incoming_message_queues: Query<&mut InMessageQueue>,
-    mut error_message_queues: Query<&mut ImmediateOutMessageQueue>,
+    mut outgoing_message_queues: Query<&mut OutMessageQueue>,
+    mut immediate_message_queues: Query<&mut ImmediateOutMessageQueue>,
     lobby_management: LobbyManagementSystemParam,
 ) {
     for (sender, mut network_client, in_lobby, in_team) in clients.iter_mut() {
@@ -100,6 +101,7 @@ pub fn handle_reading_messages(
                     &lobby_management,
                     lobby_arg,
                     &mut incoming_message_queues,
+                    &mut outgoing_message_queues,
                 );
 
                 if let Err(e) = result {
@@ -108,7 +110,7 @@ pub fn handle_reading_messages(
                         addr, e
                     );
 
-                    let mut error_queue = error_message_queues
+                    let mut error_queue = immediate_message_queues
                         .get_mut(sender)
                         // TODO Replace with adding error to queue, not panicking
                         .expect("Failed to get outgoing message queue from sender");

@@ -50,6 +50,7 @@ use super::message_data::{
             GameState(GameState),
             #[serde(rename = "SimpleTextMessage")]
             #[target(Client, Team, AllInLobby)]
+            #[behaviour(Forward)]
             SimpleTextMessage(TextDataWrapper),
             MessageError(ErrorMessageTypes),
             #[serde(rename = "GameConfig")]
