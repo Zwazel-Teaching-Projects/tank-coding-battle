@@ -11,14 +11,14 @@ use crate::{
     game::game_state::GameState,
     networking::messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
-        message_data::{
-            message_error_types::ErrorMessageTypes, server_config::ServerConfigMessageData,
-        },
+        message_data::{message_error_types::ErrorMessageTypes, text_data::TextDataWrapper},
         message_queue::{InMessageQueue, OutMessageQueue},
     },
 };
 
-use super::messages::{message_data::first_contact::ClientType, message_queue::ErrorMessageQueue};
+use super::messages::{
+    message_data::first_contact::ClientType, message_queue::ImmediateOutMessageQueue,
+};
 
 pub mod lobby_management;
 
@@ -66,6 +66,7 @@ pub struct PlayerRemovedFromLobbyTrigger;
 #[derive(Debug, Event)]
 pub struct PlayerWantsToJoinLobbyTrigger {
     pub player: Entity,
+    pub player_name: String,
     pub lobby: Entity,
     pub player_type: ClientType,
     pub team_name: Option<String>,
@@ -84,7 +85,7 @@ pub struct MyLobby {
     pub state: LobbyState,
     pub lobby_name: String,
 
-    pub players: Vec<Entity>,
+    pub players: Vec<(String, Entity)>,
     pub spectators: Vec<Entity>,
 
     pub map_name: String,
@@ -116,7 +117,7 @@ impl MyLobby {
         }
     }
 
-    pub fn with_player(mut self, player: Entity) -> Self {
+    pub fn with_player(mut self, player: (String, Entity)) -> Self {
         self.players.push(player);
         self
     }
@@ -167,15 +168,14 @@ fn adding_player_to_lobby(
     trigger: Trigger<PlayerWantsToJoinLobbyTrigger>,
     mut lobby_management: LobbyManagementSystemParam,
     mut commands: Commands,
-    mut player_error_message_queues: Query<&mut ErrorMessageQueue>,
-    mut player_message_queues: Query<&mut OutMessageQueue>,
-    server_config: ServerConfigSystemParam,
+    mut player_immediate_message_queues: Query<&mut ImmediateOutMessageQueue>,
 ) {
     let PlayerWantsToJoinLobbyTrigger {
         player,
         lobby: lobby_entity,
         player_type,
         team_name,
+        player_name,
     } = trigger.event();
 
     if let Ok(mut lobby) = lobby_management.get_lobby_mut(*lobby_entity) {
@@ -185,7 +185,7 @@ fn adding_player_to_lobby(
                     "Player {:?} wants to join lobby {:?} but it is in state {:?}",
                     player, lobby_entity, lobby.state
                 );
-                let mut queue = player_error_message_queues.get_mut(*player).unwrap();
+                let mut queue = player_immediate_message_queues.get_mut(*player).unwrap();
                 queue.push_back(MessageContainer::new(
                     MessageTarget::Client(*player),
                     NetworkMessageType::MessageError(ErrorMessageTypes::LobbyAlreadyRunning(
@@ -209,7 +209,7 @@ fn adding_player_to_lobby(
                         player, lobby_entity, team_name
                     );
 
-                    lobby.players.push(*player);
+                    lobby.players.push((player_name.clone(), *player));
 
                     lobby
                         .map_config
@@ -221,18 +221,17 @@ fn adding_player_to_lobby(
                         team_name: team_name.clone(),
                     },));
 
-                    let server_config = server_config.server_config();
-                    let mut out_message_queue = player_message_queues.get_mut(*player).unwrap();
-                    out_message_queue.push_back(MessageContainer::new(
+                    let mut queue = player_immediate_message_queues.get_mut(*player).unwrap();
+                    queue.push_back(MessageContainer::new(
                         MessageTarget::Client(*player),
-                        NetworkMessageType::ServerConfig(ServerConfigMessageData {
-                            tick_rate: server_config.tick_rate,
-                            client_id: *player,
-                        }),
+                        NetworkMessageType::SuccessFullyJoinedLobby(TextDataWrapper::new(format!(
+                            "Successfully joined lobby on team {}",
+                            team_name
+                        ))),
                     ));
                 } else {
                     error!("Player wants to join lobby without specifying a team name");
-                    let mut queue = player_error_message_queues.get_mut(*player).unwrap();
+                    let mut queue = player_immediate_message_queues.get_mut(*player).unwrap();
                     queue.push_back(MessageContainer::new(
                         MessageTarget::Client(*player),
                         NetworkMessageType::MessageError(ErrorMessageTypes::LobbyManagementError(

@@ -52,6 +52,15 @@ impl MapConfig {
     pub fn get_team(&self, team_name: &str) -> Option<&TeamConfig> {
         self.teams.get(team_name)
     }
+
+    pub fn get_team_of_player(&self, player: Entity) -> Option<(String, &TeamConfig)> {
+        for (team_name, team) in self.teams.iter() {
+            if team.players.contains(&player) {
+                return Some((team_name.clone(), team));
+            }
+        }
+        None
+    }
 }
 
 #[derive(Debug, Clone, Reflect, Default, Deserialize, PartialEq)]

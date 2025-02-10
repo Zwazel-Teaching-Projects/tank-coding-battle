@@ -14,7 +14,7 @@ impl Plugin for MySharedNetworkMessagesPlugin {
             .register_type::<message_queue::MessageQueue>()
             .register_type::<message_queue::InMessageQueue>()
             .register_type::<message_queue::OutMessageQueue>()
-            .register_type::<message_queue::ErrorMessageQueue>()
+            .register_type::<message_queue::ImmediateOutMessageQueue>()
             .add_plugins(message_data::MySharedMessageDataPlugin);
     }
 }

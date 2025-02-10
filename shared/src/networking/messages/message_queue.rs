@@ -14,10 +14,10 @@ pub struct InMessageQueue(pub MessageQueue);
 #[reflect(Component)]
 pub struct OutMessageQueue(pub MessageQueue);
 
-/// All Errors the server sends to the client
+/// All Messages we want the server to send immediately (e.g. error messages)
 #[derive(Debug, Default, Reflect, Clone, PartialEq, Component, Deref, DerefMut)]
 #[reflect(Component)]
-pub struct ErrorMessageQueue(pub MessageQueue);
+pub struct ImmediateOutMessageQueue(pub MessageQueue);
 
 #[derive(Debug, Default, Reflect, Clone, Deref, DerefMut, PartialEq)]
 pub struct MessageQueue(VecDeque<MessageContainer>);

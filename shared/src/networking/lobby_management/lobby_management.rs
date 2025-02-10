@@ -1,8 +1,12 @@
 use bevy::{ecs::system::SystemParam, prelude::*, utils::Entry};
 
 use crate::{
-    asset_handling::config::ServerConfig, game::game_state::GameState,
-    networking::lobby_management::PlayerRemovedFromLobbyTrigger,
+    asset_handling::config::ServerConfig,
+    game::game_state::GameState,
+    networking::{
+        lobby_management::PlayerRemovedFromLobbyTrigger,
+        messages::message_data::game_starts::ConnectedClientConfig,
+    },
 };
 
 use super::{MyLobbies, MyLobby};
@@ -66,7 +70,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         if let Ok((_, mut lobby)) = self.lobby_entities.get_mut(lobby) {
             lobby
                 .players
-                .retain(|&x| if x == player { false } else { true });
+                .retain(|(_, x)| if *x == player { false } else { true });
 
             lobby
                 .spectators
@@ -121,7 +125,13 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                         lobby_entity, lobby.lobby_name
                     );
 
-                    for player in lobby.players.iter().chain(lobby.spectators.iter()) {
+                    // Loop through players and spectators and remove them from the lobby (spectators are only Entity, while players are (String, Entity))
+                    for player in lobby
+                        .players
+                        .iter()
+                        .map(|(_, player)| player)
+                        .chain(lobby.spectators.iter())
+                    {
                         info!(
                             "Removing player/spectator {} from lobby {}...",
                             player, lobby_entity
@@ -143,13 +153,6 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         });
     }
 
-    pub fn get_lobby_from_player(&self, player: Entity) -> Option<(Entity, &MyLobby)> {
-        self.lobby_entities
-            .iter()
-            .find(|(_, lobby)| lobby.players.contains(&player))
-            .map(|(entity, lobby)| (entity, lobby))
-    }
-
     pub fn get_lobby(&self, lobby: Entity) -> Result<&MyLobby, String> {
         self.lobby_entities
             .get(lobby)
@@ -168,6 +171,24 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         self.get_lobby(lobby).map(|lobby| &lobby.game_state)
     }
 
+    pub fn get_connected_configs_in_lobby(&self, lobby: Entity) -> Vec<ConnectedClientConfig> {
+        self.get_lobby(lobby)
+            .map(|lobby| {
+                let map_config = lobby.map_config.as_ref().unwrap();
+
+                lobby
+                    .players
+                    .iter()
+                    .map(|(player_name, player)| ConnectedClientConfig {
+                        client_id: *player,
+                        client_name: player_name.clone(),
+                        client_team: map_config.get_team_of_player(*player).unwrap().0,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     pub fn targets_get_players_in_lobby(
         &self,
         arg: LobbyManagementArgument,
@@ -177,8 +198,8 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 lobby
                     .players
                     .iter()
-                    .filter(|&&player| Some(player) != arg.sender)
-                    .cloned()
+                    .filter(|(_, player)| Some(player) != arg.sender.as_ref())
+                    .map(|(_, player)| *player)
                     .collect()
             })
     }

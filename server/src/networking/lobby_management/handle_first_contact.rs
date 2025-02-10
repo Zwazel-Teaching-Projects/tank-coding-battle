@@ -64,6 +64,7 @@ pub fn handle_first_contact_message(
                 lobby: lobby_entity,
                 player_type: message.client_type.clone(),
                 team_name: message.team_name.clone(),
+                player_name: message.bot_name.clone(),
             });
         }
         Err(e) => {

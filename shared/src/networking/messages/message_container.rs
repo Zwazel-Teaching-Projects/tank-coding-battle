@@ -11,8 +11,8 @@ use crate::{
 };
 
 use super::message_data::{
-    first_contact::FirstContactData, message_error_types::ErrorMessageTypes,
-    server_config::ServerConfigMessageData, simple_text_message::SimpleTextMessage,
+    first_contact::FirstContactData, game_starts::GameStarts,
+    message_error_types::ErrorMessageTypes, text_data::TextDataWrapper,
 };
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
@@ -48,10 +48,14 @@ use super::message_data::{
             #[target(ServerOnly)]
             FirstContact(FirstContactData),
             GameState(GameState),
+            #[serde(rename = "SimpleTextMessage")]
             #[target(Client, Team, AllInLobby)]
-            SimpleTextMessage(SimpleTextMessage),
+            SimpleTextMessage(TextDataWrapper),
             MessageError(ErrorMessageTypes),
-            ServerConfig(ServerConfigMessageData),
+            #[serde(rename = "GameConfig")]
+            GameStarts(GameStarts),
+            #[serde(rename = "SuccessfullyJoinedLobby")]
+            SuccessFullyJoinedLobby(TextDataWrapper),
         }
     }
 )]

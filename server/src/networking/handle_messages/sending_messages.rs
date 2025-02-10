@@ -3,7 +3,7 @@ use std::io::Write;
 use bevy::prelude::*;
 use shared::networking::{
     lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-    messages::message_queue::{ErrorMessageQueue, OutMessageQueue},
+    messages::message_queue::{ImmediateOutMessageQueue, OutMessageQueue},
 };
 
 use crate::{
@@ -11,10 +11,10 @@ use crate::{
     networking::handle_clients::lib::MyNetworkClient,
 };
 
-pub fn sending_error_messages(
+pub fn sending_immediate_messages(
     mut connected_clients: Query<
-        (&mut MyNetworkClient, &mut ErrorMessageQueue),
-        Changed<ErrorMessageQueue>,
+        (&mut MyNetworkClient, &mut ImmediateOutMessageQueue),
+        Changed<ImmediateOutMessageQueue>,
     >,
 ) {
     for (mut client, mut error_message_queue) in connected_clients.iter_mut() {

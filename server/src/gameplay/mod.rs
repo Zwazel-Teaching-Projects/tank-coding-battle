@@ -1,19 +1,21 @@
 use bevy::prelude::*;
 use handle_players::HandlePlayersPlugin;
 use shared::networking::{
-    lobby_management::{lobby_management::LobbyManagementSystemParam, LobbyState, MyLobby},
+    lobby_management::{lobby_management::LobbyManagementSystemParam, MyLobby},
     messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
         message_queue::OutMessageQueue,
     },
 };
 use simulation::run_next_simulation_tick;
+use start_lobby::check_if_lobby_should_start;
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
 use triggers::{NextSimulationStepDoneTrigger, SendOutgoingMessagesTrigger};
 
 pub mod handle_players;
 pub mod simulation;
+pub mod start_lobby;
 pub mod system_sets;
 mod tick_systems;
 pub mod triggers;
@@ -35,31 +37,9 @@ impl Plugin for MyGameplayPlugin {
             )
                 .chain(),
         )
-        .add_systems(Update, start_game)
+        .add_systems(Update, check_if_lobby_should_start)
         .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
         .add_observer(add_observers_to_lobby);
-    }
-}
-
-fn start_game(mut lobbies: Query<&mut MyLobby, Changed<MyLobby>>) {
-    for mut lobby in lobbies.iter_mut() {
-        if lobby.state != LobbyState::ReadyToStart {
-            continue;
-        }
-
-        let needed_players = lobby
-            .map_config
-            .as_ref()
-            .expect("Failed to get map config")
-            .teams
-            .iter()
-            .fold(0, |acc, (_, team)| acc + team.max_players);
-        if lobby.players.len() < needed_players {
-            continue;
-        }
-
-        lobby.state = LobbyState::InProgress;
-        info!("Game for lobby {} started", lobby.lobby_name);
     }
 }
 
@@ -67,7 +47,8 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
     commands
         .entity(trigger.entity())
         .observe(add_current_game_state_to_message_queue)
-        .observe(run_next_simulation_tick);
+        .observe(run_next_simulation_tick)
+        .observe(start_lobby::start_lobby);
 }
 
 fn add_current_game_state_to_message_queue(
@@ -81,7 +62,7 @@ fn add_current_game_state_to_message_queue(
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby");
 
-    for player_entity in lobby.players.iter() {
+    for (_, player_entity) in lobby.players.iter() {
         let mut out_message_queue = out_message_queues
             .get_mut(*player_entity)
             .expect("Failed to get client");
