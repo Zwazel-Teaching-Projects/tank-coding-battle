@@ -37,25 +37,33 @@ impl Plugin for MyGameplayPlugin {
         )
         .add_systems(Update, start_game)
         .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
-        .add_observer(add_triggers_to_lobby);
+        .add_observer(add_observers_to_lobby);
     }
 }
 
-fn start_game(mut lobbies: Query<&mut MyLobby>) {
+fn start_game(mut lobbies: Query<&mut MyLobby, Changed<MyLobby>>) {
     for mut lobby in lobbies.iter_mut() {
-        if lobby.state == LobbyState::InProgress {
+        if lobby.state != LobbyState::ReadyToStart {
             continue;
         }
 
-        if lobby.players.len() < 1 {
+        let needed_players = lobby
+            .map_config
+            .as_ref()
+            .expect("Failed to get map config")
+            .teams
+            .iter()
+            .fold(0, |acc, (_, team)| acc + team.max_players);
+        if lobby.players.len() < needed_players {
             continue;
         }
+
         lobby.state = LobbyState::InProgress;
         info!("Game for lobby {} started", lobby.lobby_name);
     }
 }
 
-fn add_triggers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
+fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
     commands
         .entity(trigger.entity())
         .observe(add_current_game_state_to_message_queue)

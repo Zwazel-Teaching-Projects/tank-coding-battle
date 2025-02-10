@@ -137,6 +137,7 @@ impl MyLobby {
 pub enum LobbyState {
     #[default]
     SettingUp,
+    ReadyToStart,
     InProgress,
     Finished,
 }
@@ -178,21 +179,26 @@ fn adding_player_to_lobby(
     } = trigger.event();
 
     if let Ok(mut lobby) = lobby_management.get_lobby_mut(*lobby_entity) {
-        if lobby.state != LobbyState::SettingUp {
-            error!(
-                "Player {:?} wants to join lobby {:?} but it is not in the setting up state",
-                player, lobby_entity
-            );
+        match lobby.state {
+            LobbyState::InProgress | LobbyState::Finished => {
+                error!(
+                    "Player {:?} wants to join lobby {:?} but it is in state {:?}",
+                    player, lobby_entity, lobby.state
+                );
+                let mut queue = player_error_message_queues.get_mut(*player).unwrap();
+                queue.push_back(MessageContainer::new(
+                    MessageTarget::Client(*player),
+                    NetworkMessageType::MessageError(ErrorMessageTypes::LobbyAlreadyRunning(
+                        format!(
+                            "Lobby can't be joined because it is in state {:?}",
+                            lobby.state
+                        ),
+                    )),
+                ));
 
-            let mut queue = player_error_message_queues.get_mut(*player).unwrap();
-            queue.push_back(MessageContainer::new(
-                MessageTarget::Client(*player),
-                NetworkMessageType::MessageError(ErrorMessageTypes::LobbyAlreadyRunning(
-                    "Lobby is already running".to_string(),
-                )),
-            ));
-
-            return;
+                return;
+            }
+            _ => {}
         }
 
         match player_type {
@@ -226,6 +232,13 @@ fn adding_player_to_lobby(
                     ));
                 } else {
                     error!("Player wants to join lobby without specifying a team name");
+                    let mut queue = player_error_message_queues.get_mut(*player).unwrap();
+                    queue.push_back(MessageContainer::new(
+                        MessageTarget::Client(*player),
+                        NetworkMessageType::MessageError(ErrorMessageTypes::LobbyManagementError(
+                            "Player wants to join lobby without specifying a team name".to_string(),
+                        )),
+                    ));
                 }
             }
             ClientType::Spectator => {
@@ -256,6 +269,8 @@ fn finish_setting_up_lobby(
             );
 
             lobby.map_config = Some(map_config.clone());
+
+            lobby.state = LobbyState::ReadyToStart;
         } else {
             error!(
                 "Failed to get map config for lobby \"{}\" with map name \"{}\"",
