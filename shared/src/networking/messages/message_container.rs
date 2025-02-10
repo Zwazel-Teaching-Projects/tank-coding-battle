@@ -6,7 +6,7 @@ use crate::{
     game::game_state::GameState,
     networking::{
         lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-        messages::message_queue::InMessageQueue,
+        messages::message_queue::{InMessageQueue, OutMessageQueue},
     },
 };
 

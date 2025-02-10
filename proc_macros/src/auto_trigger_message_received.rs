@@ -187,6 +187,13 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                     let targets = match self.target {
                         #( #target_match_arms, )*
                     }.map_err(|e| ErrorMessageTypes::LobbyManagementError(e))?;
+
+                    // in debug mode, print the targets
+                    #[cfg(debug_assertions)]
+                    {
+                        info!("Targets for {}: {:?}", stringify!(#variant_ident), targets);
+                    }
+
                     if targets.is_empty() {
                         // No targets defined; trigger to global (for server-only messages).
                         commands.trigger(#trigger_struct_ident {
@@ -222,7 +229,10 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                 commands: &mut Commands,
                 lobby_management: &LobbyManagementSystemParam,
                 lobby_management_arg: LobbyManagementArgument,
+                // The incoming message queues for each player.
                 in_message_queues: &mut Query<&mut InMessageQueue>,
+                // The outgoing message queues for each player (messages we forward to the client basically)
+                out_message_queues: &mut Query<&mut OutMessageQueue>,
             ) -> Result<(), ErrorMessageTypes> {
                 match &self.message {
                     #( #message_match_arms , )*
