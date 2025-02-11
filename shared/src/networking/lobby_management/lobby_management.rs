@@ -2,7 +2,11 @@ use bevy::{ecs::system::SystemParam, prelude::*, utils::Entry};
 
 use crate::{
     asset_handling::config::ServerConfig,
-    networking::lobby_management::PlayerRemovedFromLobbyTrigger,
+    game::game_state::GameState,
+    networking::{
+        lobby_management::PlayerRemovedFromLobbyTrigger,
+        messages::message_data::game_starts::ConnectedClientConfig,
+    },
 };
 
 use super::{MyLobbies, MyLobby};
@@ -13,7 +17,6 @@ pub struct LobbyManagementArgument {
     pub sender: Option<Entity>,
     pub target_player: Option<Entity>,
     pub team_name: Option<String>,
-    pub team: Option<Entity>,
 }
 
 #[derive(SystemParam)]
@@ -23,14 +26,9 @@ pub struct LobbyManagementSystemParam<'w, 's> {
 }
 
 impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
-    pub fn get_lobby_mut(&mut self, entity: Entity) -> Option<(Entity, Mut<MyLobby>)> {
-        self.lobby_entities.get_mut(entity).ok()
-    }
-
     pub fn get_or_insert_lobby_entity(
         &mut self,
         lobby_id: &str,
-        player: Entity,
         map_name: Option<&str>,
         commands: &mut Commands,
         server_config: &ServerConfig,
@@ -44,10 +42,11 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     let map_name = map_name.to_string();
 
                     let entity = commands
-                        .spawn(
-                            MyLobby::new(lobby_id.to_string(), map_name, server_config.tick_rate)
-                                .with_player(player),
-                        )
+                        .spawn(MyLobby::new(
+                            lobby_id.to_string(),
+                            map_name,
+                            server_config.tick_rate,
+                        ))
                         .id();
 
                     entry.insert(entity);
@@ -70,6 +69,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         if let Ok((_, mut lobby)) = self.lobby_entities.get_mut(lobby) {
             lobby
                 .players
+                .retain(|(_, x)| if *x == player { false } else { true });
+
+            lobby
+                .spectators
                 .retain(|&x| if x == player { false } else { true });
 
             // Also remove from team
@@ -121,8 +124,17 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                         lobby_entity, lobby.lobby_name
                     );
 
-                    for player in lobby.players.iter().chain(lobby.spectators.iter()) {
-                        info!("Removing player {} from lobby {}...", player, lobby_entity);
+                    // Loop through players and spectators and remove them from the lobby (spectators are only Entity, while players are (String, Entity))
+                    for player in lobby
+                        .players
+                        .iter()
+                        .map(|(_, player)| player)
+                        .chain(lobby.spectators.iter())
+                    {
+                        info!(
+                            "Removing player/spectator {} from lobby {}...",
+                            player, lobby_entity
+                        );
                         commands.trigger_targets(PlayerRemovedFromLobbyTrigger, *player);
                     }
 
@@ -140,82 +152,109 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         });
     }
 
-    pub fn get_lobby_from_player(&self, player: Entity) -> Option<(Entity, &MyLobby)> {
-        self.lobby_entities
-            .iter()
-            .find(|(_, lobby)| lobby.players.contains(&player))
-            .map(|(entity, lobby)| (entity, lobby))
-    }
-
-    pub fn get_lobby(&self, arg: LobbyManagementArgument) -> Result<(Entity, &MyLobby), String> {
-        let lobby = arg.lobby.ok_or("No lobby entity provided")?;
+    pub fn get_lobby(&self, lobby: Entity) -> Result<&MyLobby, String> {
         self.lobby_entities
             .get(lobby)
-            .map_err(|_| "Lobby not found".to_string())
+            .map(|(_, lobby)| lobby)
+            .map_err(|_| format!("Failed to get lobby for lobby entity: {}", lobby))
     }
 
-    pub fn get_players_in_lobby(
+    pub fn get_lobby_mut(&mut self, lobby: Entity) -> Result<Mut<MyLobby>, String> {
+        self.lobby_entities
+            .get_mut(lobby)
+            .map(|(_, lobby)| lobby)
+            .map_err(|_| format!("Failed to get lobby for lobby entity: {}", lobby))
+    }
+
+    pub fn get_lobby_gamestate(&self, lobby: Entity) -> Result<&GameState, String> {
+        self.get_lobby(lobby).map(|lobby| &lobby.game_state)
+    }
+
+    pub fn get_connected_configs_in_lobby(&self, lobby: Entity) -> Vec<ConnectedClientConfig> {
+        self.get_lobby(lobby)
+            .map(|lobby| {
+                let map_config = lobby.map_config.as_ref().unwrap();
+
+                lobby
+                    .players
+                    .iter()
+                    .map(|(player_name, player)| ConnectedClientConfig {
+                        client_id: *player,
+                        client_name: player_name.clone(),
+                        client_team: map_config.get_team_of_player(*player).unwrap().0,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    pub fn targets_get_players_in_lobby(
         &self,
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
-        self.get_lobby(arg.clone()).map(|(_, lobby)| {
-            lobby
-                .players
-                .iter()
-                .filter(|&&player| Some(player) != arg.sender)
-                .cloned()
-                .collect()
-        })
+        self.get_lobby(arg.lobby.ok_or("No lobby provided")?)
+            .map(|lobby| {
+                lobby
+                    .players
+                    .iter()
+                    .filter(|(_, player)| Some(player) != arg.sender.as_ref())
+                    .map(|(_, player)| *player)
+                    .collect()
+            })
     }
 
-    pub fn get_spectators_in_lobby(
+    pub fn targets_get_spectators_in_lobby(
         &self,
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
-        self.get_lobby(arg.clone()).map(|(_, lobby)| {
-            lobby
-                .spectators
-                .iter()
-                .filter(|&&player| Some(player) != arg.sender)
-                .cloned()
-                .collect()
-        })
+        self.get_lobby(arg.lobby.ok_or("No lobby provided")?)
+            .map(|lobby| {
+                lobby
+                    .spectators
+                    .iter()
+                    .filter(|&&player| Some(player) != arg.sender)
+                    .cloned()
+                    .collect()
+            })
     }
 
-    pub fn get_players_in_lobby_team(
+    pub fn targets_get_players_in_lobby_team(
         &self,
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
         let team_name = arg.clone().team_name.ok_or("No team name provided")?;
 
-        self.get_lobby(arg.clone()).and_then(|(_, lobby)| {
-            lobby
-                .map_config
-                .as_ref()
-                .ok_or(format!(
-                    "Map config not found in lobby {}",
-                    lobby.lobby_name
-                ))
-                .and_then(|map_config| {
-                    if let Some(team) = map_config.get_team(&team_name) {
-                        Ok(team
-                            .players
-                            .iter()
-                            .filter(|&&player| Some(player) != arg.sender)
-                            .cloned()
-                            .collect())
-                    } else {
-                        Err(format!(
-                            "Team {} not found in lobby {}",
-                            team_name, lobby.lobby_name
-                        ))
-                    }
-                })
-        })
+        self.get_lobby(arg.lobby.ok_or("No lobby provided")?)
+            .and_then(|lobby| {
+                lobby
+                    .map_config
+                    .as_ref()
+                    .ok_or(format!(
+                        "Map config not found in lobby {}",
+                        lobby.lobby_name
+                    ))
+                    .and_then(|map_config| {
+                        if let Some(team) = map_config.get_team(&team_name) {
+                            Ok(team
+                                .players
+                                .iter()
+                                .filter(|&&player| Some(player) != arg.sender)
+                                .cloned()
+                                .collect())
+                        } else {
+                            Err(format!(
+                                "Team {} not found in lobby {}",
+                                team_name, lobby.lobby_name
+                            ))
+                        }
+                    })
+            })
     }
 
-    pub fn get_single_player(&self, arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
-        todo!();
+    pub fn targets_get_single_player(
+        &self,
+        arg: LobbyManagementArgument,
+    ) -> Result<Vec<Entity>, String> {
         if arg.target_player == arg.sender {
             return Err("Target player cannot be the sender".to_string());
         }
@@ -225,7 +264,14 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     }
 
     /// Returns an empty vec. this is a workaround for the "ServerOnly" message target
-    pub fn get_empty(&self, _arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
+    pub fn targets_get_empty(&self, _arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
         Ok(Vec::new())
+    }
+
+    pub fn targets_get_lobby_directly(
+        &self,
+        arg: LobbyManagementArgument,
+    ) -> Result<Vec<Entity>, String> {
+        Ok(vec![arg.lobby.ok_or("No lobby provided")?])
     }
 }

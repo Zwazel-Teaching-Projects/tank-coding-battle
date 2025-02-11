@@ -4,14 +4,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     game::game_state::GameState,
-    networking::lobby_management::lobby_management::{
-        LobbyManagementArgument, LobbyManagementSystemParam,
+    networking::{
+        lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+        messages::message_queue::{InMessageQueue, OutMessageQueue},
     },
 };
 
 use super::message_data::{
-    first_contact::FirstContactData, message_error_types::ErrorMessageTypes,
-    simple_text_message::SimpleTextMessage,
+    first_contact::FirstContactData, game_starts::GameStarts,
+    message_error_types::ErrorMessageTypes, text_data::TextDataWrapper,
 };
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
@@ -19,17 +20,24 @@ use super::message_data::{
 #[auto_trigger_message_received(
     target = {
         #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
-        #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+        #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "type", content = "clientId")]
         pub enum MessageTarget {
             #[default]
-            #[get_targets(get_players_in_lobby_team)]
+            #[get_targets(targets_get_players_in_lobby_team)]
+            // To everyone in the same team in the same lobby
             Team,
-            #[get_targets(get_empty)]
+            #[get_targets(targets_get_empty)]
+            // To the server directly, no lobby or client. Used for first contact
             ServerOnly,
-            #[get_targets(get_players_in_lobby)]
+            #[get_targets(targets_get_players_in_lobby)]
+            // To everyone in the same lobby
             AllInLobby,
-            #[get_targets(get_single_player)]
-            Client,
+            #[get_targets(targets_get_single_player)]
+            // To a single player
+            Client(Entity),
+            #[get_targets(targets_get_lobby_directly)]
+            // To the lobby itself (is there even a usecase for that?)
+            ToLobbyDirectly,
         }
     },
     message = {
@@ -40,9 +48,15 @@ use super::message_data::{
             #[target(ServerOnly)]
             FirstContact(FirstContactData),
             GameState(GameState),
+            #[serde(rename = "SimpleTextMessage")]
             #[target(Client, Team, AllInLobby)]
-            SimpleTextMessage(SimpleTextMessage),
+            #[behaviour(Forward)]
+            SimpleTextMessage(TextDataWrapper),
             MessageError(ErrorMessageTypes),
+            #[serde(rename = "GameConfig")]
+            GameStarts(GameStarts),
+            #[serde(rename = "SuccessfullyJoinedLobby")]
+            SuccessFullyJoinedLobby(TextDataWrapper),
         }
     }
 )]
@@ -50,15 +64,12 @@ pub struct MessageContainer {
     pub target: MessageTarget,
     pub message: NetworkMessageType,
 
-    #[serde(skip)]
     pub sender: Option<Entity>,
 
-    // TODO: Do we need that? maybe just store the tick_received, maybe even store in the list of messages?
+    /// The tick when the message was sent
     pub tick_sent: u64,
+    /// The tick when the message was received
     pub tick_received: u64,
-
-    #[serde(skip)]
-    pub tick_added_to_queue: u64,
 }
 
 impl MessageContainer {
@@ -90,7 +101,6 @@ impl MessageContainer {
 
             tick_sent: 0,
             tick_received: 0,
-            tick_added_to_queue: 0,
         }
     }
 

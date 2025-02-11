@@ -9,7 +9,7 @@
                     alpha: 1.0,
                 )
             ),
-            max_players: 1,
+            max_players: 4,
         ),
         "Blue": (
             color: Srgba(
@@ -20,7 +20,7 @@
                     alpha: 1.0,
                 )
             ),
-            max_players: 1,
+            max_players: 4,
         ),
     },
 )

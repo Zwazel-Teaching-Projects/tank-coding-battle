@@ -1,10 +1,9 @@
-use std::{
-    collections::VecDeque,
-    net::{SocketAddr, TcpStream},
-};
+use std::net::{SocketAddr, TcpStream};
 
 use bevy::prelude::*;
-use shared::networking::messages::message_container::MessageContainer;
+use shared::networking::messages::message_queue::{
+    ImmediateOutMessageQueue, InMessageQueue, OutMessageQueue,
+};
 
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(Component)]
@@ -13,12 +12,12 @@ pub struct MyLocalClient {
 }
 
 #[derive(Debug, Component)]
+#[require(InMessageQueue, OutMessageQueue, ImmediateOutMessageQueue)]
 pub struct MyNetworkClient {
     pub name: Option<String>,
     pub address: SocketAddr,
     pub stream: TcpStream,
     pub my_local_client: Option<Entity>,
-    pub outgoing_messages_queue: VecDeque<MessageContainer>,
 }
 
 impl MyNetworkClient {
@@ -28,7 +27,6 @@ impl MyNetworkClient {
             address,
             stream,
             my_local_client: None,
-            outgoing_messages_queue: VecDeque::new(),
         }
     }
 }

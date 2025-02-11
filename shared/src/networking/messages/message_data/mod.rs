@@ -1,13 +1,19 @@
 use bevy::prelude::*;
 
 pub mod first_contact;
-pub mod simple_text_message;
+pub mod game_starts;
 pub mod message_error_types;
+pub mod text_data;
 
 pub struct MySharedMessageDataPlugin;
 
 impl Plugin for MySharedMessageDataPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<first_contact::FirstContactData>();
+        app.register_type::<first_contact::FirstContactData>()
+            .register_type::<first_contact::ClientType>()
+            .register_type::<message_error_types::ErrorMessageTypes>()
+            .register_type::<game_starts::GameStarts>()
+            .register_type::<game_starts::ConnectedClientConfig>()
+            .register_type::<text_data::TextDataWrapper>();
     }
 }

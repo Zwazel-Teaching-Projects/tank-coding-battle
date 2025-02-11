@@ -6,7 +6,10 @@ use shared::networking::{
         lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
         InLobby, InTeam,
     },
-    messages::message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+    messages::{
+        message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+        message_queue::{ImmediateOutMessageQueue, InMessageQueue, OutMessageQueue},
+    },
 };
 
 use crate::networking::handle_clients::lib::{ClientDisconnectedTrigger, MyNetworkClient};
@@ -19,6 +22,9 @@ pub fn handle_reading_messages(
         Option<&InLobby>,
         Option<&InTeam>,
     )>,
+    mut incoming_message_queues: Query<&mut InMessageQueue>,
+    mut outgoing_message_queues: Query<&mut OutMessageQueue>,
+    mut immediate_message_queues: Query<&mut ImmediateOutMessageQueue>,
     lobby_management: LobbyManagementSystemParam,
 ) {
     for (sender, mut network_client, in_lobby, in_team) in clients.iter_mut() {
@@ -67,6 +73,13 @@ pub fn handle_reading_messages(
         match serde_json::from_str::<MessageContainer>(&received) {
             Ok(mut message_container) => {
                 message_container.sender = Some(sender);
+                if let Some(in_lobby) = in_lobby {
+                    message_container.tick_received = lobby_management
+                        .get_lobby_gamestate(**in_lobby)
+                        // TODO Replace with adding error to queue, not panicking
+                        .expect("Failed to get lobby game state")
+                        .tick;
+                }
 
                 info!(
                     "Received message from client \"{:?}\":\n{:?}",
@@ -76,15 +89,19 @@ pub fn handle_reading_messages(
                 let lobby_arg = LobbyManagementArgument {
                     lobby: in_lobby.map(|l| **l),
                     sender: Some(sender),
-                    target_player: None,
-                    team_name: in_team.map(|t| t.team_name.clone()),
-                    team: None,
+                    target_player: match message_container.target {
+                        MessageTarget::Client(e) => Some(e),
+                        _ => None,
+                    },
+                    team_name: in_team.map(|t| t.0.clone()),
                 };
 
                 let result = message_container.trigger_message_received(
                     &mut commands,
                     &lobby_management,
                     lobby_arg,
+                    &mut incoming_message_queues,
+                    &mut outgoing_message_queues,
                 );
 
                 if let Err(e) = result {
@@ -92,12 +109,15 @@ pub fn handle_reading_messages(
                         "Failed to handle message from client \"{:?}\":\n{:?}",
                         addr, e
                     );
-                    network_client
-                        .outgoing_messages_queue
-                        .push_back(MessageContainer::new(
-                            MessageTarget::Client,
-                            NetworkMessageType::MessageError(e),
-                        ));
+
+                    let mut error_queue = immediate_message_queues
+                        .get_mut(sender)
+                        // TODO Replace with adding error to queue, not panicking
+                        .expect("Failed to get outgoing message queue from sender");
+                    error_queue.push_back(MessageContainer::new(
+                        MessageTarget::Client(sender),
+                        NetworkMessageType::MessageError(e),
+                    ));
                 }
             }
             Err(e) => {
@@ -105,6 +125,7 @@ pub fn handle_reading_messages(
                     "Failed to parse JSON from {}: {}. Raw data: {}",
                     addr, e, received
                 );
+                // TODO add error message to queue
             }
         }
     }

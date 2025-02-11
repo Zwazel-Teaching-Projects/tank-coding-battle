@@ -3,10 +3,22 @@ use std::time::Duration;
 use bevy::{prelude::*, utils::HashMap};
 use lobby_management::LobbyManagementSystemParam;
 
-use crate::{asset_handling::{
-    config::ServerConfigSystemParam,
-    maps::{MapConfig, MapConfigSystemParam},
-}, game::game_state::GameState};
+use crate::{
+    asset_handling::{
+        config::ServerConfigSystemParam,
+        maps::{MapConfig, MapConfigSystemParam},
+    },
+    game::game_state::GameState,
+    networking::messages::{
+        message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+        message_data::{message_error_types::ErrorMessageTypes, text_data::TextDataWrapper},
+        message_queue::{InMessageQueue, OutMessageQueue},
+    },
+};
+
+use super::messages::{
+    message_data::first_contact::ClientType, message_queue::ImmediateOutMessageQueue,
+};
 
 pub mod lobby_management;
 
@@ -20,7 +32,8 @@ impl Plugin for MyLobbyManagementPlugin {
             .register_type::<InLobby>()
             .register_type::<LobbyState>()
             .register_type::<AwaitingFirstContact>()
-            .add_observer(finish_setting_up_lobby);
+            .add_observer(finish_setting_up_lobby)
+            .add_observer(adding_player_to_lobby);
     }
 }
 
@@ -37,11 +50,9 @@ impl AwaitingFirstContact {
     }
 }
 
-#[derive(Debug, Default, Reflect, Clone, Component)]
+#[derive(Debug, Default, Reflect, Clone, Component, Deref, DerefMut)]
 #[reflect(Component)]
-pub struct InTeam {
-    pub team_name: String,
-}
+pub struct InTeam(pub String);
 
 #[derive(Debug, Reflect, Component, Deref, DerefMut)]
 #[reflect(Component)]
@@ -51,7 +62,13 @@ pub struct InLobby(pub Entity);
 pub struct PlayerRemovedFromLobbyTrigger;
 
 #[derive(Debug, Event)]
-pub struct PlayerAddedToLobbyTrigger;
+pub struct PlayerWantsToJoinLobbyTrigger {
+    pub player: Entity,
+    pub player_name: String,
+    pub lobby: Entity,
+    pub player_type: ClientType,
+    pub team_name: Option<String>,
+}
 
 #[derive(Default, Resource, Reflect, Debug)]
 #[reflect(Resource)]
@@ -61,11 +78,12 @@ pub struct MyLobbies {
 
 #[derive(Debug, Reflect, Default, Component, PartialEq)]
 #[reflect(Component)]
+#[require(InMessageQueue, OutMessageQueue)]
 pub struct MyLobby {
     pub state: LobbyState,
     pub lobby_name: String,
 
-    pub players: Vec<Entity>,
+    pub players: Vec<(String, Entity)>,
     pub spectators: Vec<Entity>,
 
     pub map_name: String,
@@ -78,6 +96,9 @@ pub struct MyLobby {
 
 impl MyLobby {
     pub fn new(name: String, map_name: String, tick_rate: u64) -> Self {
+        let time_per_tick = 1.0 / tick_rate as f32;
+        info!("Time per tick: {}", time_per_tick);
+
         Self {
             state: LobbyState::default(),
             lobby_name: name,
@@ -88,13 +109,13 @@ impl MyLobby {
             map_name,
             map_config: None,
 
-            tick_timer: Timer::from_seconds(1.0 / tick_rate as f32, TimerMode::Repeating),
+            tick_timer: Timer::from_seconds(time_per_tick, TimerMode::Repeating),
 
             game_state: GameState::default(),
         }
     }
 
-    pub fn with_player(mut self, player: Entity) -> Self {
+    pub fn with_player(mut self, player: (String, Entity)) -> Self {
         self.players.push(player);
         self
     }
@@ -115,6 +136,7 @@ impl MyLobby {
 pub enum LobbyState {
     #[default]
     SettingUp,
+    ReadyToStart,
     InProgress,
     Finished,
 }
@@ -140,14 +162,107 @@ pub fn remove_player_from_lobby(
         ));
 }
 
+fn adding_player_to_lobby(
+    trigger: Trigger<PlayerWantsToJoinLobbyTrigger>,
+    mut lobby_management: LobbyManagementSystemParam,
+    mut commands: Commands,
+    mut player_immediate_message_queues: Query<&mut ImmediateOutMessageQueue>,
+) {
+    let PlayerWantsToJoinLobbyTrigger {
+        player,
+        lobby: lobby_entity,
+        player_type,
+        team_name,
+        player_name,
+    } = trigger.event();
+
+    if let Ok(mut lobby) = lobby_management.get_lobby_mut(*lobby_entity) {
+        let mut queue = player_immediate_message_queues.get_mut(*player).unwrap();
+
+        match lobby.state {
+            LobbyState::InProgress | LobbyState::Finished => {
+                error!(
+                    "Player {:?} wants to join lobby {:?} but it is in state {:?}",
+                    player, lobby_entity, lobby.state
+                );
+                queue.push_back(MessageContainer::new(
+                    MessageTarget::Client(*player),
+                    NetworkMessageType::MessageError(ErrorMessageTypes::LobbyAlreadyRunning(
+                        format!(
+                            "Lobby can't be joined because it is in state {:?}",
+                            lobby.state
+                        ),
+                    )),
+                ));
+
+                return;
+            }
+            _ => {}
+        }
+
+        match player_type {
+            ClientType::Player => {
+                if let Some(team_name) = team_name {
+                    lobby.players.push((player_name.clone(), *player));
+
+                    if lobby
+                        .map_config
+                        .as_mut()
+                        .expect("Map config should be set up by now")
+                        .insert_player_into_team(team_name, *player)
+                    {
+                        commands
+                            .entity(*player)
+                            .insert((InTeam(team_name.clone()),));
+
+                        queue.push_back(MessageContainer::new(
+                            MessageTarget::Client(*player),
+                            NetworkMessageType::SuccessFullyJoinedLobby(TextDataWrapper::new(
+                                format!("Successfully joined lobby on team {}", team_name),
+                            )),
+                        ));
+                    } else {
+                        queue.push_back(MessageContainer::new(
+                            MessageTarget::Client(*player),
+                            NetworkMessageType::MessageError(ErrorMessageTypes::TeamDoesNotExist(
+                                format!("Team {} does not exist", team_name),
+                            )),
+                        ));
+
+                        return;
+                    }
+                } else {
+                    error!("Player wants to join lobby without specifying a team name");
+                    queue.push_back(MessageContainer::new(
+                        MessageTarget::Client(*player),
+                        NetworkMessageType::MessageError(ErrorMessageTypes::LobbyManagementError(
+                            "Player wants to join lobby without specifying a team name".to_string(),
+                        )),
+                    ));
+
+                    return;
+                }
+            }
+            ClientType::Spectator => {
+                lobby.spectators.push(*player);
+            }
+        }
+
+        commands
+            .entity(*player)
+            .insert((InLobby(*lobby_entity),))
+            .remove::<AwaitingFirstContact>();
+    }
+}
+
 fn finish_setting_up_lobby(
     trigger: Trigger<OnAdd, MyLobby>,
     mut lobby_management: LobbyManagementSystemParam,
     map_config: MapConfigSystemParam,
     mut commands: Commands,
-    players: Query<&InTeam>,
 ) {
-    let (lobby_entity, mut lobby) = lobby_management.get_lobby_mut(trigger.entity()).unwrap();
+    let lobby_entity = trigger.entity();
+    let mut lobby = lobby_management.get_lobby_mut(lobby_entity).unwrap();
     if lobby.map_config.is_none() {
         if let Some(map_config) = map_config.get_map_config(&lobby.map_name) {
             info!(
@@ -157,31 +272,7 @@ fn finish_setting_up_lobby(
 
             lobby.map_config = Some(map_config.clone());
 
-            let player_teams = lobby
-                .players
-                .iter()
-                .map(|&player| {
-                    commands
-                        .entity(player)
-                        .remove::<AwaitingFirstContact>()
-                        .insert(InLobby(lobby_entity));
-
-                    commands.trigger_targets(PlayerAddedToLobbyTrigger, lobby_entity);
-
-                    let player_team = players.get(player).unwrap().team_name.clone();
-                    (player, player_team)
-                })
-                .collect::<Vec<_>>();
-
-            for (player, team_name) in player_teams {
-                lobby
-                    .map_config
-                    .as_mut()
-                    .unwrap()
-                    .insert_player_into_team(&team_name, player);
-            }
-
-            // TODO: commands.entity(lobby_entity).observe()
+            lobby.state = LobbyState::ReadyToStart;
         } else {
             error!(
                 "Failed to get map config for lobby \"{}\" with map name \"{}\"",

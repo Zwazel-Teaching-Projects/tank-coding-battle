@@ -1,21 +1,21 @@
 use bevy::prelude::*;
 use handle_players::HandlePlayersPlugin;
 use shared::networking::{
-    lobby_management::{
-        lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-        LobbyState, MyLobby,
+    lobby_management::{lobby_management::LobbyManagementSystemParam, MyLobby},
+    messages::{
+        message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+        message_queue::OutMessageQueue,
     },
-    messages::message_container::{MessageContainer, MessageTarget, NetworkMessageType},
 };
 use simulation::run_next_simulation_tick;
+use start_lobby::check_if_lobby_should_start;
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
 use triggers::{NextSimulationStepDoneTrigger, SendOutgoingMessagesTrigger};
 
-use crate::networking::handle_clients::lib::MyNetworkClient;
-
 pub mod handle_players;
 pub mod simulation;
+pub mod start_lobby;
 pub mod system_sets;
 mod tick_systems;
 pub mod triggers;
@@ -37,62 +37,43 @@ impl Plugin for MyGameplayPlugin {
             )
                 .chain(),
         )
-        .add_systems(Update, start_game)
+        .add_systems(Update, check_if_lobby_should_start)
         .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
-        .add_observer(add_triggers_to_lobby);
+        .add_observer(add_observers_to_lobby);
     }
 }
 
-fn start_game(mut lobbies: Query<&mut MyLobby>) {
-    for mut lobby in lobbies.iter_mut() {
-        if lobby.state == LobbyState::InProgress {
-            continue;
-        }
-
-        if lobby.players.len() < 1 {
-            continue;
-        }
-        lobby.state = LobbyState::InProgress;
-        info!("Game for lobby {} started", lobby.lobby_name);
-    }
-}
-
-fn add_triggers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
+fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
     commands
         .entity(trigger.entity())
         .observe(add_current_game_state_to_message_queue)
-        .observe(run_next_simulation_tick);
+        .observe(run_next_simulation_tick)
+        .observe(start_lobby::start_lobby);
 }
 
 fn add_current_game_state_to_message_queue(
     trigger: Trigger<NextSimulationStepDoneTrigger>,
     lobby_management: LobbyManagementSystemParam,
-    mut networked_clients: Query<&mut MyNetworkClient>,
+    mut out_message_queues: Query<&mut OutMessageQueue>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let (_, lobby) = lobby_management
-        .get_lobby(LobbyManagementArgument {
-            lobby: Some(lobby_entity),
-            ..Default::default()
-        })
+    let lobby = lobby_management
+        .get_lobby(lobby_entity)
         .expect("Failed to get lobby");
 
-    info!(
-        "Sending game state of lobby {} to clients",
-        lobby.lobby_name
-    );
-
-    for player_entity in lobby.players.iter() {
-        let mut client = networked_clients
+    for (_, player_entity) in lobby.players.iter() {
+        let mut out_message_queue = out_message_queues
             .get_mut(*player_entity)
             .expect("Failed to get client");
 
         let message = MessageContainer::new(
-            MessageTarget::Client,
+            MessageTarget::Client(*player_entity),
             NetworkMessageType::GameState(lobby.game_state.clone()),
         );
-        client.outgoing_messages_queue.push_back(message);
+
+        // Make sure the game state is sent before any other messages
+        out_message_queue.push_front(message);
     }
 
     commands.trigger_targets(SendOutgoingMessagesTrigger, lobby_entity);
