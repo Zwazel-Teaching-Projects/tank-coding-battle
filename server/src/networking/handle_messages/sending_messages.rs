@@ -26,7 +26,9 @@ pub fn sending_immediate_messages(
             let length = (messages.len() as u32).to_le_bytes();
 
             let _ = stream.write_all(&length).expect("Failed to send length");
-            let _ = stream.write_all(&messages).expect("Failed to send messages");
+            let _ = stream
+                .write_all(&messages)
+                .expect("Failed to send messages");
         }
     }
 }
@@ -60,12 +62,15 @@ pub fn sending_client_messages(
                 if !messages.is_empty() {
                     info!("Sending messages to player: {:?}", messages);
 
-                    let messages = serde_json::to_vec(&messages).expect("Failed to serialize messages");
+                    let messages =
+                        serde_json::to_vec(&messages).expect("Failed to serialize messages");
 
                     let length = (messages.len() as u32).to_le_bytes();
 
                     let _ = stream.write_all(&length).expect("Failed to send length");
-                    let _ = stream.write_all(&messages).expect("Failed to send messages");
+                    let _ = stream
+                        .write_all(&messages)
+                        .expect("Failed to send messages");
                 }
             }
         }
