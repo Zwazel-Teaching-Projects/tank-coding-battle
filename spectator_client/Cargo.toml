@@ -9,7 +9,9 @@ shared = { workspace = true }
 bevy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+
 bevy-inspector-egui = { version = "0.29" }
+bevy_flycam = "0.15"
 
 [features]
 default = ["spectator_client"]

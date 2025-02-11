@@ -14,20 +14,12 @@ pub struct MyTestRenderMapPlugin;
 impl Plugin for MyTestRenderMapPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MapMeshMarker>()
-            .add_systems(OnEnter(MyMainState::Ready), (create_map, spawn_camera))
+            .add_systems(OnEnter(MyMainState::Ready), (create_map,))
             .add_systems(
                 Update,
                 (listen_for_map_changes,).run_if(in_state(MyMainState::Ready)),
             );
     }
-}
-
-fn spawn_camera(mut commands: Commands) {
-    commands.spawn((
-        Name::new("PlayerCamera"),
-        Camera3d::default(),
-        Transform::from_xyz(15.0, 10.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-    ));
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Reflect, Component, Default)]
