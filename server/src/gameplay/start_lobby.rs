@@ -54,6 +54,11 @@ pub fn start_lobby(
     let lobby = lobby_management
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby");
+    let map = &lobby
+        .map_config
+        .as_ref()
+        .expect("Failed to get map config")
+        .map;
 
     let server_config = server_config.server_config();
 
@@ -66,6 +71,7 @@ pub fn start_lobby(
                 client_id: *player_entity,
                 connected_clients: connected_clients.clone(),
                 tick_rate: server_config.tick_rate,
+                map_definition: map.clone(),
             }),
         ));
     }

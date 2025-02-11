@@ -8,7 +8,7 @@ use bevy_asset_loader::{
     mapped::AssetFileStem,
 };
 use bevy_common_assets::ron::RonAssetPlugin;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::main_state::MyMainState;
 
@@ -18,6 +18,12 @@ impl Plugin for MyMapPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<TeamConfig>()
             .register_type::<MapConfig>()
+            .register_type::<MapDefinition>()
+            .register_type::<TileDefinition>()
+            .register_type::<LayerDefinition>()
+            .register_type::<LayerType>()
+            .register_type::<MarkerDefinition>()
+            .register_type::<MarkerType>()
             .configure_loading_state(
                 LoadingStateConfig::new(MyMainState::SettingUp).load_collection::<AllMapsAsset>(),
             )
@@ -34,6 +40,7 @@ pub struct AllMapsAsset {
 #[derive(Debug, Default, Reflect, Clone, Asset, Deserialize, PartialEq)]
 pub struct MapConfig {
     pub teams: HashMap<String, TeamConfig>,
+    pub map: MapDefinition,
 }
 
 impl MapConfig {
@@ -72,6 +79,73 @@ pub struct TeamConfig {
 
     #[serde(skip)]
     pub players: Vec<Entity>,
+}
+
+#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MapDefinition {
+    pub width: usize,
+    pub height: usize,
+
+    /// A 2D array of height values—row by row.
+    /// For a grid of size `height x width`, we'll have `height` sub-vectors,
+    /// each containing `width` floats.
+    pub tiles: Vec<Vec<f32>>,
+
+    pub layers: Vec<LayerDefinition>,
+
+    pub markers: Vec<MarkerDefinition>,
+}
+
+#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TileDefinition {
+    pub x: usize,
+    pub y: usize,
+}
+
+#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LayerDefinition {
+    pub kind: LayerType,
+    /// A cost modifier for pathfinding or movement / Maybe also use this to slow down?
+    pub cost_modifier: f32,
+    // TODO: Add a hide modifier?
+    /// A list of (x, y) coordinates for cells that belong to this layer
+    pub tiles: Vec<TileDefinition>,
+}
+
+#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum LayerType {
+    #[default]
+    Forest,
+}
+
+#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MarkerDefinition {
+    pub tile: TileDefinition,
+    /// The group this marker belongs to. for example a team
+    pub group: String,
+
+    pub kind: MarkerType,
+}
+
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "PascalCase", tag = "type")]
+pub enum MarkerType {
+    #[serde(rename_all = "camelCase")]
+    Spawn {
+        spawn_number: usize,
+    },
+    Flag,
+}
+
+impl Default for MarkerType {
+    fn default() -> Self {
+        MarkerType::Spawn { spawn_number: 0 }
+    }
 }
 
 #[derive(SystemParam)]
