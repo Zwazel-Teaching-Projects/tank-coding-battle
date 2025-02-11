@@ -264,7 +264,7 @@ fn finish_setting_up_lobby(
     let lobby_entity = trigger.entity();
     let mut lobby = lobby_management.get_lobby_mut(lobby_entity).unwrap();
     if lobby.map_config.is_none() {
-        if let Some(map_config) = map_config.get_map_config(&lobby.map_name) {
+        if let Some(map_config) = map_config.get_map_config_from_name(&lobby.map_name) {
             info!(
                 "Adding map config \"{}\" to lobby \"{}\"",
                 lobby.map_name, lobby.lobby_name

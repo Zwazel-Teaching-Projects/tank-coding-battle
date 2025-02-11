@@ -29,7 +29,7 @@ shared = { workspace = true }
 
 [features]
 default = ["bevy_debug"]
-bevy_debug = ["bevy/bevy_dev_tools"]
+bevy_debug = ["bevy/bevy_dev_tools", "bevy/file_watcher"]
 
 server = ["server/server", "shared/server"]
 spectator_client = [

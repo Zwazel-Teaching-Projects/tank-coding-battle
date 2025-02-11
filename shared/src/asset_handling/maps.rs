@@ -155,7 +155,7 @@ pub struct MapConfigSystemParam<'w> {
 }
 
 impl<'w> MapConfigSystemParam<'w> {
-    pub fn get_map_config(&self, map_name: &str) -> Option<&MapConfig> {
+    pub fn get_map_config_from_name(&self, map_name: &str) -> Option<&MapConfig> {
         let map_name = if map_name.ends_with(".map") {
             map_name.to_string()
         } else {
@@ -167,6 +167,10 @@ impl<'w> MapConfigSystemParam<'w> {
             .iter()
             .find(|(stem, _)| stem.as_ref() == map_name)
             .and_then(|(_, handle)| self.map_configs.get(handle))
+    }
+
+    pub fn get_map_config_from_asset_id(&self, asset_id: AssetId<MapConfig>) -> Option<&MapConfig> {
+        self.map_configs.get(asset_id)
     }
 
     pub fn list_map_names(&self) -> Vec<String> {
