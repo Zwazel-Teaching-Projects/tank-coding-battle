@@ -9,6 +9,8 @@ shared = { workspace = true }
 bevy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+bevy-inspector-egui = { version = "0.29", optional = true }
 
 [features]
+default = ["spectator_client", "bevy-inspector-egui"]
 spectator_client = ["bevy/default"]
