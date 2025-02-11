@@ -77,7 +77,6 @@ fn listen_for_map_changes(
     for event in event.read() {
         match event {
             AssetEvent::Modified { id } => {
-                info!("Map modified: {:?}", id);
                 let map_config = &map_config
                     .get_map_config_from_asset_id(*id)
                     .expect("Map not found")
@@ -98,9 +97,6 @@ pub fn generate_mesh_from_grid(width: usize, height: usize, grid: &Vec<Vec<f32>>
     let rows = height;
     let cols = width;
 
-    info!("Ikit Claw commands: Generating centered cubes (with proper outward faces) from a grid of {}x{} cells", rows, cols);
-
-    // Center the grid so that (0,0) is at its heart.
     let offset_x = (cols as f32) / 2.0;
     let offset_z = (rows as f32) / 2.0;
 
