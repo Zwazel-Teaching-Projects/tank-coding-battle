@@ -37,10 +37,12 @@ pub struct MapConfig {
 }
 
 impl MapConfig {
-    pub fn insert_player_into_team(&mut self, team_name: &str, player: Entity) {
-        if let Some(team) = self.teams.get_mut(team_name) {
-            team.players.push(player);
+    pub fn insert_player_into_team(&mut self, team_name: &str, player: Entity) -> bool {
+        match self.teams.get_mut(team_name) {
+            Some(team) => team.players.push(player),
+            None => return false,
         }
+        true
     }
 
     pub fn remove_player_from_team(&mut self, player: Entity) {

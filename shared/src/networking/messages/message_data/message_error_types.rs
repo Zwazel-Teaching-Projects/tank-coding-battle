@@ -11,4 +11,5 @@ pub enum ErrorMessageTypes {
     InvalidTarget(String),
     LobbyManagementError(String),
     LobbyAlreadyRunning(String),
+    TeamDoesNotExist(String),
 }
