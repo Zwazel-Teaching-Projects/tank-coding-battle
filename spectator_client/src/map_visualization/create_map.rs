@@ -6,7 +6,9 @@ use bevy::{
 };
 use shared::{
     asset_handling::maps::{MapConfig, MapConfigSystemParam},
-    networking::messages::message_container::GameStartsTrigger,
+    networking::messages::{
+        message_container::GameStartsTrigger, message_data::game_starts::GameStarts,
+    },
 };
 
 use crate::networking::MyNetworkStream;
@@ -25,7 +27,8 @@ fn create_map(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let map_config = &trigger.map_definition;
+    let game_starts = (**trigger.event()).clone();
+    let map_config = &game_starts.map_definition;
 
     let mesh = generate_mesh_from_grid(map_config.width, map_config.height, &map_config.tiles);
     let mesh_handle = meshes.add(mesh);
@@ -48,13 +51,17 @@ fn create_map(
         },
         Transform::from_xyz(0.0, 10.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
+
+    commands.insert_resource(game_starts);
 }
 
+// This doesnt really make sense the way we use it right now. would make sense if we have a seperate run mode where we just want to observe the map
 pub fn listen_for_map_changes(
     mut event: EventReader<AssetEvent<MapConfig>>,
     map_config: MapConfigSystemParam,
     mut map_mesh: Single<&mut Mesh3d, With<MapMeshMarker>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut game_starts: ResMut<GameStarts>,
 ) {
     for event in event.read() {
         match event {
@@ -69,6 +76,8 @@ pub fn listen_for_map_changes(
                 let mesh_handle = meshes.add(mesh);
 
                 map_mesh.0 = mesh_handle;
+
+                game_starts.map_definition = map_config.clone();
             }
             _ => (),
         }
@@ -79,9 +88,6 @@ fn generate_mesh_from_grid(width: usize, height: usize, grid: &Vec<Vec<f32>>) ->
     let rows = height;
     let cols = width;
 
-    let offset_x = (cols as f32) / 2.0;
-    let offset_z = (rows as f32) / 2.0;
-
     let mut positions: Vec<[f32; 3]> = Vec::new();
     let mut normals: Vec<[f32; 3]> = Vec::new();
     let mut uvs: Vec<[f32; 2]> = Vec::new();
@@ -91,8 +97,8 @@ fn generate_mesh_from_grid(width: usize, height: usize, grid: &Vec<Vec<f32>>) ->
         for col in 0..cols {
             let cell_top = grid[row][col];
             let cell_bottom = 0.0;
-            let x = col as f32 - offset_x;
-            let z = row as f32 - offset_z;
+            let x = col as f32;
+            let z = row as f32;
 
             // -- Top Face (normal: [0, 1, 0]) --
             {

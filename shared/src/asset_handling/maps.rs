@@ -97,6 +97,16 @@ pub struct MapDefinition {
     pub markers: Vec<MarkerDefinition>,
 }
 
+impl MapDefinition {
+    pub fn get_height_at(&self, x: usize, y: usize) -> f32 {
+        self.tiles[y][x]
+    }
+
+    pub fn get_real_world_position(&self, x: usize, y: usize) -> Vec3 {
+        Vec3::new(x as f32 + 0.5, self.get_height_at(x, y), y as f32 + 0.5)
+    }
+}
+
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct TileDefinition {

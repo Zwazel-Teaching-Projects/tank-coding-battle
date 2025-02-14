@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset_handling::maps::MapDefinition;
 
-#[derive(Debug, Serialize, Deserialize, Reflect, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Reflect, Clone, PartialEq, Resource)]
+#[reflect(Resource)]
 #[serde(rename_all = "camelCase")]
 pub struct GameStarts {
     pub tick_rate: u64,
