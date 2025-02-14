@@ -50,6 +50,8 @@ pub struct ClientConfig {
     pub ip: String,
     pub port: u16,
     pub map: String,
+    pub name: String,
+    pub lobby_name: String,
 }
 
 #[derive(SystemParam)]

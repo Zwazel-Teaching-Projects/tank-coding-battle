@@ -1,11 +1,18 @@
 use std::net::TcpStream;
 
 use bevy::prelude::*;
-use shared::asset_handling::config::ClientConfigSystemParam;
+use shared::{
+    asset_handling::config::ClientConfigSystemParam,
+    networking::networking_state::MyNetworkingState,
+};
 
 use crate::networking::MyNetworkStream;
 
-pub fn connect_to_server(client_config: ClientConfigSystemParam, mut commands: Commands) {
+pub fn connect_to_server(
+    client_config: ClientConfigSystemParam,
+    mut commands: Commands,
+    mut networking_state: ResMut<NextState<MyNetworkingState>>,
+) {
     let client_config = client_config.client_config();
 
     info!(
@@ -28,4 +35,6 @@ pub fn connect_to_server(client_config: ClientConfigSystemParam, mut commands: C
     );
 
     commands.spawn((Name::new("LocalClient"), MyNetworkStream(stream)));
+
+    networking_state.set(MyNetworkingState::Running);
 }

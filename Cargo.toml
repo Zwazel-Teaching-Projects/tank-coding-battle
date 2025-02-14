@@ -23,8 +23,8 @@ proc_macros = { path = "proc_macros" }
 
 [dependencies]
 bevy = { workspace = true }
-server = { workspace = true }
-spectator_client = { workspace = true }
+server = { workspace = true, optional = true }
+spectator_client = { workspace = true, optional = true }
 shared = { workspace = true }
 
 [features]
