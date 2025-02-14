@@ -7,19 +7,28 @@ use bevy::{
 use shared::{
     asset_handling::maps::{MapConfig, MapConfigSystemParam},
     main_state::MyMainState,
+    networking::messages::message_container::GameStartsTrigger,
 };
+
+use crate::networking::MyNetworkStream;
 
 pub struct MyMapVisualizationPlugin;
 
 impl Plugin for MyMapVisualizationPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MapMeshMarker>()
-            .add_systems(OnEnter(MyMainState::Ready), (create_map,))
             .add_systems(
                 Update,
-                (listen_for_map_changes,).run_if(in_state(MyMainState::Ready)),
-            );
+                (listen_for_map_changes,)
+                    .run_if(in_state(MyMainState::Ready).and(any_with_component::<MapMeshMarker>)),
+            )
+            .add_observer(add_observers_to_client);
     }
+}
+
+fn add_observers_to_client(trigger: Trigger<OnAdd, MyNetworkStream>, mut commands: Commands) {
+    println!("Adding observers to client");
+    commands.entity(trigger.entity()).observe(create_map);
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Reflect, Component, Default)]
@@ -27,15 +36,14 @@ impl Plugin for MyMapVisualizationPlugin {
 struct MapMeshMarker;
 
 fn create_map(
-    map_config: MapConfigSystemParam,
+    trigger: Trigger<GameStartsTrigger>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let map_config = &map_config
-        .get_map_config_from_name("test_map")
-        .expect("Map not found")
-        .map;
+    println!("Creating map");
+
+    let map_config = &trigger.map_definition;
 
     let mesh = generate_mesh_from_grid(map_config.width, map_config.height, &map_config.tiles);
     let mesh_handle = meshes.add(mesh);

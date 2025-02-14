@@ -63,12 +63,17 @@ pub fn start_lobby(
     let server_config = server_config.server_config();
 
     let connected_clients = lobby_management.get_connected_configs_in_lobby(lobby_entity);
-    for (_, player_entity) in lobby.players.iter() {
-        let mut queue = queues.get_mut(*player_entity).expect("Failed to get queue");
+    for player_entity in lobby
+        .players
+        .iter()
+        .map(|(_, entity)| *entity)
+        .chain(lobby.spectators.iter().copied())
+    {
+        let mut queue = queues.get_mut(player_entity).expect("Failed to get queue");
         queue.push_back(MessageContainer::new(
-            MessageTarget::Client(*player_entity),
+            MessageTarget::Client(player_entity),
             NetworkMessageType::GameStarts(GameStarts {
-                client_id: *player_entity,
+                client_id: player_entity,
                 connected_clients: connected_clients.clone(),
                 tick_rate: server_config.tick_rate,
                 map_definition: map.clone(),
