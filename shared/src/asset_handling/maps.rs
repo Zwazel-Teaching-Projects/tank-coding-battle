@@ -10,7 +10,10 @@ use bevy_asset_loader::{
 use bevy_common_assets::ron::RonAssetPlugin;
 use serde::{Deserialize, Serialize};
 
-use crate::main_state::MyMainState;
+use crate::{
+    main_state::MyMainState,
+    networking::messages::message_data::message_error_types::ErrorMessageTypes,
+};
 
 pub struct MyMapPlugin;
 
@@ -45,12 +48,28 @@ pub struct MapConfig {
 }
 
 impl MapConfig {
-    pub fn insert_player_into_team(&mut self, team_name: &str, player: Entity) -> bool {
+    pub fn insert_player_into_team(
+        &mut self,
+        team_name: &str,
+        player: Entity,
+    ) -> Result<(), ErrorMessageTypes> {
         match self.teams.get_mut(team_name) {
-            Some(team) => team.players.push(player),
-            None => return false,
+            Some(team) => {
+                if team.players.len() < team.max_players {
+                    team.players.push(player);
+                    Ok(())
+                } else {
+                    Err(ErrorMessageTypes::TeamFull(format!(
+                        "Team {} is full",
+                        team_name
+                    )))
+                }
+            }
+            None => Err(ErrorMessageTypes::TeamDoesNotExist(format!(
+                "Team {} not found",
+                team_name
+            ))),
         }
-        true
     }
 
     pub fn remove_player_from_team(&mut self, player: Entity) {
@@ -119,6 +138,8 @@ impl From<SimplifiedRGB> for Color {
 pub struct MapDefinition {
     pub width: usize,
     pub height: usize,
+
+    pub floor_color: SimplifiedRGB,
 
     /// A 2D array of height values—row by row.
     /// For a grid of size `height x width`, we'll have `height` sub-vectors,

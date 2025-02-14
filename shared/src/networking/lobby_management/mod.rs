@@ -205,31 +205,33 @@ fn adding_player_to_lobby(
                 if let Some(team_name) = team_name {
                     lobby.players.push((player_name.clone(), *player));
 
-                    if lobby
+                    match lobby
                         .map_config
                         .as_mut()
                         .expect("Map config should be set up by now")
                         .insert_player_into_team(team_name, *player)
                     {
-                        commands
-                            .entity(*player)
-                            .insert((InTeam(team_name.clone()),));
+                        Ok(_) => {
+                            commands
+                                .entity(*player)
+                                .insert((InTeam(team_name.clone()),));
 
-                        queue.push_back(MessageContainer::new(
-                            MessageTarget::Client(*player),
-                            NetworkMessageType::SuccessFullyJoinedLobby(TextDataWrapper::new(
-                                format!("Successfully joined lobby on team {}", team_name),
-                            )),
-                        ));
-                    } else {
-                        queue.push_back(MessageContainer::new(
-                            MessageTarget::Client(*player),
-                            NetworkMessageType::MessageError(ErrorMessageTypes::TeamDoesNotExist(
-                                format!("Team {} does not exist", team_name),
-                            )),
-                        ));
+                            queue.push_back(MessageContainer::new(
+                                MessageTarget::Client(*player),
+                                NetworkMessageType::SuccessFullyJoinedLobby(TextDataWrapper::new(
+                                    format!("Successfully joined lobby on team {}", team_name),
+                                )),
+                            ));
+                        }
+                        Err(err) => {
+                            error!("Failed to add player to team {}: {:?}", team_name, err);
+                            queue.push_back(MessageContainer::new(
+                                MessageTarget::Client(*player),
+                                NetworkMessageType::MessageError(err),
+                            ));
 
-                        return;
+                            return;
+                        }
                     }
                 } else {
                     error!("Player wants to join lobby without specifying a team name");

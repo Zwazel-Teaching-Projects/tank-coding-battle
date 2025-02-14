@@ -1,6 +1,5 @@
 use bevy::{
     asset::RenderAssetUsages,
-    color::palettes::css::GREEN,
     prelude::*,
     render::mesh::{Indices, PrimitiveTopology},
 };
@@ -11,17 +10,11 @@ use shared::{
     },
 };
 
-use crate::networking::MyNetworkStream;
-
-pub fn add_observers_to_client(trigger: Trigger<OnAdd, MyNetworkStream>, mut commands: Commands) {
-    commands.entity(trigger.entity()).observe(create_map);
-}
-
 #[derive(Debug, Clone, Eq, PartialEq, Reflect, Component, Default)]
 #[reflect(Component)]
 pub struct MapMeshMarker;
 
-fn create_map(
+pub fn create_map(
     trigger: Trigger<GameStartsTrigger>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -33,7 +26,7 @@ fn create_map(
     let mesh = generate_mesh_from_grid(map_config.width, map_config.height, &map_config.tiles);
     let mesh_handle = meshes.add(mesh);
     let material_handle = materials.add(StandardMaterial {
-        base_color: GREEN.into(),
+        base_color: Color::from(map_config.floor_color.clone()),
         ..default()
     });
 

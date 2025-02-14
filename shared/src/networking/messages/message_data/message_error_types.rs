@@ -12,4 +12,5 @@ pub enum ErrorMessageTypes {
     LobbyManagementError(String),
     LobbyAlreadyRunning(String),
     TeamDoesNotExist(String),
+    TeamFull(String),
 }
