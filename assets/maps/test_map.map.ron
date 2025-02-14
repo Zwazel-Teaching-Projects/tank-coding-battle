@@ -1,26 +1,20 @@
 (
     teams: {
         "Red": (
-            color: Srgba(
-                Srgba(
-                    red: 1.0,
-                    green: 0.0,
-                    blue: 0.0,
-                    alpha: 1.0,
-                )
+            color: (
+                r: 1.0,
+                g: 0.0,
+                b: 0.0,
             ),
-            max_players: 1,
+            maxPlayers: 1,
         ),
         "Blue": (
-            color: Srgba(
-                Srgba(
-                    red: 0.0,
-                    green: 0.0,
-                    blue: 1.0,
-                    alpha: 1.0,
-                )
+            color: (
+                r: 0.0,
+                g: 0.0,
+                b: 1.0,
             ),
-            max_players: 1,
+            maxPlayers: 1,
         ),
     },
     map: (

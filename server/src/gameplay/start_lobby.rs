@@ -59,24 +59,30 @@ pub fn start_lobby(
         .as_ref()
         .expect("Failed to get map config")
         .map;
+    let team_configs = &lobby
+        .map_config
+        .as_ref()
+        .expect("Failed to get map config")
+        .teams;
 
     let server_config = server_config.server_config();
 
     let connected_clients = lobby_management.get_connected_configs_in_lobby(lobby_entity);
-    for player_entity in lobby
+    for client_entity in lobby
         .players
         .iter()
         .map(|(_, entity)| *entity)
         .chain(lobby.spectators.iter().copied())
     {
-        let mut queue = queues.get_mut(player_entity).expect("Failed to get queue");
+        let mut queue = queues.get_mut(client_entity).expect("Failed to get queue");
         queue.push_back(MessageContainer::new(
-            MessageTarget::Client(player_entity),
+            MessageTarget::Client(client_entity),
             NetworkMessageType::GameStarts(GameStarts {
-                client_id: player_entity,
+                client_id: client_entity,
                 connected_clients: connected_clients.clone(),
                 tick_rate: server_config.tick_rate,
                 map_definition: map.clone(),
+                team_configs: team_configs.clone(),
             }),
         ));
     }

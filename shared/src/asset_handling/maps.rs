@@ -24,6 +24,7 @@ impl Plugin for MyMapPlugin {
             .register_type::<LayerType>()
             .register_type::<MarkerDefinition>()
             .register_type::<MarkerType>()
+            .register_type::<SimplifiedRGB>()
             .configure_loading_state(
                 LoadingStateConfig::new(MyMainState::SettingUp).load_collection::<AllMapsAsset>(),
             )
@@ -72,13 +73,45 @@ impl MapConfig {
     }
 }
 
-#[derive(Debug, Clone, Reflect, Default, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct TeamConfig {
-    pub color: Color,
+    pub color: SimplifiedRGB,
     pub max_players: usize,
 
     #[serde(skip)]
     pub players: Vec<Entity>,
+}
+
+#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SimplifiedRGB {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+}
+
+impl From<(f32, f32, f32)> for SimplifiedRGB {
+    fn from((r, g, b): (f32, f32, f32)) -> Self {
+        SimplifiedRGB { r, g, b }
+    }
+}
+
+impl From<Color> for SimplifiedRGB {
+    fn from(color: Color) -> Self {
+        let color = color.to_linear();
+        SimplifiedRGB {
+            r: color.red,
+            g: color.green,
+            b: color.blue,
+        }
+    }
+}
+
+impl From<SimplifiedRGB> for Color {
+    fn from(SimplifiedRGB { r, g, b }: SimplifiedRGB) -> Self {
+        Color::linear_rgba(r, g, b, 1.0)
+    }
 }
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
