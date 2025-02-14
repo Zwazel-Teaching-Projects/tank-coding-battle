@@ -3,8 +3,7 @@ use std::net::TcpStream;
 use bevy::prelude::*;
 use message_handling::MyMessageHandlingPlugin;
 use shared::{
-    main_state::MyMainState,
-    networking::messages::message_queue::{ImmediateOutMessageQueue, InMessageQueue},
+    main_state::MyMainState, networking::messages::message_queue::ImmediateOutMessageQueue,
 };
 
 pub mod connect;
@@ -22,5 +21,5 @@ impl Plugin for MyNetworkingPlugin {
 }
 
 #[derive(Component, Debug, Deref, DerefMut)]
-#[require(InMessageQueue, ImmediateOutMessageQueue)]
+#[require(ImmediateOutMessageQueue)]
 pub struct MyNetworkStream(pub TcpStream);

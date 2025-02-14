@@ -12,7 +12,7 @@ use crate::{
     networking::messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
         message_data::{message_error_types::ErrorMessageTypes, text_data::TextDataWrapper},
-        message_queue::{InMessageQueue, OutMessageQueue},
+        message_queue::OutMessageQueue,
     },
 };
 
@@ -78,7 +78,7 @@ pub struct MyLobbies {
 
 #[derive(Debug, Reflect, Default, Component, PartialEq)]
 #[reflect(Component)]
-#[require(InMessageQueue, OutMessageQueue)]
+#[require(OutMessageQueue)]
 pub struct MyLobby {
     pub state: LobbyState,
     pub lobby_name: String,

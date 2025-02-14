@@ -8,7 +8,7 @@ use shared::networking::{
     },
     messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
-        message_queue::{ImmediateOutMessageQueue, InMessageQueue, OutMessageQueue},
+        message_queue::{ImmediateOutMessageQueue, OutMessageQueue},
     },
 };
 
@@ -22,7 +22,6 @@ pub fn handle_reading_messages(
         Option<&InLobby>,
         Option<&InTeam>,
     )>,
-    mut incoming_message_queues: Query<&mut InMessageQueue>,
     mut outgoing_message_queues: Query<&mut OutMessageQueue>,
     mut immediate_message_queues: Query<&mut ImmediateOutMessageQueue>,
     lobby_management: LobbyManagementSystemParam,
@@ -100,7 +99,6 @@ pub fn handle_reading_messages(
                     &mut commands,
                     &lobby_management,
                     lobby_arg,
-                    &mut incoming_message_queues,
                     &mut outgoing_message_queues,
                 );
 

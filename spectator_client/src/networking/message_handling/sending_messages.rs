@@ -13,8 +13,6 @@ pub fn sending_messages(
 ) {
     for (mut stream, mut immediate_message_queue) in client.iter_mut() {
         for message in immediate_message_queue.drain(..) {
-            info!("Sending message: {:?}", message);
-
             let message_bytes = serde_json::to_vec(&message).expect("Failed to serialize message");
             let length = (message_bytes.len() as u32).to_be_bytes();
 

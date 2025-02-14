@@ -259,20 +259,17 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                             }
                         }
                     } else {
-                        // Local messages -> in_message_queues OR direct trigger if empty
+                        // Local messages -> global trigger if targets empty, or trigger_targets
                         if targets.is_empty() {
                             commands.trigger(#trigger_struct_ident {
                                 message: data.clone(),
                                 sender: self.sender.clone().unwrap()
                             });
                         } else {
-                            for target in targets {
-                                let mut queue = in_message_queues.get_mut(target)
-                                    .map_err(|_| ErrorMessageTypes::LobbyManagementError(
-                                        "Failed to get in message queue".to_string()
-                                    ))?;
-                                queue.push_back(self.clone());
-                            }
+                            commands.trigger_targets(#trigger_struct_ident {
+                                message: data.clone(),
+                                sender: self.sender.clone().unwrap()
+                            }, targets);
                         }
                     }
                 }
@@ -299,7 +296,6 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                 commands: &mut Commands,
                 lobby_management: &LobbyManagementSystemParam,
                 lobby_management_arg: LobbyManagementArgument,
-                in_message_queues: &mut Query<&mut InMessageQueue>,
                 out_message_queues: &mut Query<&mut OutMessageQueue>,
             ) -> Result<(), ErrorMessageTypes> {
                 match &self.message {
