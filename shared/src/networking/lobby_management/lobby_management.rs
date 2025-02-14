@@ -181,6 +181,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     .map(|(player_name, player)| ConnectedClientConfig {
                         client_id: *player,
                         client_name: player_name.clone(),
+                        // TODO: This panics if a player tries to join a team that is full!!!
                         client_team: map_config.get_team_of_player(*player).unwrap().0,
                     })
                     .collect()
