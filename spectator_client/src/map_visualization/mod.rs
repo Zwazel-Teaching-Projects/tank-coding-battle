@@ -9,9 +9,9 @@ use shared::{
     main_state::MyMainState,
 };
 
-pub struct MyTestRenderMapPlugin;
+pub struct MyMapVisualizationPlugin;
 
-impl Plugin for MyTestRenderMapPlugin {
+impl Plugin for MyMapVisualizationPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MapMeshMarker>()
             .add_systems(OnEnter(MyMainState::Ready), (create_map,))

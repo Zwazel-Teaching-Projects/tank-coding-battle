@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 use bevy_flycam::PlayerPlugin;
+use map_visualization::MyMapVisualizationPlugin;
+use networking::MyNetworkingPlugin;
 use shared::MySharedPlugin;
-use test_render_map::MyTestRenderMapPlugin;
 
-pub mod test_render_map;
+pub mod map_visualization;
+pub mod networking;
 
 pub struct MySpectatorClientPlugin;
 
@@ -11,9 +13,10 @@ impl Plugin for MySpectatorClientPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             DefaultPlugins,
-            MySharedPlugin,
-            MyTestRenderMapPlugin,
             PlayerPlugin,
+            MySharedPlugin,
+            MyMapVisualizationPlugin,
+            MyNetworkingPlugin,
         ));
 
         #[cfg(debug_assertions)]
