@@ -36,7 +36,7 @@ pub fn handle_first_contact_message(
 ) {
     let server_config = server_config.server_config();
     let message = &trigger.message;
-    let sender = trigger.sender;
+    let sender = trigger.sender.unwrap();
     info!(
         "Received first contact message: {:?} from {:?}",
         message, sender

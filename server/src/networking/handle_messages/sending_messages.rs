@@ -40,15 +40,15 @@ pub fn sending_client_messages(
 ) {
     let lobby = trigger.entity();
 
-    match lobby_management.targets_get_players_in_lobby(LobbyManagementArgument {
+    match lobby_management.targets_get_players_and_spectators_in_lobby(LobbyManagementArgument {
         lobby: Some(lobby),
         ..default()
     }) {
-        Ok(players_in_lobby) => {
+        Ok(clients_in_lobby) => {
             let game_state = lobby_management
                 .get_lobby_gamestate(lobby)
                 .expect("Failed to get game state");
-            for player in players_in_lobby {
+            for player in clients_in_lobby {
                 let (mut client, mut out_message_queue) = connected_clients
                     .get_mut(player)
                     .expect("Failed to get client");

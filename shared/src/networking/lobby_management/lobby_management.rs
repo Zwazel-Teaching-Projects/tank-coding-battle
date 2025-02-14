@@ -94,9 +94,9 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     fn cleanup_lobbies(&mut self, commands: &mut Commands) {
         self.lobby_resource.lobbies.retain(|_, &mut entity| {
             if let Ok((_, lobby)) = self.lobby_entities.get_mut(entity) {
-                if lobby.players.is_empty() {
+                if lobby.players.is_empty() && lobby.spectators.is_empty() {
                     info!(
-                        "Despawning lobby entity \"{}\" with name \"{}\" as it is empty",
+                        "Despawning lobby entity \"{}\" with name \"{}\" as it has no players or spectators",
                         entity, lobby.lobby_name
                     );
 
@@ -199,6 +199,22 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     .iter()
                     .filter(|(_, player)| Some(player) != arg.sender.as_ref())
                     .map(|(_, player)| *player)
+                    .collect()
+            })
+    }
+
+    pub fn targets_get_players_and_spectators_in_lobby(
+        &self,
+        arg: LobbyManagementArgument,
+    ) -> Result<Vec<Entity>, String> {
+        self.get_lobby(arg.lobby.ok_or("No lobby provided")?)
+            .map(|lobby| {
+                lobby
+                    .players
+                    .iter()
+                    .map(|(_, player)| *player)
+                    .chain(lobby.spectators.iter().cloned())
+                    .filter(|&player| Some(player) != arg.sender)
                     .collect()
             })
     }

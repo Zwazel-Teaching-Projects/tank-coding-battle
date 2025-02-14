@@ -62,6 +62,8 @@ fn add_current_game_state_to_message_queue(
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby");
 
+    // Sending the game state to all players
+    // TODO: Players should get a personalized game state
     for (_, player_entity) in lobby.players.iter() {
         let mut out_message_queue = out_message_queues
             .get_mut(*player_entity)
@@ -69,6 +71,21 @@ fn add_current_game_state_to_message_queue(
 
         let message = MessageContainer::new(
             MessageTarget::Client(*player_entity),
+            NetworkMessageType::GameState(lobby.game_state.clone()),
+        );
+
+        // Make sure the game state is sent before any other messages
+        out_message_queue.push_front(message);
+    }
+
+    // Sending the (global) game state to all spectators
+    for spectator_entity in lobby.spectators.iter() {
+        let mut out_message_queue = out_message_queues
+            .get_mut(*spectator_entity)
+            .expect("Failed to get client");
+
+        let message = MessageContainer::new(
+            MessageTarget::Client(*spectator_entity),
             NetworkMessageType::GameState(lobby.game_state.clone()),
         );
 

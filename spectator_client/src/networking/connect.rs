@@ -28,6 +28,9 @@ pub fn connect_to_server(
             return;
         }
     };
+    stream
+        .set_nonblocking(true)
+        .expect("Failed to set nonblocking");
 
     info!(
         "Connected to server at {}:{}!",
