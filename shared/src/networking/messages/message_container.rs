@@ -55,6 +55,7 @@ use super::message_data::{
             MessageError(ErrorMessageTypes),
             #[serde(rename = "GameConfig")]
             GameStarts(GameStarts),
+            //StartGame,
             #[serde(rename = "SuccessfullyJoinedLobby")]
             SuccessFullyJoinedLobby(TextDataWrapper),
         }

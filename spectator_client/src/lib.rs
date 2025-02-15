@@ -3,9 +3,11 @@ use bevy_flycam::PlayerPlugin;
 use map_visualization::MyMapVisualizationPlugin;
 use networking::MyNetworkingPlugin;
 use shared::MySharedPlugin;
+use ui::MyUiPlugin;
 
 pub mod map_visualization;
 pub mod networking;
+pub mod ui;
 
 pub struct MySpectatorClientPlugin;
 
@@ -17,6 +19,7 @@ impl Plugin for MySpectatorClientPlugin {
             MySharedPlugin,
             MyMapVisualizationPlugin,
             MyNetworkingPlugin,
+            MyUiPlugin,
         ));
 
         #[cfg(debug_assertions)]
