@@ -52,6 +52,7 @@ pub struct ClientConfig {
     pub map: String,
     pub name: String,
     pub lobby_name: String,
+    pub fill_empty_slots_with_bots: bool,
 }
 
 #[derive(SystemParam)]

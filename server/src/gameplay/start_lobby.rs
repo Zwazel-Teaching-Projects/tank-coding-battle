@@ -4,8 +4,10 @@ use shared::{
     networking::{
         lobby_management::{lobby_management::LobbyManagementSystemParam, LobbyState, MyLobby},
         messages::{
-            message_container::{MessageContainer, MessageTarget, NetworkMessageType},
-            message_data::game_starts::GameStarts,
+            message_container::{
+                MessageContainer, MessageTarget, NetworkMessageType, StartGameTrigger,
+            },
+            message_data::{game_starts::GameStarts, message_error_types::ErrorMessageTypes},
             message_queue::ImmediateOutMessageQueue,
         },
     },
@@ -15,15 +17,34 @@ use shared::{
 pub struct StartLobbyTrigger;
 
 pub fn check_if_lobby_should_start(
-    lobbies: Query<(Entity, &MyLobby), Changed<MyLobby>>,
+    trigger: Trigger<StartGameTrigger>,
+    lobbies: Query<&MyLobby>,
+    mut client_queues: Query<&mut ImmediateOutMessageQueue>,
     mut commands: Commands,
 ) {
-    for (entity, lobby) in lobbies.iter() {
-        if lobby.state != LobbyState::ReadyToStart {
-            continue;
-        }
+    let entity = trigger.entity();
+    let start_config = &(**trigger.event());
+    let lobby = lobbies.get(entity).expect("Failed to get lobby");
+    let sender = trigger.sender.unwrap();
+    let mut sender_queue = client_queues
+        .get_mut(sender)
+        .expect("Failed to get queue for sender");
 
-        info!("Checking if lobby should start: {:?}", entity);
+    if lobby.state != LobbyState::ReadyToStart {
+        sender_queue.push_back(MessageContainer::new(
+            MessageTarget::Client(sender),
+            NetworkMessageType::MessageError(ErrorMessageTypes::LobbyNotReadyToStart(format!(
+                "Lobby is not ready to start: {:?}",
+                lobby.state
+            ))),
+        ));
+
+        return;
+    }
+
+    if start_config.fill_empty_slots_with_bots {
+        // TODO: Implement bot filling
+    } else {
         let needed_players = lobby
             .map_config
             .as_ref()
@@ -32,16 +53,20 @@ pub fn check_if_lobby_should_start(
             .iter()
             .fold(0, |acc, (_, team)| acc + team.max_players);
         if lobby.players.len() < needed_players {
-            info!(
-                "Not enough players in lobby: {} < {}",
-                lobby.players.len(),
-                needed_players
-            );
-            continue;
-        }
+            sender_queue.push_back(MessageContainer::new(
+                MessageTarget::Client(sender),
+                NetworkMessageType::MessageError(ErrorMessageTypes::LobbyNotReadyToStart(format!(
+                    "Not enough players in lobby: {} < {}",
+                    lobby.players.len(),
+                    needed_players
+                ))),
+            ));
 
-        commands.trigger_targets(StartLobbyTrigger, entity);
+            return;
+        }
     }
+
+    commands.trigger_targets(StartLobbyTrigger, entity);
 }
 
 pub fn start_lobby(

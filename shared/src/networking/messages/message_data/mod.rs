@@ -3,6 +3,7 @@ use bevy::prelude::*;
 pub mod first_contact;
 pub mod game_starts;
 pub mod message_error_types;
+pub mod start_game_config;
 pub mod text_data;
 
 pub struct MySharedMessageDataPlugin;

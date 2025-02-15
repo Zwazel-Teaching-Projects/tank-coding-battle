@@ -8,7 +8,6 @@ use shared::networking::{
     },
 };
 use simulation::run_next_simulation_tick;
-use start_lobby::check_if_lobby_should_start;
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
 use triggers::{NextSimulationStepDoneTrigger, SendOutgoingMessagesTrigger};
@@ -37,7 +36,6 @@ impl Plugin for MyGameplayPlugin {
             )
                 .chain(),
         )
-        .add_systems(Update, check_if_lobby_should_start)
         .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
         .add_observer(add_observers_to_lobby);
     }
@@ -48,6 +46,7 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .entity(trigger.entity())
         .observe(add_current_game_state_to_message_queue)
         .observe(run_next_simulation_tick)
+        .observe(start_lobby::check_if_lobby_should_start)
         .observe(start_lobby::start_lobby);
 }
 

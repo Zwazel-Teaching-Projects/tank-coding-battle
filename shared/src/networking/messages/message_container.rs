@@ -12,7 +12,8 @@ use crate::{
 
 use super::message_data::{
     first_contact::FirstContactData, game_starts::GameStarts,
-    message_error_types::ErrorMessageTypes, text_data::TextDataWrapper,
+    message_error_types::ErrorMessageTypes, start_game_config::StartGameConfig,
+    text_data::TextDataWrapper,
 };
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
@@ -36,7 +37,7 @@ use super::message_data::{
             // To a single player
             Client(Entity),
             #[get_targets(targets_get_lobby_directly)]
-            // To the lobby itself (is there even a usecase for that?)
+            // To the lobby itself (for example to start the game)
             ToLobbyDirectly,
         }
     },
@@ -55,6 +56,8 @@ use super::message_data::{
             MessageError(ErrorMessageTypes),
             #[serde(rename = "GameConfig")]
             GameStarts(GameStarts),
+            #[target(ToLobbyDirectly)]
+            StartGame(StartGameConfig),
             //StartGame,
             #[serde(rename = "SuccessfullyJoinedLobby")]
             SuccessFullyJoinedLobby(TextDataWrapper),
