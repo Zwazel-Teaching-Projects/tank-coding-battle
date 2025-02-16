@@ -1,5 +1,8 @@
 use bevy::prelude::*;
-use shared::{asset_handling::config::ServerConfigSystemParam, networking::lobby_management::{remove_player_from_lobby, AwaitingFirstContact}};
+use shared::{
+    asset_handling::config::ServerConfigSystemParam,
+    networking::lobby_management::{remove_player_from_lobby, AwaitingFirstContact},
+};
 
 use crate::networking::{
     handle_clients::lib::{ClientConnectedTrigger, MyNetworkClient},
@@ -16,12 +19,12 @@ pub fn accept_connections_system(
     // Accept in a loop until we get a WouldBlock error
     loop {
         match my_listener.listener.accept() {
-            Ok((stream, addr)) => {
+            Ok((stream, _addr)) => {
                 stream.set_nonblocking(true).unwrap();
 
                 let networked_client = commands
                     .spawn((
-                        MyNetworkClient::new(addr, stream),
+                        MyNetworkClient::new(stream),
                         AwaitingFirstContact::new(config.timeout_first_contact),
                     ))
                     .observe(remove_player_from_lobby)

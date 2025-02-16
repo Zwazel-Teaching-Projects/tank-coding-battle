@@ -8,11 +8,11 @@ use crate::{
         config::ServerConfigSystemParam,
         maps::{MapConfig, MapConfigSystemParam},
     },
-    game::game_state::GameState,
+    game::game_state::LobbyGameState,
     networking::messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
         message_data::{message_error_types::ErrorMessageTypes, text_data::TextDataWrapper},
-        message_queue::{InMessageQueue, OutMessageQueue},
+        message_queue::OutMessageQueue,
     },
 };
 
@@ -78,20 +78,19 @@ pub struct MyLobbies {
 
 #[derive(Debug, Reflect, Default, Component, PartialEq)]
 #[reflect(Component)]
-#[require(InMessageQueue, OutMessageQueue)]
+#[require(OutMessageQueue, LobbyGameState)]
 pub struct MyLobby {
     pub state: LobbyState,
     pub lobby_name: String,
 
-    pub players: Vec<(String, Entity)>,
+    pub players: Vec<(String, Entity, ClientType)>,
     pub spectators: Vec<Entity>,
 
     pub map_name: String,
     pub map_config: Option<MapConfig>,
 
     pub tick_timer: Timer,
-
-    pub game_state: GameState,
+    pub tick_processed: u64,
 }
 
 impl MyLobby {
@@ -110,12 +109,11 @@ impl MyLobby {
             map_config: None,
 
             tick_timer: Timer::from_seconds(time_per_tick, TimerMode::Repeating),
-
-            game_state: GameState::default(),
+            tick_processed: 0,
         }
     }
 
-    pub fn with_player(mut self, player: (String, Entity)) -> Self {
+    pub fn with_player(mut self, player: (String, Entity, ClientType)) -> Self {
         self.players.push(player);
         self
     }
@@ -203,33 +201,37 @@ fn adding_player_to_lobby(
         match player_type {
             ClientType::Player => {
                 if let Some(team_name) = team_name {
-                    lobby.players.push((player_name.clone(), *player));
+                    lobby
+                        .players
+                        .push((player_name.clone(), *player, player_type.clone()));
 
-                    if lobby
+                    match lobby
                         .map_config
                         .as_mut()
                         .expect("Map config should be set up by now")
                         .insert_player_into_team(team_name, *player)
                     {
-                        commands
-                            .entity(*player)
-                            .insert((InTeam(team_name.clone()),));
+                        Ok(_) => {
+                            commands
+                                .entity(*player)
+                                .insert((InTeam(team_name.clone()),));
 
-                        queue.push_back(MessageContainer::new(
-                            MessageTarget::Client(*player),
-                            NetworkMessageType::SuccessFullyJoinedLobby(TextDataWrapper::new(
-                                format!("Successfully joined lobby on team {}", team_name),
-                            )),
-                        ));
-                    } else {
-                        queue.push_back(MessageContainer::new(
-                            MessageTarget::Client(*player),
-                            NetworkMessageType::MessageError(ErrorMessageTypes::TeamDoesNotExist(
-                                format!("Team {} does not exist", team_name),
-                            )),
-                        ));
+                            queue.push_back(MessageContainer::new(
+                                MessageTarget::Client(*player),
+                                NetworkMessageType::SuccessFullyJoinedLobby(TextDataWrapper::new(
+                                    format!("Successfully joined lobby on team {}", team_name),
+                                )),
+                            ));
+                        }
+                        Err(err) => {
+                            error!("Failed to add player to team {}: {:?}", team_name, err);
+                            queue.push_back(MessageContainer::new(
+                                MessageTarget::Client(*player),
+                                NetworkMessageType::MessageError(err),
+                            ));
 
-                        return;
+                            return;
+                        }
                     }
                 } else {
                     error!("Player wants to join lobby without specifying a team name");
@@ -246,6 +248,7 @@ fn adding_player_to_lobby(
             ClientType::Spectator => {
                 lobby.spectators.push(*player);
             }
+            ClientType::Dummy => unimplemented!("Dummy clients should not be able to join lobbies"),
         }
 
         commands
@@ -264,7 +267,7 @@ fn finish_setting_up_lobby(
     let lobby_entity = trigger.entity();
     let mut lobby = lobby_management.get_lobby_mut(lobby_entity).unwrap();
     if lobby.map_config.is_none() {
-        if let Some(map_config) = map_config.get_map_config(&lobby.map_name) {
+        if let Some(map_config) = map_config.get_map_config_from_name(&lobby.map_name) {
             info!(
                 "Adding map config \"{}\" to lobby \"{}\"",
                 lobby.map_name, lobby.lobby_name

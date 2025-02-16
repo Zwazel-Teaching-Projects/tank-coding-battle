@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["game_sim", "proc_macros", "server", "shared", "spectator_client"]
+members = ["proc_macros", "server", "shared", "spectator_client"]
 
 [package]
 name = "tank-coding-battle"
@@ -23,13 +23,13 @@ proc_macros = { path = "proc_macros" }
 
 [dependencies]
 bevy = { workspace = true }
-server = { workspace = true }
-spectator_client = { workspace = true }
+server = { workspace = true, optional = true }
+spectator_client = { workspace = true, optional = true }
 shared = { workspace = true }
 
 [features]
 default = ["bevy_debug"]
-bevy_debug = ["bevy/bevy_dev_tools"]
+bevy_debug = ["bevy/bevy_dev_tools", "bevy/file_watcher"]
 
 server = ["server/server", "shared/server"]
 spectator_client = [

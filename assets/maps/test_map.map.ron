@@ -1,26 +1,84 @@
 (
     teams: {
         "Red": (
-            color: Srgba(
-                Srgba(
-                    red: 1.0,
-                    green: 0.0,
-                    blue: 0.0,
-                    alpha: 1.0,
-                )
+            color: (
+                r: 1.0,
+                g: 0.0,
+                b: 0.0,
             ),
-            max_players: 1,
+            maxPlayers: 2,
         ),
         "Blue": (
-            color: Srgba(
-                Srgba(
-                    red: 0.0,
-                    green: 0.0,
-                    blue: 1.0,
-                    alpha: 1.0,
-                )
+            color: (
+                r: 0.0,
+                g: 0.0,
+                b: 1.0,
             ),
-            max_players: 1,
+            maxPlayers: 2,
         ),
     },
+    map: (
+        width: 10,
+        height: 10,
+        floorColor: (
+            r: 0.5,
+            g: 0.5,
+            b: 0.5,
+        ),
+        tiles: [
+            [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,],
+            [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,],
+            [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,],
+            [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,],
+            [0.0,0.0,0.0,0.0,4.0,3.0,0.0,0.0,0.0,0.0,],
+            [0.0,0.0,0.0,0.0,3.0,3.0,0.0,0.0,0.0,0.0,],
+            [0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,],
+            [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,],
+            [0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,],
+            [1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.5,],
+        ],
+        layers: [
+            (
+                kind: FOREST,
+                costModifier: 2.0,
+                tiles: [
+                    (x: 0, y: 0), (x: 1, y: 0), (x: 2, y: 0),
+                ]
+            ),
+        ],
+        markers: [
+            (
+                tile: (x: 0, y: 0),
+                group: "Red",
+                kind: (
+                    type: "Spawn",
+                    spawnNumber: 0
+                ),
+            ),
+            (
+                tile: (x: 9, y: 0),
+                group: "Red",
+                kind: (
+                    type: "Spawn",
+                    spawnNumber: 1
+                ),
+            ),
+            (
+                tile: (x: 0, y: 9),
+                group: "Blue",
+                kind: (
+                    type: "Spawn",
+                    spawnNumber: 0
+                ),
+            ),
+            (
+                tile: (x: 9, y: 9),
+                group: "Blue",
+                kind: (
+                    type: "Spawn",
+                    spawnNumber: 1
+                ),
+            ),
+        ]
+    )
 )

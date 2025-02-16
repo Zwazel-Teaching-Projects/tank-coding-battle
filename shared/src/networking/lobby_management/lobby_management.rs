@@ -2,10 +2,10 @@ use bevy::{ecs::system::SystemParam, prelude::*, utils::Entry};
 
 use crate::{
     asset_handling::config::ServerConfig,
-    game::game_state::GameState,
+    game::game_state::LobbyGameState,
     networking::{
         lobby_management::PlayerRemovedFromLobbyTrigger,
-        messages::message_data::game_starts::ConnectedClientConfig,
+        messages::message_data::first_contact::ClientType,
     },
 };
 
@@ -22,7 +22,7 @@ pub struct LobbyManagementArgument {
 #[derive(SystemParam)]
 pub struct LobbyManagementSystemParam<'w, 's> {
     lobby_resource: ResMut<'w, MyLobbies>,
-    lobby_entities: Query<'w, 's, (Entity, &'static mut MyLobby)>,
+    pub lobby_entities: Query<'w, 's, (Entity, &'static mut MyLobby, &'static mut LobbyGameState)>,
 }
 
 impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
@@ -66,10 +66,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         lobby: Entity,
         commands: &mut Commands,
     ) {
-        if let Ok((_, mut lobby)) = self.lobby_entities.get_mut(lobby) {
+        if let Ok((_, mut lobby, _)) = self.lobby_entities.get_mut(lobby) {
             lobby
                 .players
-                .retain(|(_, x)| if *x == player { false } else { true });
+                .retain(|(_, x, _)| if *x == player { false } else { true });
 
             lobby
                 .spectators
@@ -93,14 +93,27 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
 
     fn cleanup_lobbies(&mut self, commands: &mut Commands) {
         self.lobby_resource.lobbies.retain(|_, &mut entity| {
-            if let Ok((_, lobby)) = self.lobby_entities.get_mut(entity) {
-                if lobby.players.is_empty() {
+            if let Ok((_, lobby, _)) = self.lobby_entities.get_mut(entity) {
+                // Count only normal players (ignoring dummy players) based on client type.
+                let normal_player_count = lobby
+                    .players
+                    .iter()
+                    .filter(|(_, _, client_type)| client_type != &ClientType::Dummy)
+                    .count();
+
+                // If there are no spectators and no normal players, despawn the lobby.
+                if normal_player_count == 0 && lobby.spectators.is_empty() {
                     info!(
-                        "Despawning lobby entity \"{}\" with name \"{}\" as it is empty",
+                        "Despawning lobby entity \"{}\" with name \"{}\" as it has no normal players or spectators",
                         entity, lobby.lobby_name
                     );
-
                     commands.entity(entity).despawn_recursive();
+
+                    // Cleanup dummies
+                    for (_, player, _) in lobby.players.iter() {
+                        commands.entity(*player).despawn_recursive();
+                    }
+
                     false
                 } else {
                     true
@@ -118,7 +131,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     pub fn remove_lobby(&mut self, lobby: Entity, commands: &mut Commands) {
         self.lobby_resource.lobbies.retain(|_, &mut entity| {
             if entity == lobby {
-                if let Ok((lobby_entity, lobby)) = self.lobby_entities.get_mut(lobby) {
+                if let Ok((lobby_entity, lobby, _)) = self.lobby_entities.get_mut(lobby) {
                     info!(
                         "Despawning lobby entity \"{}\" with name \"{}\"",
                         lobby_entity, lobby.lobby_name
@@ -128,7 +141,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     for player in lobby
                         .players
                         .iter()
-                        .map(|(_, player)| player)
+                        .map(|(_, player, _)| player)
                         .chain(lobby.spectators.iter())
                     {
                         info!(
@@ -155,37 +168,29 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     pub fn get_lobby(&self, lobby: Entity) -> Result<&MyLobby, String> {
         self.lobby_entities
             .get(lobby)
-            .map(|(_, lobby)| lobby)
+            .map(|(_, lobby, _)| lobby)
             .map_err(|_| format!("Failed to get lobby for lobby entity: {}", lobby))
     }
 
     pub fn get_lobby_mut(&mut self, lobby: Entity) -> Result<Mut<MyLobby>, String> {
         self.lobby_entities
             .get_mut(lobby)
-            .map(|(_, lobby)| lobby)
+            .map(|(_, lobby, _)| lobby)
             .map_err(|_| format!("Failed to get lobby for lobby entity: {}", lobby))
     }
 
-    pub fn get_lobby_gamestate(&self, lobby: Entity) -> Result<&GameState, String> {
-        self.get_lobby(lobby).map(|lobby| &lobby.game_state)
+    pub fn get_lobby_gamestate(&self, lobby: Entity) -> Result<&LobbyGameState, String> {
+        self.lobby_entities
+            .get(lobby)
+            .map(|(_, _, game_state)| game_state)
+            .map_err(|_| format!("Failed to get game state for lobby entity: {}", lobby))
     }
 
-    pub fn get_connected_configs_in_lobby(&self, lobby: Entity) -> Vec<ConnectedClientConfig> {
-        self.get_lobby(lobby)
-            .map(|lobby| {
-                let map_config = lobby.map_config.as_ref().unwrap();
-
-                lobby
-                    .players
-                    .iter()
-                    .map(|(player_name, player)| ConnectedClientConfig {
-                        client_id: *player,
-                        client_name: player_name.clone(),
-                        client_team: map_config.get_team_of_player(*player).unwrap().0,
-                    })
-                    .collect()
-            })
-            .unwrap_or_default()
+    pub fn get_lobby_gamestate_mut(&mut self, lobby: Entity) -> Result<Mut<LobbyGameState>, String> {
+        self.lobby_entities
+            .get_mut(lobby)
+            .map(|(_, _, game_state)| game_state)
+            .map_err(|_| format!("Failed to get game state for lobby entity: {}", lobby))
     }
 
     pub fn targets_get_players_in_lobby(
@@ -197,8 +202,24 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 lobby
                     .players
                     .iter()
-                    .filter(|(_, player)| Some(player) != arg.sender.as_ref())
-                    .map(|(_, player)| *player)
+                    .filter(|(_, player, _)| Some(player) != arg.sender.as_ref())
+                    .map(|(_, player, _)| *player)
+                    .collect()
+            })
+    }
+
+    pub fn targets_get_players_and_spectators_in_lobby(
+        &self,
+        arg: LobbyManagementArgument,
+    ) -> Result<Vec<Entity>, String> {
+        self.get_lobby(arg.lobby.ok_or("No lobby provided")?)
+            .map(|lobby| {
+                lobby
+                    .players
+                    .iter()
+                    .map(|(_, player, _)| *player)
+                    .chain(lobby.spectators.iter().cloned())
+                    .filter(|&player| Some(player) != arg.sender)
                     .collect()
             })
     }

@@ -25,7 +25,7 @@ pub fn generate(item: TokenStream) -> TokenStream {
                     pub struct #trigger_name {
                         #[deref]
                         pub message: #field_type,
-                        pub sender: Entity,
+                        pub sender: Option<Entity>,
                     }
                 };
                 generated_structs.push(generated);

@@ -2,17 +2,15 @@ use bevy::prelude::*;
 use proc_macros::{auto_trigger_message_received, generate_message_data_triggers};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    game::game_state::GameState,
-    networking::{
-        lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-        messages::message_queue::{InMessageQueue, OutMessageQueue},
-    },
+use crate::networking::{
+    lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+    messages::message_queue::OutMessageQueue,
 };
 
 use super::message_data::{
-    first_contact::FirstContactData, game_starts::GameStarts,
-    message_error_types::ErrorMessageTypes, text_data::TextDataWrapper,
+    first_contact::FirstContactData, game_starts::GameStarts, game_state::GameState,
+    message_error_types::ErrorMessageTypes, start_game_config::StartGameConfig,
+    text_data::TextDataWrapper,
 };
 
 #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
@@ -36,7 +34,7 @@ use super::message_data::{
             // To a single player
             Client(Entity),
             #[get_targets(targets_get_lobby_directly)]
-            // To the lobby itself (is there even a usecase for that?)
+            // To the lobby itself (for example to start the game)
             ToLobbyDirectly,
         }
     },
@@ -55,6 +53,8 @@ use super::message_data::{
             MessageError(ErrorMessageTypes),
             #[serde(rename = "GameConfig")]
             GameStarts(GameStarts),
+            #[target(ToLobbyDirectly)]
+            StartGame(StartGameConfig),
             #[serde(rename = "SuccessfullyJoinedLobby")]
             SuccessFullyJoinedLobby(TextDataWrapper),
         }

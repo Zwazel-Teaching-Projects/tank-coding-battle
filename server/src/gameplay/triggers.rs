@@ -1,13 +1,21 @@
 use bevy::prelude::*;
 
-#[derive(Debug, Default, Reflect, Event)]
+#[derive(Debug, Reflect, Event)]
 pub struct StartNextTickProcessingTrigger;
 
-#[derive(Debug, Default, Reflect, Event)]
+#[derive(Debug, Reflect, Event)]
 pub struct StartNextSimulationStepTrigger;
 
-#[derive(Debug, Default, Reflect, Event)]
-pub struct NextSimulationStepDoneTrigger;
+#[derive(Debug, Reflect, Event)]
+pub struct UpdateLobbyGameStateTrigger;
 
-#[derive(Debug, Default, Reflect, Event)]
+#[derive(Debug, Reflect, Event)]
+pub struct UpdateClientGameStatesTrigger {
+    pub lobby: Entity,
+}
+
+#[derive(Debug, Reflect, Event)]
+pub struct AddStateUpdateToQueue;
+
+#[derive(Debug, Reflect, Event)]
 pub struct SendOutgoingMessagesTrigger;

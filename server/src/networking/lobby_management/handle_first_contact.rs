@@ -36,7 +36,7 @@ pub fn handle_first_contact_message(
 ) {
     let server_config = server_config.server_config();
     let message = &trigger.message;
-    let sender = trigger.sender;
+    let sender = trigger.sender.unwrap();
     info!(
         "Received first contact message: {:?} from {:?}",
         message, sender
@@ -45,6 +45,9 @@ pub fn handle_first_contact_message(
     // Update the client's state
     if let Ok((client_entity, mut client)) = clients.get_mut(sender) {
         client.name = Some(message.bot_name.clone());
+        if let Some(assigned_spawn_point) = message.bot_assigned_spawn_point {
+            client.assigned_spawn_point = Some(assigned_spawn_point);
+        }
 
         commands
             .entity(client_entity)

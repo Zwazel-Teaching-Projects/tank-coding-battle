@@ -259,20 +259,17 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                             }
                         }
                     } else {
-                        // Local messages -> in_message_queues OR direct trigger if empty
+                        // Local messages -> global trigger if targets empty, or trigger_targets
                         if targets.is_empty() {
                             commands.trigger(#trigger_struct_ident {
                                 message: data.clone(),
-                                sender: self.sender.clone().unwrap()
+                                sender: self.sender.clone(),
                             });
                         } else {
-                            for target in targets {
-                                let mut queue = in_message_queues.get_mut(target)
-                                    .map_err(|_| ErrorMessageTypes::LobbyManagementError(
-                                        "Failed to get in message queue".to_string()
-                                    ))?;
-                                queue.push_back(self.clone());
-                            }
+                            commands.trigger_targets(#trigger_struct_ident {
+                                message: data.clone(),
+                                sender: self.sender.clone(),
+                            }, targets);
                         }
                     }
                 }
@@ -299,11 +296,45 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                 commands: &mut Commands,
                 lobby_management: &LobbyManagementSystemParam,
                 lobby_management_arg: LobbyManagementArgument,
-                in_message_queues: &mut Query<&mut InMessageQueue>,
                 out_message_queues: &mut Query<&mut OutMessageQueue>,
             ) -> Result<(), ErrorMessageTypes> {
                 match &self.message {
                     #( #message_match_arms , )*
+                }
+                Ok(())
+            }
+        }
+    };
+
+    // Generate client match arms: simply trigger the message on the provided target.
+    let client_message_match_arms: Vec<_> = message_enum_for_match
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_ident = &variant.ident;
+            let trigger_struct_ident = format_ident!("{}Trigger", variant_ident);
+            quote! {
+                #message_enum_ident::#variant_ident(data) => {
+                    // Client: directly trigger using the given target.
+                    commands.trigger_targets(#trigger_struct_ident {
+                        message: data.clone(),
+                        sender: self.sender.clone(),
+                    }, target);
+                }
+            }
+        })
+        .collect();
+
+    // Append the client function in an additional impl block.
+    let client_generated_impl = quote! {
+        impl #struct_ident {
+            pub fn trigger_message_received_client(
+                &self,
+                commands: &mut Commands,
+                target: Entity, // Use the client-provided target.
+            ) -> Result<(), ErrorMessageTypes> {
+                match &self.message {
+                    #( #client_message_match_arms, )*
                 }
                 Ok(())
             }
@@ -315,6 +346,7 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
         #cleaned_message_enum
         #input_ast
         #generated_impl
+        #client_generated_impl
     };
     output.into()
 }

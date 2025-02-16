@@ -16,8 +16,8 @@ pub struct MyConfigPlugin;
 impl Plugin for MyConfigPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            RonAssetPlugin::<ServerConfig>::new(&["ron"]),
-            RonAssetPlugin::<ClientConfig>::new(&["ron"]),
+            RonAssetPlugin::<ServerConfig>::new(&["server.ron"]),
+            RonAssetPlugin::<ClientConfig>::new(&["client.ron"]),
         ))
         .register_type::<MyConfigAsset>()
         .register_type::<ServerConfig>()
@@ -31,9 +31,9 @@ impl Plugin for MyConfigPlugin {
 #[derive(Debug, Default, Reflect, Resource, Clone, AssetCollection)]
 #[reflect(Resource)]
 struct MyConfigAsset {
-    #[asset(path = "config/server_config.ron")]
+    #[asset(path = "config/config.server.ron")]
     server: Handle<ServerConfig>,
-    #[asset(path = "config/spectator_client_config.ron")]
+    #[asset(path = "config/config.client.ron")]
     client: Handle<ClientConfig>,
 }
 
@@ -49,6 +49,10 @@ pub struct ServerConfig {
 pub struct ClientConfig {
     pub ip: String,
     pub port: u16,
+    pub map: String,
+    pub name: String,
+    pub lobby_name: String,
+    pub fill_empty_slots_with_dummies: bool,
 }
 
 #[derive(SystemParam)]
