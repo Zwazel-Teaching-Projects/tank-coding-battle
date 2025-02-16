@@ -1,4 +1,5 @@
 use bevy::{color::palettes::css::WHITE, prelude::*};
+use bevy_mod_billboard::BillboardText;
 use shared::networking::messages::message_container::GameStartsTrigger;
 
 use crate::game_handling::entity_mapping::MyEntityMapping;
@@ -8,9 +9,11 @@ pub fn create_player_visualisation(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     let game_start = trigger.event();
     let map_definition = &game_start.map_definition;
+    let font = asset_server.load("fonts/FiraSans-Regular.ttf");
 
     for player in game_start.connected_clients.iter() {
         let team_color = game_start
@@ -31,6 +34,16 @@ pub fn create_player_visualisation(
                 MeshMaterial3d(materials.add(team_color)),
                 Transform::from_translation(player_position),
             ))
+            .with_children(|commands| {
+                commands.spawn((
+                    BillboardText::new(&player.client_name),
+                    TextFont::from_font(font.clone()).with_font_size(60.0),
+                    TextColor(Color::WHITE),
+                    TextLayout::new_with_justify(JustifyText::Center),
+                    Transform::from_translation(Vec3::new(0.0, 1.0, 0.0))
+                        .with_scale(Vec3::splat(0.0085)),
+                ));
+            })
             .id();
 
         commands.entity(entity).insert(MyEntityMapping {

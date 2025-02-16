@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_flycam::PlayerPlugin;
+use bevy_mod_billboard::plugin::BillboardPlugin;
 use game_handling::MyGameHandlingPlugin;
 use game_state::MyGameState;
 use map_visualization::MyMapVisualizationPlugin;
@@ -20,6 +21,7 @@ impl Plugin for MySpectatorClientPlugin {
         app.add_plugins((
             DefaultPlugins,
             PlayerPlugin,
+            BillboardPlugin,
             MySharedPlugin,
             MyMapVisualizationPlugin,
             MyNetworkingPlugin,
