@@ -43,6 +43,8 @@ pub fn reading_messages(
             }
         };
 
+        info!("Received message (JSON): {}", message);
+
         // Deserialize the message into a MessageContainer
         match serde_json::from_str::<Vec<MessageContainer>>(&message) {
             Ok(message_containers) => {

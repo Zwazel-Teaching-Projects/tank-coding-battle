@@ -68,6 +68,12 @@ pub struct ClientState {
     pub position: Option<TankTransform>,
 }
 
+impl ClientState {
+    pub fn new(id: Entity) -> Self {
+        ClientState { id, position: None }
+    }
+}
+
 impl Default for ClientState {
     fn default() -> Self {
         ClientState {

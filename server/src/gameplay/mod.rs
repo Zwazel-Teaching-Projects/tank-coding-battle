@@ -46,6 +46,7 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .observe(game_state_handling::add_current_game_state_to_message_queue)
         .observe(game_state_handling::update_lobby_state)
         .observe(simulation::process_tick_sim)
+        .observe(simulation::move_dummies)
         .observe(start_lobby::check_if_lobby_should_start)
         .observe(start_lobby::start_lobby);
 }

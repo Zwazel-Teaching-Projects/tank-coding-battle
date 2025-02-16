@@ -1,8 +1,20 @@
 use bevy::{color::palettes::css::WHITE, prelude::*};
 use bevy_mod_billboard::BillboardText;
-use shared::networking::messages::message_container::GameStartsTrigger;
+use shared::{
+    game::player_handling::TankTransform,
+    networking::messages::message_container::GameStartsTrigger,
+};
 
 use crate::game_handling::entity_mapping::MyEntityMapping;
+
+pub fn update_player_positions(
+    mut transforms: Query<(&mut Transform, &TankTransform), Changed<TankTransform>>,
+) {
+    for (mut transform, tank_transform) in transforms.iter_mut() {
+        transform.translation = tank_transform.position;
+        transform.rotation = tank_transform.rotation;
+    }
+}
 
 pub fn create_player_visualisation(
     trigger: Trigger<GameStartsTrigger>,
@@ -33,6 +45,10 @@ pub fn create_player_visualisation(
                 Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
                 MeshMaterial3d(materials.add(team_color)),
                 Transform::from_translation(player_position),
+                TankTransform {
+                    position: player_position,
+                    rotation: Quat::IDENTITY,
+                },
             ))
             .with_children(|commands| {
                 commands.spawn((

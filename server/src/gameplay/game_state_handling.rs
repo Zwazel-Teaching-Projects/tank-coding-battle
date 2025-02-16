@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use shared::{
-    game::game_state::PersonalizedClientGameState,
+    game::{
+        game_state::{ClientState, PersonalizedClientGameState},
+        player_handling::TankTransform,
+    },
     networking::{
         lobby_management::{lobby_management::LobbyManagementSystemParam, LobbyState},
         messages::{
@@ -18,26 +21,48 @@ use super::triggers::{
 
 pub fn update_lobby_state(
     trigger: Trigger<UpdateLobbyGameStateTrigger>,
-    lobby_management: LobbyManagementSystemParam,
+    mut lobby_management: LobbyManagementSystemParam,
+    tank_positions: Query<&TankTransform>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let lobby = lobby_management
-        .get_lobby(lobby_entity)
-        .expect("Failed to get lobby");
 
-    // TODO: Update with tank positions, etc.
-    info!("Updated lobby state for lobby: {}", lobby.lobby_name);
+    let player_entities = lobby_management
+        .get_lobby(lobby_entity)
+        .expect("Failed to get lobby")
+        .players
+        .iter()
+        .map(|(_, entity, _)| *entity)
+        .collect::<Vec<_>>();
+    let mut game_state = lobby_management
+        .get_lobby_gamestate_mut(lobby_entity)
+        .expect("Failed to get lobby game state");
+
+    for player_entity in player_entities.iter() {
+        let tank_position = tank_positions
+            .get(*player_entity)
+            .expect("Failed to get tank position");
+
+        let client_state = game_state
+            .client_states
+            .entry(*player_entity)
+            .or_insert_with(|| ClientState::new(*player_entity));
+        client_state.position = Some(tank_position.clone());
+    }
+
+    info!(
+        "Updated lobby state for lobby: {}",
+        lobby_management
+            .get_lobby(lobby_entity)
+            .expect("Failed to get lobby")
+            .lobby_name
+    );
 
     commands.trigger_targets(
         UpdateClientGameStatesTrigger {
             lobby: lobby_entity,
         },
-        lobby
-            .players
-            .iter()
-            .map(|(_, entity, _)| *entity)
-            .collect::<Vec<_>>(),
+        player_entities,
     );
 }
 

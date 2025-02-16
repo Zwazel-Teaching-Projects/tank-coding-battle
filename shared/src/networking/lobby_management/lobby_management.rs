@@ -186,6 +186,13 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
             .map_err(|_| format!("Failed to get game state for lobby entity: {}", lobby))
     }
 
+    pub fn get_lobby_gamestate_mut(&mut self, lobby: Entity) -> Result<Mut<LobbyGameState>, String> {
+        self.lobby_entities
+            .get_mut(lobby)
+            .map(|(_, _, game_state)| game_state)
+            .map_err(|_| format!("Failed to get game state for lobby entity: {}", lobby))
+    }
+
     pub fn targets_get_players_in_lobby(
         &self,
         arg: LobbyManagementArgument,
