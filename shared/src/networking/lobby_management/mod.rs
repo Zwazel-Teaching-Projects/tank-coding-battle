@@ -90,6 +90,7 @@ pub struct MyLobby {
     pub map_config: Option<MapConfig>,
 
     pub tick_timer: Timer,
+    pub tick_processed: u64,
 }
 
 impl MyLobby {
@@ -108,6 +109,7 @@ impl MyLobby {
             map_config: None,
 
             tick_timer: Timer::from_seconds(time_per_tick, TimerMode::Repeating),
+            tick_processed: 0,
         }
     }
 

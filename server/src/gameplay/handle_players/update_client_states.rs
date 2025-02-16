@@ -6,6 +6,8 @@ use shared::{
 
 use crate::gameplay::triggers::UpdateClientGameStatesTrigger;
 
+/// Based on game world, lobby state, and other things, update the personalized state of each client
+/// So that they only know what they should know
 pub fn update_client_states(
     trigger: Trigger<UpdateClientGameStatesTrigger>,
     lobby_management: LobbyManagementSystemParam,

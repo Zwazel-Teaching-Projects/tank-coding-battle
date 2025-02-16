@@ -7,12 +7,15 @@ pub struct StartNextTickProcessingTrigger;
 pub struct StartNextSimulationStepTrigger;
 
 #[derive(Debug, Reflect, Event)]
-pub struct NextSimulationStepDoneTrigger;
-
-#[derive(Debug, Reflect, Event)]
-pub struct SendOutgoingMessagesTrigger;
+pub struct UpdateLobbyGameStateTrigger;
 
 #[derive(Debug, Reflect, Event)]
 pub struct UpdateClientGameStatesTrigger {
     pub lobby: Entity,
 }
+
+#[derive(Debug, Reflect, Event)]
+pub struct AddStateUpdateToQueue;
+
+#[derive(Debug, Reflect, Event)]
+pub struct SendOutgoingMessagesTrigger;

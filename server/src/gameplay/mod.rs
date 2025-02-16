@@ -24,12 +24,18 @@ impl Plugin for MyGameplayPlugin {
                     MyGameplaySet::IncrementTick,
                     MyGameplaySet::RunSimulationStep,
                     MyGameplaySet::SimulationStepDone,
+                    MyGameplaySet::UpdatingGameStates,
                 )
                     .chain(),
             )
                 .chain(),
         )
         .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
+        .add_systems(
+            Update,
+            game_state_handling::check_if_client_states_are_all_up_to_date
+                .in_set(MyGameplaySet::UpdatingGameStates),
+        )
         .add_observer(add_observers_to_lobby);
     }
 }
@@ -38,7 +44,8 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
     commands
         .entity(trigger.entity())
         .observe(game_state_handling::add_current_game_state_to_message_queue)
-        .observe(simulation::run_next_simulation_tick)
+        .observe(game_state_handling::update_lobby_state)
+        .observe(simulation::process_tick_sim)
         .observe(start_lobby::check_if_lobby_should_start)
         .observe(start_lobby::start_lobby);
 }

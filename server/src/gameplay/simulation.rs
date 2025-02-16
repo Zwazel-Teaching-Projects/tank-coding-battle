@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 use shared::{game::game_state::LobbyGameState, networking::lobby_management::MyLobby};
 
-use crate::gameplay::triggers::NextSimulationStepDoneTrigger;
+use crate::gameplay::triggers::UpdateLobbyGameStateTrigger;
 
 use super::triggers::StartNextSimulationStepTrigger;
 
-pub fn run_next_simulation_tick(
+pub fn process_tick_sim(
     trigger: Trigger<StartNextSimulationStepTrigger>,
     lobbies: Query<(&MyLobby, &LobbyGameState)>,
     mut commands: Commands,
@@ -18,5 +18,5 @@ pub fn run_next_simulation_tick(
         game_state.tick, lobby.lobby_name
     );
 
-    commands.trigger_targets(NextSimulationStepDoneTrigger, lobby_entity);
+    commands.trigger_targets(UpdateLobbyGameStateTrigger, lobby_entity);
 }

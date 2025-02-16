@@ -6,4 +6,5 @@ pub enum MyGameplaySet {
     IncrementTick,
     RunSimulationStep,
     SimulationStepDone,
+    UpdatingGameStates,
 }

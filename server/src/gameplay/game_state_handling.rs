@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     game::game_state::PersonalizedClientGameState,
     networking::{
-        lobby_management::lobby_management::LobbyManagementSystemParam,
+        lobby_management::{lobby_management::LobbyManagementSystemParam, LobbyState},
         messages::{
             message_container::{MessageContainer, MessageTarget, NetworkMessageType},
             message_queue::OutMessageQueue,
@@ -10,10 +10,76 @@ use shared::{
     },
 };
 
-use super::triggers::{NextSimulationStepDoneTrigger, SendOutgoingMessagesTrigger};
+use crate::gameplay::triggers::UpdateClientGameStatesTrigger;
+
+use super::triggers::{
+    AddStateUpdateToQueue, SendOutgoingMessagesTrigger, UpdateLobbyGameStateTrigger,
+};
+
+pub fn update_lobby_state(
+    trigger: Trigger<UpdateLobbyGameStateTrigger>,
+    lobby_management: LobbyManagementSystemParam,
+    mut commands: Commands,
+) {
+    let lobby_entity = trigger.entity();
+    let lobby = lobby_management
+        .get_lobby(lobby_entity)
+        .expect("Failed to get lobby");
+
+    // TODO: Update with tank positions, etc.
+    info!("Updated lobby state for lobby: {}", lobby.lobby_name);
+
+    commands.trigger_targets(
+        UpdateClientGameStatesTrigger {
+            lobby: lobby_entity,
+        },
+        lobby
+            .players
+            .iter()
+            .map(|(_, entity, _)| *entity)
+            .collect::<Vec<_>>(),
+    );
+}
+
+pub fn check_if_client_states_are_all_up_to_date(
+    mut lobby_management: LobbyManagementSystemParam,
+    client_states: Query<&PersonalizedClientGameState>,
+    mut commands: Commands,
+) {
+    // Go through all lobbies, get their game state, then check for all clients if they have the same tick
+    for (entity, mut lobby, game_state) in lobby_management.lobby_entities.iter_mut() {
+        match lobby.state {
+            LobbyState::InProgress => (),
+            _ => continue,
+        }
+
+        if lobby.tick_processed == game_state.tick {
+            continue;
+        }
+
+        let mut all_up_to_date = true;
+        for (_, player_entity, _) in lobby.players.iter() {
+            let client_state = client_states
+                .get(*player_entity)
+                .expect("Failed to get client state");
+
+            if client_state.tick != game_state.tick {
+                all_up_to_date = false;
+            }
+        }
+        if all_up_to_date {
+            info!(
+                "All client states for lobby '{}' are up to date at tick {}.",
+                lobby.lobby_name, game_state.tick
+            );
+            lobby.tick_processed = game_state.tick;
+            commands.trigger_targets(AddStateUpdateToQueue, entity);
+        }
+    }
+}
 
 pub fn add_current_game_state_to_message_queue(
-    trigger: Trigger<NextSimulationStepDoneTrigger>,
+    trigger: Trigger<AddStateUpdateToQueue>,
     lobby_management: LobbyManagementSystemParam,
     mut out_message_queues: Query<&mut OutMessageQueue>,
     client_states: Query<&PersonalizedClientGameState>,

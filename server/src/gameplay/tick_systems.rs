@@ -6,10 +6,7 @@ use shared::{
 
 use super::{
     system_sets::MyGameplaySet,
-    triggers::{
-        StartNextSimulationStepTrigger, StartNextTickProcessingTrigger,
-        UpdateClientGameStatesTrigger,
-    },
+    triggers::{StartNextSimulationStepTrigger, StartNextTickProcessingTrigger},
 };
 
 pub struct TickSystemsPlugin;
@@ -51,15 +48,9 @@ fn increment_tick(
     let (lobby, mut game_state) = lobbies.get_mut(lobby_entity).unwrap();
     game_state.tick += 1;
 
-    commands.trigger_targets(
-        UpdateClientGameStatesTrigger {
-            lobby: lobby_entity,
-        },
-        lobby
-            .players
-            .iter()
-            .map(|(_, entity, _)| *entity)
-            .collect::<Vec<_>>(),
+    info!(
+        "Start simulation step {} for lobby: {}",
+        game_state.tick, lobby.lobby_name
     );
 
     commands.trigger_targets(StartNextSimulationStepTrigger, lobby_entity);
