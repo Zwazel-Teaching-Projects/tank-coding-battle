@@ -237,7 +237,9 @@ pub fn start_lobby(
                             map.get_spawn_point_position(client_team, spawn_point);
 
                         if let Some(spawn_point_position) = spawn_point_position {
-                            tank_transform.position = spawn_point_position;
+                            // TODO: have a general spawn point offset, maybe different per tank type?
+                            tank_transform.position =
+                                spawn_point_position + Vec3::new(0.0, 0.5, 0.0);
                         } else {
                             error!(
                                 "Failed to get spawn point position for team {} and spawn point {}",
