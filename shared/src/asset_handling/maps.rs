@@ -178,6 +178,21 @@ impl MapDefinition {
             })
             .collect()
     }
+
+    pub fn get_spawn_point_position(&self, group: &str, spawn_number: usize) -> Option<Vec3> {
+        self.markers.iter().find_map(|marker| {
+            if marker.group == group {
+                match &marker.kind {
+                    MarkerType::Spawn { spawn_number: n } if *n == spawn_number => {
+                        Some(self.get_real_world_position(marker.tile.x, marker.tile.y))
+                    }
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        })
+    }
 }
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]

@@ -1,14 +1,17 @@
 use bevy::prelude::*;
+use entity_mapping::MyEntityMapping;
 
 use crate::networking::MyNetworkStream;
 
+pub mod entity_mapping;
 pub mod game_starts;
 
 pub struct MyGameHandlingPlugin;
 
 impl Plugin for MyGameHandlingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(add_observers);
+        app.register_type::<MyEntityMapping>()
+            .add_observer(add_observers);
     }
 }
 
