@@ -47,7 +47,7 @@ pub fn update_lobby_state(
             .client_states
             .entry(*player_entity)
             .or_insert_with(|| ClientState::new(*player_entity));
-        client_state.position = Some(tank_position.clone());
+        client_state.transform = Some(tank_position.clone());
     }
 
     info!(

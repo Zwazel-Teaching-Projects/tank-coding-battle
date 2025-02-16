@@ -19,7 +19,12 @@ pub fn game_state_updated(
                 .iter_mut()
                 .for_each(|(mut tank_transform, entity_mapping)| {
                     if entity_mapping.server_entity == *client_entity {
-                        let transform = client_state.position.clone().expect("Position is missing");
+                        let transform = client_state
+                            .as_ref()
+                            .expect("Client state is missing")
+                            .transform
+                            .clone()
+                            .expect("Position is missing");
                         tank_transform.position = transform.position;
                         tank_transform.rotation = transform.rotation;
 
