@@ -5,7 +5,7 @@ use crate::{
     game::game_state::GameState,
     networking::{
         lobby_management::PlayerRemovedFromLobbyTrigger,
-        messages::message_data::{first_contact::ClientType, game_starts::ConnectedClientConfig},
+        messages::message_data::first_contact::ClientType,
     },
 };
 
@@ -181,40 +181,6 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
 
     pub fn get_lobby_gamestate(&self, lobby: Entity) -> Result<&GameState, String> {
         self.get_lobby(lobby).map(|lobby| &lobby.game_state)
-    }
-
-    pub fn get_connected_configs_in_lobby(&self, lobby: Entity) -> Vec<ConnectedClientConfig> {
-        self.get_lobby(lobby)
-            .map(|lobby| {
-                let map_config = lobby.map_config.as_ref().unwrap();
-                // Create a lookup for player names based on the players list
-                let player_names: std::collections::HashMap<Entity, String> = lobby
-                    .players
-                    .iter()
-                    .map(|(name, player, _)| (*player, name.clone()))
-                    .collect();
-
-                let mut connected_configs = Vec::new();
-                // Iterate through each team directly
-                for (team_name, team) in map_config.teams.iter() {
-                    for player in team.players.iter() {
-                        if let Some(player_name) = player_names.get(player) {
-                            connected_configs.push(ConnectedClientConfig {
-                                client_id: *player,
-                                client_name: player_name.clone(),
-                                client_team: team_name.clone(),
-                            });
-                        } else {
-                            error!(
-                                "Player {:?} in team {} not found in lobby.players",
-                                player, team_name
-                            );
-                        }
-                    }
-                }
-                connected_configs
-            })
-            .unwrap_or_default()
     }
 
     pub fn targets_get_players_in_lobby(

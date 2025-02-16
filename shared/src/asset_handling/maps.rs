@@ -159,6 +159,25 @@ impl MapDefinition {
     pub fn get_real_world_position(&self, x: usize, y: usize) -> Vec3 {
         Vec3::new(x as f32 + 0.5, self.get_height_at(x, y), y as f32 + 0.5)
     }
+
+    pub fn get_all_spawn_points_of_group(&self, group: &str) -> Vec<(Vec3, usize)> {
+        self.markers
+            .iter()
+            .filter_map(|marker| {
+                if marker.group == group {
+                    match &marker.kind {
+                        MarkerType::Spawn { spawn_number } => Some((
+                            self.get_real_world_position(marker.tile.x, marker.tile.y),
+                            *spawn_number,
+                        )),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]

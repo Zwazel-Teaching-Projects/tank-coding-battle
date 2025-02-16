@@ -7,6 +7,7 @@ use shared::networking::messages::message_queue::{ImmediateOutMessageQueue, OutM
 #[require(OutMessageQueue, ImmediateOutMessageQueue)]
 pub struct MyNetworkClient {
     pub name: Option<String>,
+    pub assigned_spawn_point: Option<usize>,
     pub stream: Option<TcpStream>,
 }
 
@@ -15,6 +16,7 @@ impl MyNetworkClient {
         Self {
             name: None,
             stream: Some(stream),
+            assigned_spawn_point: None,
         }
     }
 
@@ -22,6 +24,7 @@ impl MyNetworkClient {
         Self {
             name: Some(name),
             stream: None,
+            assigned_spawn_point: None,
         }
     }
 

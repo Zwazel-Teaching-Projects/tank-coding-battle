@@ -9,6 +9,7 @@ pub struct FirstContactData {
     pub map_name: Option<String>,
     pub team_name: Option<String>,
     pub client_type: ClientType,
+    pub bot_assigned_spawn_point: Option<usize>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Reflect, Clone, PartialEq, Component, Default)]

@@ -20,4 +20,5 @@ pub struct ConnectedClientConfig {
     pub client_id: Entity,
     pub client_name: String,
     pub client_team: String,
+    pub assigned_spawn_point: usize,
 }

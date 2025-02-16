@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 use shared::{
     asset_handling::config::ServerConfigSystemParam,
     networking::{
@@ -11,7 +11,8 @@ use shared::{
                 MessageContainer, MessageTarget, NetworkMessageType, StartGameTrigger,
             },
             message_data::{
-                first_contact::ClientType, game_starts::GameStarts,
+                first_contact::ClientType,
+                game_starts::{ConnectedClientConfig, GameStarts},
                 message_error_types::ErrorMessageTypes,
             },
             message_queue::ImmediateOutMessageQueue,
@@ -30,6 +31,7 @@ pub fn check_if_lobby_should_start(
     trigger: Trigger<StartGameTrigger>,
     mut lobbies: Query<&mut MyLobby>,
     mut client_queues: Query<&mut ImmediateOutMessageQueue>,
+    mut clients: Query<&mut MyNetworkClient>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
@@ -52,20 +54,98 @@ pub fn check_if_lobby_should_start(
         return;
     }
 
+    // Assign every player, that hasn't already, a spawnpoint.
+    let map_config = lobby.map_config.as_mut().expect("Failed to get map config");
+    // Team name -> spawn point id
+    let mut taken_spawn_points_team = HashMap::new();
+    for (team_name, team) in map_config.teams.iter() {
+        let spawn_points = map_config
+            .map
+            .get_all_spawn_points_of_group(&team_name)
+            .iter()
+            .map(|(_, id)| *id)
+            .collect::<Vec<_>>();
+        let mut clients_without_spawn_points = Vec::new();
+
+        for player in team.players.iter() {
+            let client = clients.get(*player).expect("Failed to get client");
+            if let Some(assigned_spawn_point) = client.assigned_spawn_point {
+                taken_spawn_points_team.insert(team_name.clone(), assigned_spawn_point);
+                info!(
+                    "Player {:?} already has spawn point {:?}",
+                    client.name, assigned_spawn_point
+                );
+            } else {
+                clients_without_spawn_points.push(*player);
+            }
+        }
+
+        for client in clients_without_spawn_points {
+            // Find the first spawn point that is not taken for this team,
+            // or just take the first one if the only available spawn point is already assigned
+            let spawn_point = spawn_points
+                .iter()
+                .find(|spawn_point| {
+                    if let Some(&taken) = taken_spawn_points_team.get(team_name) {
+                        **spawn_point != taken
+                    } else {
+                        true
+                    }
+                })
+                .unwrap_or(&spawn_points[0]);
+            let mut client = clients.get_mut(client).expect("Failed to get client");
+            client.assigned_spawn_point = Some(*spawn_point);
+            taken_spawn_points_team.insert(team_name.clone(), *spawn_point);
+            info!(
+                "Assigned spawn point {:?} to player {:?}",
+                *spawn_point, client.name
+            );
+        }
+    }
+
     if start_config.fill_empty_slots_with_dummies {
         // go through all teams, and if they have less players than max, fill them with dummies
         let mut dummy_players = Vec::new();
-        for (team_name, team) in lobby.map_config.as_mut().unwrap().teams.iter_mut() {
+        for (team_name, team) in map_config.teams.iter_mut() {
             let needed_players = team.max_players - team.players.len();
+            let spawn_points = map_config
+                .map
+                .get_all_spawn_points_of_group(&team_name)
+                .iter()
+                .map(|(_, id)| *id)
+                .collect::<Vec<_>>();
+
             for i in 0..needed_players {
                 let dummy_name = format!("{}-dummy-{}", team_name, i);
+                let mut dummy_client = MyNetworkClient::new_dummy(dummy_name.clone());
+
+                // Find the first spawn point that is not taken for this team,
+                // or just take the first one if the only available spawn point is already assigned
+                let spawn_point = spawn_points
+                    .iter()
+                    .find(|spawn_point| {
+                        if let Some(&taken) = taken_spawn_points_team.get(team_name) {
+                            **spawn_point != taken
+                        } else {
+                            true
+                        }
+                    })
+                    .unwrap_or(&spawn_points[0]);
+                dummy_client.assigned_spawn_point = Some(*spawn_point);
+                taken_spawn_points_team.insert(team_name.clone(), *spawn_point);
+
+                info!(
+                    "Assigned spawn point {:?} to dummy {:?}",
+                    *spawn_point, dummy_name
+                );
+
                 let dummy = commands
                     .spawn((
                         Name::new(dummy_name.clone()),
                         DummyClientMarker,
                         InTeam(team_name.clone()),
                         InLobby(lobby_entity),
-                        MyNetworkClient::new_dummy(dummy_name.clone()),
+                        dummy_client,
                         ClientType::Dummy,
                     ))
                     .id();
@@ -104,6 +184,7 @@ pub fn start_lobby(
     trigger: Trigger<StartLobbyTrigger>,
     mut lobby_management: LobbyManagementSystemParam,
     mut queues: Query<&mut ImmediateOutMessageQueue>,
+    clients: Query<&MyNetworkClient>,
     server_config: ServerConfigSystemParam,
 ) {
     let lobby_entity = trigger.entity();
@@ -123,7 +204,8 @@ pub fn start_lobby(
 
     let server_config = server_config.server_config();
 
-    let connected_clients = lobby_management.get_connected_configs_in_lobby(lobby_entity);
+    let connected_clients =
+        get_connected_configs_in_lobby(&lobby_management, lobby_entity, &clients);
     match lobby_management.targets_get_players_and_spectators_in_lobby(LobbyManagementArgument {
         lobby: Some(lobby_entity),
         ..default()
@@ -151,4 +233,38 @@ pub fn start_lobby(
         }
         Err(err) => error!("Failed to get players in lobby: {}", err),
     }
+}
+
+fn get_connected_configs_in_lobby(
+    lobby_management: &LobbyManagementSystemParam,
+    lobby_entity: Entity,
+    clients: &Query<&MyNetworkClient>,
+) -> Vec<ConnectedClientConfig> {
+    lobby_management
+        .get_lobby(lobby_entity)
+        .map(|lobby| {
+            let map_config = lobby.map_config.as_ref().unwrap();
+
+            let mut connected_configs = Vec::new();
+            // Iterate through each team directly
+            for (team_name, team) in map_config.teams.iter() {
+                for player in team.players.iter() {
+                    if let Some(client) = clients.get(*player).ok() {
+                        connected_configs.push(ConnectedClientConfig {
+                            client_id: *player,
+                            client_name: client.name.as_ref().unwrap().clone(),
+                            client_team: team_name.clone(),
+                            assigned_spawn_point: client.assigned_spawn_point.unwrap(),
+                        });
+                    } else {
+                        error!(
+                            "Player {:?} in team {} not found in lobby.players",
+                            player, team_name
+                        );
+                    }
+                }
+            }
+            connected_configs
+        })
+        .unwrap_or_default()
 }
