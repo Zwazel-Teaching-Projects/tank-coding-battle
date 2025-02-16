@@ -1,31 +1,25 @@
-use std::net::{SocketAddr, TcpStream};
+use std::net::TcpStream;
 
 use bevy::prelude::*;
 use shared::networking::messages::message_queue::{ImmediateOutMessageQueue, OutMessageQueue};
-
-#[derive(Debug, Clone, Component, Reflect)]
-#[reflect(Component)]
-pub struct MyLocalClient {
-    pub network_client: Entity,
-}
 
 #[derive(Debug, Component)]
 #[require(OutMessageQueue, ImmediateOutMessageQueue)]
 pub struct MyNetworkClient {
     pub name: Option<String>,
-    pub address: SocketAddr,
-    pub stream: TcpStream,
-    pub my_local_client: Option<Entity>,
+    pub stream: Option<TcpStream>,
 }
 
 impl MyNetworkClient {
-    pub fn new(address: SocketAddr, stream: TcpStream) -> Self {
+    pub fn new(stream: TcpStream) -> Self {
         Self {
             name: None,
-            address,
-            stream,
-            my_local_client: None,
+            stream: Some(stream),
         }
+    }
+
+    pub fn get_address(&self) -> Option<String> {
+        self.stream.as_ref().map(|s| s.peer_addr().unwrap().to_string())
     }
 }
 
@@ -34,6 +28,3 @@ pub struct ClientConnectedTrigger(pub Entity);
 
 #[derive(Event, Deref, DerefMut)]
 pub struct ClientDisconnectedTrigger(pub Entity);
-
-#[derive(Event)]
-pub struct ClientHasBeenDespawnedTrigger;
