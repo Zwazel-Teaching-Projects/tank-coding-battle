@@ -5,7 +5,7 @@ use crate::{
     game::game_state::GameState,
     networking::{
         lobby_management::PlayerRemovedFromLobbyTrigger,
-        messages::message_data::game_starts::ConnectedClientConfig,
+        messages::message_data::{first_contact::ClientType, game_starts::ConnectedClientConfig},
     },
 };
 
@@ -69,7 +69,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         if let Ok((_, mut lobby)) = self.lobby_entities.get_mut(lobby) {
             lobby
                 .players
-                .retain(|(_, x)| if *x == player { false } else { true });
+                .retain(|(_, x, _)| if *x == player { false } else { true });
 
             lobby
                 .spectators
@@ -94,13 +94,26 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     fn cleanup_lobbies(&mut self, commands: &mut Commands) {
         self.lobby_resource.lobbies.retain(|_, &mut entity| {
             if let Ok((_, lobby)) = self.lobby_entities.get_mut(entity) {
-                if lobby.players.is_empty() && lobby.spectators.is_empty() {
+                // Count only normal players (ignoring dummy players) based on client type.
+                let normal_player_count = lobby
+                    .players
+                    .iter()
+                    .filter(|(_, _, client_type)| client_type != &ClientType::Dummy)
+                    .count();
+
+                // If there are no spectators and no normal players, despawn the lobby.
+                if normal_player_count == 0 && lobby.spectators.is_empty() {
                     info!(
-                        "Despawning lobby entity \"{}\" with name \"{}\" as it has no players or spectators",
+                        "Despawning lobby entity \"{}\" with name \"{}\" as it has no normal players or spectators",
                         entity, lobby.lobby_name
                     );
-
                     commands.entity(entity).despawn_recursive();
+
+                    // Cleanup dummies
+                    for (_, player, _) in lobby.players.iter() {
+                        commands.entity(*player).despawn_recursive();
+                    }
+
                     false
                 } else {
                     true
@@ -128,7 +141,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     for player in lobby
                         .players
                         .iter()
-                        .map(|(_, player)| player)
+                        .map(|(_, player, _)| player)
                         .chain(lobby.spectators.iter())
                     {
                         info!(
@@ -178,7 +191,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 let player_names: std::collections::HashMap<Entity, String> = lobby
                     .players
                     .iter()
-                    .map(|(name, player)| (*player, name.clone()))
+                    .map(|(name, player, _)| (*player, name.clone()))
                     .collect();
 
                 let mut connected_configs = Vec::new();
@@ -213,8 +226,8 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 lobby
                     .players
                     .iter()
-                    .filter(|(_, player)| Some(player) != arg.sender.as_ref())
-                    .map(|(_, player)| *player)
+                    .filter(|(_, player, _)| Some(player) != arg.sender.as_ref())
+                    .map(|(_, player, _)| *player)
                     .collect()
             })
     }
@@ -228,7 +241,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                 lobby
                     .players
                     .iter()
-                    .map(|(_, player)| *player)
+                    .map(|(_, player, _)| *player)
                     .chain(lobby.spectators.iter().cloned())
                     .filter(|&player| Some(player) != arg.sender)
                     .collect()

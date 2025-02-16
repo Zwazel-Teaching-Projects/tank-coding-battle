@@ -83,7 +83,7 @@ pub struct MyLobby {
     pub state: LobbyState,
     pub lobby_name: String,
 
-    pub players: Vec<(String, Entity)>,
+    pub players: Vec<(String, Entity, ClientType)>,
     pub spectators: Vec<Entity>,
 
     pub map_name: String,
@@ -115,7 +115,7 @@ impl MyLobby {
         }
     }
 
-    pub fn with_player(mut self, player: (String, Entity)) -> Self {
+    pub fn with_player(mut self, player: (String, Entity, ClientType)) -> Self {
         self.players.push(player);
         self
     }
@@ -203,7 +203,9 @@ fn adding_player_to_lobby(
         match player_type {
             ClientType::Player => {
                 if let Some(team_name) = team_name {
-                    lobby.players.push((player_name.clone(), *player));
+                    lobby
+                        .players
+                        .push((player_name.clone(), *player, player_type.clone()));
 
                     match lobby
                         .map_config

@@ -3,7 +3,8 @@ use shared::{
     asset_handling::config::ServerConfigSystemParam,
     networking::{
         lobby_management::{
-            lobby_management::LobbyManagementSystemParam, InLobby, InTeam, LobbyState, MyLobby,
+            lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+            InLobby, InTeam, LobbyState, MyLobby,
         },
         messages::{
             message_container::{
@@ -69,7 +70,7 @@ pub fn check_if_lobby_should_start(
                     ))
                     .id();
                 team.players.push(dummy);
-                dummy_players.push((dummy_name, dummy));
+                dummy_players.push((dummy_name, dummy, ClientType::Dummy));
             }
         }
         lobby.players.extend(dummy_players);
@@ -123,28 +124,31 @@ pub fn start_lobby(
     let server_config = server_config.server_config();
 
     let connected_clients = lobby_management.get_connected_configs_in_lobby(lobby_entity);
-    // Send to all clients and spectators
-    for client_entity in lobby
-        .players
-        .iter()
-        .map(|(_, entity)| *entity)
-        .chain(lobby.spectators.iter().copied())
-    {
-        let mut queue = queues.get_mut(client_entity).expect("Failed to get queue");
-        queue.push_back(MessageContainer::new(
-            MessageTarget::Client(client_entity),
-            NetworkMessageType::GameStarts(GameStarts {
-                client_id: client_entity,
-                connected_clients: connected_clients.clone(),
-                tick_rate: server_config.tick_rate,
-                map_definition: map.clone(),
-                team_configs: team_configs.clone(),
-            }),
-        ));
-    }
+    match lobby_management.targets_get_players_and_spectators_in_lobby(LobbyManagementArgument {
+        lobby: Some(lobby_entity),
+        ..default()
+    }) {
+        Ok(clients_in_lobby) => {
+            // Send to all clients and spectators
+            for client_entity in clients_in_lobby {
+                let mut queue = queues.get_mut(client_entity).expect("Failed to get queue");
+                queue.push_back(MessageContainer::new(
+                    MessageTarget::Client(client_entity),
+                    NetworkMessageType::GameStarts(GameStarts {
+                        client_id: client_entity,
+                        connected_clients: connected_clients.clone(),
+                        tick_rate: server_config.tick_rate,
+                        map_definition: map.clone(),
+                        team_configs: team_configs.clone(),
+                    }),
+                ));
+            }
 
-    lobby_management
-        .get_lobby_mut(lobby_entity)
-        .expect("Failed to get lobby")
-        .state = LobbyState::InProgress;
+            lobby_management
+                .get_lobby_mut(lobby_entity)
+                .expect("Failed to get lobby")
+                .state = LobbyState::InProgress;
+        }
+        Err(err) => error!("Failed to get players in lobby: {}", err),
+    }
 }

@@ -63,7 +63,7 @@ fn add_current_game_state_to_message_queue(
 
     // Sending the game state to all players
     // TODO: Players should get a personalized game state
-    for (_, player_entity) in lobby.players.iter() {
+    for (_, player_entity, _) in lobby.players.iter() {
         let mut out_message_queue = out_message_queues
             .get_mut(*player_entity)
             .expect("Failed to get client");
