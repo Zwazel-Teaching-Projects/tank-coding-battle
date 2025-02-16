@@ -56,11 +56,27 @@
                 ),
             ),
             (
-                tile: (x: 9, y: 9),
+                tile: (x: 9, y: 0),
+                group: "Red",
+                kind: (
+                    type: "Spawn",
+                    spawnNumber: 1
+                ),
+            ),
+            (
+                tile: (x: 0, y: 9),
                 group: "Blue",
                 kind: (
                     type: "Spawn",
                     spawnNumber: 0
+                ),
+            ),
+            (
+                tile: (x: 9, y: 9),
+                group: "Blue",
+                kind: (
+                    type: "Spawn",
+                    spawnNumber: 1
                 ),
             ),
         ]
