@@ -248,6 +248,7 @@ fn adding_player_to_lobby(
             ClientType::Spectator => {
                 lobby.spectators.push(*player);
             }
+            ClientType::Dummy => unimplemented!("Dummy clients should not be able to join lobbies"),
         }
 
         commands

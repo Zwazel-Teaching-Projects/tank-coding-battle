@@ -18,4 +18,6 @@ pub enum ClientType {
     Player,
     #[default]
     Spectator,
+    #[serde(skip)]
+    Dummy,
 }

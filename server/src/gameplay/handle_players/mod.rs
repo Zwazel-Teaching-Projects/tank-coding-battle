@@ -1,18 +1,12 @@
 use bevy::prelude::*;
+use dummy_handling::DummyClientMarker;
 
-use crate::networking::handle_clients::lib::ClientConnectedTrigger;
+pub mod dummy_handling;
 
 pub struct HandlePlayersPlugin;
 
 impl Plugin for HandlePlayersPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(spawn_new_player);
+        app.register_type::<DummyClientMarker>();
     }
-}
-
-fn spawn_new_player(new_client: Trigger<ClientConnectedTrigger>) {
-    println!(
-        "New player connected: {:?}, spawning tank (not implemented)",
-        new_client.0
-    );
 }

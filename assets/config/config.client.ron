@@ -4,5 +4,5 @@
     map: "test_map",
     name: "Spectator",
     lobby_name: "testLobby",
-    fill_empty_slots_with_bots: true,
+    fill_empty_slots_with_dummies: true,
 )

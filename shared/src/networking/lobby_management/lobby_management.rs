@@ -174,17 +174,32 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         self.get_lobby(lobby)
             .map(|lobby| {
                 let map_config = lobby.map_config.as_ref().unwrap();
-
-                lobby
+                // Create a lookup for player names based on the players list
+                let player_names: std::collections::HashMap<Entity, String> = lobby
                     .players
                     .iter()
-                    .map(|(player_name, player)| ConnectedClientConfig {
-                        client_id: *player,
-                        client_name: player_name.clone(),
-                        // TODO: This panics if a player tries to join a team that is full!!!
-                        client_team: map_config.get_team_of_player(*player).unwrap().0,
-                    })
-                    .collect()
+                    .map(|(name, player)| (*player, name.clone()))
+                    .collect();
+
+                let mut connected_configs = Vec::new();
+                // Iterate through each team directly
+                for (team_name, team) in map_config.teams.iter() {
+                    for player in team.players.iter() {
+                        if let Some(player_name) = player_names.get(player) {
+                            connected_configs.push(ConnectedClientConfig {
+                                client_id: *player,
+                                client_name: player_name.clone(),
+                                client_team: team_name.clone(),
+                            });
+                        } else {
+                            error!(
+                                "Player {:?} in team {} not found in lobby.players",
+                                player, team_name
+                            );
+                        }
+                    }
+                }
+                connected_configs
             })
             .unwrap_or_default()
     }

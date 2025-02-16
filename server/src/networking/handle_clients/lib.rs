@@ -18,8 +18,17 @@ impl MyNetworkClient {
         }
     }
 
+    pub fn new_dummy(name: String) -> Self {
+        Self {
+            name: Some(name),
+            stream: None,
+        }
+    }
+
     pub fn get_address(&self) -> Option<String> {
-        self.stream.as_ref().map(|s| s.peer_addr().unwrap().to_string())
+        self.stream
+            .as_ref()
+            .map(|s| s.peer_addr().unwrap().to_string())
     }
 }
 

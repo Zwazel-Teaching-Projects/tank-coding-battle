@@ -75,7 +75,7 @@ fn button_pressed(
         message_queue.push_back(MessageContainer::new(
             MessageTarget::ToLobbyDirectly,
             NetworkMessageType::StartGame(StartGameConfig {
-                fill_empty_slots_with_bots: client_config.fill_empty_slots_with_bots,
+                fill_empty_slots_with_dummies: client_config.fill_empty_slots_with_dummies,
             }),
         ));
     }
