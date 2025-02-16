@@ -185,7 +185,7 @@ pub fn start_lobby(
     trigger: Trigger<StartLobbyTrigger>,
     mut lobby_management: LobbyManagementSystemParam,
     mut queues: Query<&mut ImmediateOutMessageQueue>,
-    clients: Query<&MyNetworkClient>,
+    clients: Query<(&MyNetworkClient, &ClientType)>,
     client_in_team: Query<&InTeam>,
     mut tank_positions: Query<&mut TankTransform>,
     server_config: ServerConfigSystemParam,
@@ -220,23 +220,31 @@ pub fn start_lobby(
                 let mut tank_transform = tank_positions
                     .get_mut(client_entity)
                     .expect("Failed to get tank transform");
-                let spawn_point = clients
-                    .get(client_entity)
-                    .expect("Failed to get client")
-                    .assigned_spawn_point
-                    .expect("Failed to get assigned spawn point");
-                let client_team = &**client_in_team
-                    .get(client_entity)
-                    .expect("Failed to get client team");
-                let spawn_point_position = map.get_spawn_point_position(client_team, spawn_point);
+                let (client, client_type) =
+                    clients.get(client_entity).expect("Failed to get client");
 
-                if let Some(spawn_point_position) = spawn_point_position {
-                    tank_transform.position = spawn_point_position;
-                } else {
-                    error!(
-                        "Failed to get spawn point position for team {} and spawn point {}",
-                        client_team, spawn_point
-                    );
+                match client_type {
+                    ClientType::Spectator => {}
+                    _ => {
+                        let spawn_point = client.assigned_spawn_point.expect(
+                            format!("Failed to get assigned spawn point for client {:?}", client)
+                                .as_str(),
+                        );
+                        let client_team = &**client_in_team
+                            .get(client_entity)
+                            .expect("Failed to get client team");
+                        let spawn_point_position =
+                            map.get_spawn_point_position(client_team, spawn_point);
+
+                        if let Some(spawn_point_position) = spawn_point_position {
+                            tank_transform.position = spawn_point_position;
+                        } else {
+                            error!(
+                                "Failed to get spawn point position for team {} and spawn point {}",
+                                client_team, spawn_point
+                            );
+                        }
+                    }
                 }
 
                 queue.push_back(MessageContainer::new(
@@ -263,7 +271,7 @@ pub fn start_lobby(
 fn get_connected_configs_in_lobby(
     lobby_management: &LobbyManagementSystemParam,
     lobby_entity: Entity,
-    clients: &Query<&MyNetworkClient>,
+    clients: &Query<(&MyNetworkClient, &ClientType)>,
 ) -> Vec<ConnectedClientConfig> {
     lobby_management
         .get_lobby(lobby_entity)
@@ -274,7 +282,7 @@ fn get_connected_configs_in_lobby(
             // Iterate through each team directly
             for (team_name, team) in map_config.teams.iter() {
                 for player in team.players.iter() {
-                    if let Some(client) = clients.get(*player).ok() {
+                    if let Some((client, _client_type)) = clients.get(*player).ok() {
                         connected_configs.push(ConnectedClientConfig {
                             client_id: *player,
                             client_name: client.name.as_ref().unwrap().clone(),

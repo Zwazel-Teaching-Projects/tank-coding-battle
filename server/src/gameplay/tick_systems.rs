@@ -52,7 +52,9 @@ fn increment_tick(
     game_state.tick += 1;
 
     commands.trigger_targets(
-        UpdateClientGameStatesTrigger,
+        UpdateClientGameStatesTrigger {
+            lobby: lobby_entity,
+        },
         lobby
             .players
             .iter()

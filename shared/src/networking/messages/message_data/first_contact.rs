@@ -16,9 +16,9 @@ pub struct FirstContactData {
 #[reflect(Component)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ClientType {
-    Player,
     #[default]
     Spectator,
+    Player,
     #[serde(skip)]
     Dummy,
 }
