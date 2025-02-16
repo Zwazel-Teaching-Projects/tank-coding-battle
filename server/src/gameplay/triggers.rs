@@ -11,3 +11,6 @@ pub struct NextSimulationStepDoneTrigger;
 
 #[derive(Debug, Default, Reflect, Event)]
 pub struct SendOutgoingMessagesTrigger;
+
+#[derive(Debug, Default, Reflect, Event)]
+pub struct UpdateClientGameStatesTrigger;

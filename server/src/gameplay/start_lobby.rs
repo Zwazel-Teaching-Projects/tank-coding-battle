@@ -1,6 +1,7 @@
 use bevy::{prelude::*, utils::HashMap};
 use shared::{
     asset_handling::config::ServerConfigSystemParam,
+    game::player_handling::TankTransform,
     networking::{
         lobby_management::{
             lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
@@ -185,6 +186,8 @@ pub fn start_lobby(
     mut lobby_management: LobbyManagementSystemParam,
     mut queues: Query<&mut ImmediateOutMessageQueue>,
     clients: Query<&MyNetworkClient>,
+    client_in_team: Query<&InTeam>,
+    mut tank_positions: Query<&mut TankTransform>,
     server_config: ServerConfigSystemParam,
 ) {
     let lobby_entity = trigger.entity();
@@ -214,6 +217,28 @@ pub fn start_lobby(
             // Send to all clients and spectators
             for client_entity in clients_in_lobby {
                 let mut queue = queues.get_mut(client_entity).expect("Failed to get queue");
+                let mut tank_transform = tank_positions
+                    .get_mut(client_entity)
+                    .expect("Failed to get tank transform");
+                let spawn_point = clients
+                    .get(client_entity)
+                    .expect("Failed to get client")
+                    .assigned_spawn_point
+                    .expect("Failed to get assigned spawn point");
+                let client_team = &**client_in_team
+                    .get(client_entity)
+                    .expect("Failed to get client team");
+                let spawn_point_position = map.get_spawn_point_position(client_team, spawn_point);
+
+                if let Some(spawn_point_position) = spawn_point_position {
+                    tank_transform.position = spawn_point_position;
+                } else {
+                    error!(
+                        "Failed to get spawn point position for team {} and spawn point {}",
+                        client_team, spawn_point
+                    );
+                }
+
                 queue.push_back(MessageContainer::new(
                     MessageTarget::Client(client_entity),
                     NetworkMessageType::GameStarts(GameStarts {

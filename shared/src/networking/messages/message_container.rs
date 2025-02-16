@@ -2,16 +2,13 @@ use bevy::prelude::*;
 use proc_macros::{auto_trigger_message_received, generate_message_data_triggers};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    game::game_state::GameState,
-    networking::{
-        lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-        messages::message_queue::OutMessageQueue,
-    },
+use crate::networking::{
+    lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+    messages::message_queue::OutMessageQueue,
 };
 
 use super::message_data::{
-    first_contact::FirstContactData, game_starts::GameStarts,
+    first_contact::FirstContactData, game_starts::GameStarts, game_state::GameState,
     message_error_types::ErrorMessageTypes, start_game_config::StartGameConfig,
     text_data::TextDataWrapper,
 };
@@ -58,7 +55,6 @@ use super::message_data::{
             GameStarts(GameStarts),
             #[target(ToLobbyDirectly)]
             StartGame(StartGameConfig),
-            //StartGame,
             #[serde(rename = "SuccessfullyJoinedLobby")]
             SuccessFullyJoinedLobby(TextDataWrapper),
         }

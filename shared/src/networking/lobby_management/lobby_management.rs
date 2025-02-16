@@ -2,7 +2,7 @@ use bevy::{ecs::system::SystemParam, prelude::*, utils::Entry};
 
 use crate::{
     asset_handling::config::ServerConfig,
-    game::game_state::GameState,
+    game::game_state::LobbyGameState,
     networking::{
         lobby_management::PlayerRemovedFromLobbyTrigger,
         messages::message_data::first_contact::ClientType,
@@ -22,7 +22,7 @@ pub struct LobbyManagementArgument {
 #[derive(SystemParam)]
 pub struct LobbyManagementSystemParam<'w, 's> {
     lobby_resource: ResMut<'w, MyLobbies>,
-    lobby_entities: Query<'w, 's, (Entity, &'static mut MyLobby)>,
+    lobby_entities: Query<'w, 's, (Entity, &'static mut MyLobby, &'static mut LobbyGameState)>,
 }
 
 impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
@@ -66,7 +66,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         lobby: Entity,
         commands: &mut Commands,
     ) {
-        if let Ok((_, mut lobby)) = self.lobby_entities.get_mut(lobby) {
+        if let Ok((_, mut lobby, _)) = self.lobby_entities.get_mut(lobby) {
             lobby
                 .players
                 .retain(|(_, x, _)| if *x == player { false } else { true });
@@ -93,7 +93,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
 
     fn cleanup_lobbies(&mut self, commands: &mut Commands) {
         self.lobby_resource.lobbies.retain(|_, &mut entity| {
-            if let Ok((_, lobby)) = self.lobby_entities.get_mut(entity) {
+            if let Ok((_, lobby, _)) = self.lobby_entities.get_mut(entity) {
                 // Count only normal players (ignoring dummy players) based on client type.
                 let normal_player_count = lobby
                     .players
@@ -131,7 +131,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     pub fn remove_lobby(&mut self, lobby: Entity, commands: &mut Commands) {
         self.lobby_resource.lobbies.retain(|_, &mut entity| {
             if entity == lobby {
-                if let Ok((lobby_entity, lobby)) = self.lobby_entities.get_mut(lobby) {
+                if let Ok((lobby_entity, lobby, _)) = self.lobby_entities.get_mut(lobby) {
                     info!(
                         "Despawning lobby entity \"{}\" with name \"{}\"",
                         lobby_entity, lobby.lobby_name
@@ -168,19 +168,22 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
     pub fn get_lobby(&self, lobby: Entity) -> Result<&MyLobby, String> {
         self.lobby_entities
             .get(lobby)
-            .map(|(_, lobby)| lobby)
+            .map(|(_, lobby, _)| lobby)
             .map_err(|_| format!("Failed to get lobby for lobby entity: {}", lobby))
     }
 
     pub fn get_lobby_mut(&mut self, lobby: Entity) -> Result<Mut<MyLobby>, String> {
         self.lobby_entities
             .get_mut(lobby)
-            .map(|(_, lobby)| lobby)
+            .map(|(_, lobby, _)| lobby)
             .map_err(|_| format!("Failed to get lobby for lobby entity: {}", lobby))
     }
 
-    pub fn get_lobby_gamestate(&self, lobby: Entity) -> Result<&GameState, String> {
-        self.get_lobby(lobby).map(|lobby| &lobby.game_state)
+    pub fn get_lobby_gamestate(&self, lobby: Entity) -> Result<&LobbyGameState, String> {
+        self.lobby_entities
+            .get(lobby)
+            .map(|(_, _, game_state)| game_state)
+            .map_err(|_| format!("Failed to get game state for lobby entity: {}", lobby))
     }
 
     pub fn targets_get_players_in_lobby(

@@ -8,7 +8,7 @@ use crate::{
         config::ServerConfigSystemParam,
         maps::{MapConfig, MapConfigSystemParam},
     },
-    game::game_state::GameState,
+    game::game_state::LobbyGameState,
     networking::messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
         message_data::{message_error_types::ErrorMessageTypes, text_data::TextDataWrapper},
@@ -78,7 +78,7 @@ pub struct MyLobbies {
 
 #[derive(Debug, Reflect, Default, Component, PartialEq)]
 #[reflect(Component)]
-#[require(OutMessageQueue)]
+#[require(OutMessageQueue, LobbyGameState)]
 pub struct MyLobby {
     pub state: LobbyState,
     pub lobby_name: String,
@@ -90,8 +90,6 @@ pub struct MyLobby {
     pub map_config: Option<MapConfig>,
 
     pub tick_timer: Timer,
-
-    pub game_state: GameState,
 }
 
 impl MyLobby {
@@ -110,8 +108,6 @@ impl MyLobby {
             map_config: None,
 
             tick_timer: Timer::from_seconds(time_per_tick, TimerMode::Repeating),
-
-            game_state: GameState::default(),
         }
     }
 

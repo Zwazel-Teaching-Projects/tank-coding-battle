@@ -1,10 +1,18 @@
 use std::net::TcpStream;
 
 use bevy::prelude::*;
-use shared::networking::messages::message_queue::{ImmediateOutMessageQueue, OutMessageQueue};
+use shared::{
+    game::{game_state::PersonalizedClientGameState, player_handling::TankTransform},
+    networking::messages::message_queue::{ImmediateOutMessageQueue, OutMessageQueue},
+};
 
 #[derive(Debug, Component)]
-#[require(OutMessageQueue, ImmediateOutMessageQueue)]
+#[require(
+    OutMessageQueue,
+    ImmediateOutMessageQueue,
+    TankTransform,
+    PersonalizedClientGameState
+)]
 pub struct MyNetworkClient {
     pub name: Option<String>,
     pub assigned_spawn_point: Option<usize>,

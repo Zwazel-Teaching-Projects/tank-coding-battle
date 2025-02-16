@@ -1,9 +1,15 @@
 use bevy::prelude::*;
-use shared::networking::lobby_management::{LobbyState, MyLobby};
+use shared::{
+    game::game_state::LobbyGameState,
+    networking::lobby_management::{LobbyState, MyLobby},
+};
 
 use super::{
     system_sets::MyGameplaySet,
-    triggers::{StartNextSimulationStepTrigger, StartNextTickProcessingTrigger},
+    triggers::{
+        StartNextSimulationStepTrigger, StartNextTickProcessingTrigger,
+        UpdateClientGameStatesTrigger,
+    },
 };
 
 pub struct TickSystemsPlugin;
@@ -39,11 +45,20 @@ fn add_trigger_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands
 fn increment_tick(
     trigger: Trigger<StartNextTickProcessingTrigger>,
     mut commands: Commands,
-    mut lobbies: Query<&mut MyLobby>,
+    mut lobbies: Query<(&MyLobby, &mut LobbyGameState)>,
 ) {
     let lobby_entity = trigger.entity();
-    let mut lobby = lobbies.get_mut(lobby_entity).unwrap();
-    lobby.game_state.tick += 1;
+    let (lobby, mut game_state) = lobbies.get_mut(lobby_entity).unwrap();
+    game_state.tick += 1;
+
+    commands.trigger_targets(
+        UpdateClientGameStatesTrigger,
+        lobby
+            .players
+            .iter()
+            .map(|(_, entity, _)| *entity)
+            .collect::<Vec<_>>(),
+    );
 
     commands.trigger_targets(StartNextSimulationStepTrigger, lobby_entity);
 }
