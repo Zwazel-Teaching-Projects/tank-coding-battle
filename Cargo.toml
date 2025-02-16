@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["game_sim", "proc_macros", "server", "shared", "spectator_client"]
+members = ["proc_macros", "server", "shared", "spectator_client"]
 
 [package]
 name = "tank-coding-battle"
