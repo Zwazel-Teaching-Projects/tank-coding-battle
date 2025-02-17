@@ -128,7 +128,7 @@ jobs:
         id: create_release
         uses: ncipollo/release-action@v1.15.0
         with:
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
           allowUpdates: true
           generateReleaseNotes: true
           artifacts: "tank-coding-battle_server_linux.zip,tank-coding-battle_server_win.zip,tank-coding-battle_client_win.zip"
