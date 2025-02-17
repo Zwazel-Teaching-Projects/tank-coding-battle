@@ -54,7 +54,7 @@ jobs:
           workspaces: ". -> target"
           cache-directories: ""
           cache-targets: "true"
-          cache-on-failure: "false"
+          cache-on-failure: "true"
           cache-all-crates: "false"
           save-if: ${{ github.ref == 'refs/heads/master' }}
           lookup-only: "false"
