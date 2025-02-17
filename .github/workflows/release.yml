@@ -3,37 +3,13 @@ name: Build and Release Rust Application
 on:
   push:
     tags:
-      - 'v*'  # runs on any tag starting with "v"
+      - 'v*'  # triggers on any tag starting with "v"
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - build_variant: server-linux
-            os: ubuntu-latest
-            build_cmd: "cargo brs"
-            binary_dir: "target/server/release"
-            binary_name: "tank-coding-battle"        # Linux binary (no extension)
-            artifact_name: "tank-coding-battle_server_linux.zip"
-            output_binary: "tank-coding-battle_server_linux"
-          - build_variant: server-win
-            os: windows-latest
-            build_cmd: "cargo brs"
-            binary_dir: "target\\server\\release"
-            binary_name: "tank-coding-battle.exe"      # Windows binary (.exe)
-            artifact_name: "tank-coding-battle_server_win.zip"
-            output_binary: "tank-coding-battle_server_win.exe"
-          - build_variant: client-win
-            os: windows-latest
-            build_cmd: "cargo brc"
-            binary_dir: "target\\client\\release"
-            binary_name: "tank-coding-battle.exe"      # Windows binary (.exe)
-            artifact_name: "tank-coding-battle_client_win.zip"
-            output_binary: "tank-coding-battle_client_win.exe"
-
+  build-linux:
+    name: Build Linux Server
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,79 +20,115 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+      - name: Cache Cargo Registry (Linux)
+        uses: actions/cache@v3
         with:
-          prefix-key: "v0-rust"
-          shared-key: "shared-rust-cache"
-          key: ""
-          env-vars: "CARGO CC CFLAGS CXX CMAKE RUST"
-          workspaces: ". -> target"
-          cache-directories: ""
-          cache-targets: "true"
-          cache-on-failure: "true"
-          cache-all-crates: "false"
-          save-if: ${{ github.ref == 'refs/heads/master' }}
-          lookup-only: "false"
-          cache-provider: "github"
-          cache-bin: "true"
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-linux-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build ${{ matrix.build_variant }}
-        run: ${{ matrix.build_cmd }}
+      - name: Build server-linux
+        run: cargo brs
 
-      - name: Package artifacts (Linux)
-        if: runner.os == 'Linux'
+      - name: Package Artifacts (Linux)
         run: |
-          echo "Packaging ${{ matrix.build_variant }} for Linux..."
+          echo "Packaging server-linux for Linux..."
           mkdir release_artifact
-          cp "${{ matrix.binary_dir }}/${{ matrix.binary_name }}" "release_artifact/${{ matrix.output_binary }}"
+          cp "target/server/release/tank-coding-battle" "release_artifact/tank-coding-battle_server_linux"
           cp -r assets release_artifact/
-          zip -r "${{ matrix.artifact_name }}" release_artifact
+          zip -r tank-coding-battle_server_linux.zip release_artifact
 
-      - name: Package artifacts (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Write-Host "Packaging $env:matrix_build_variant for Windows..."
-          New-Item -ItemType Directory -Path release_artifact | Out-Null
-          Copy-Item -Path "${{ matrix.binary_dir }}\\${{ matrix.binary_name }}" -Destination "release_artifact\\${{ matrix.output_binary }}"
-          Copy-Item -Path "assets" -Destination "release_artifact\\assets" -Recurse
-          Compress-Archive -Path release_artifact\* -DestinationPath "${{ matrix.artifact_name }}"
-
-      - name: Upload Artifact
+      - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_name }}
+          name: tank-coding-battle_server_linux.zip
+          path: tank-coding-battle_server_linux.zip
+
+  build-windows:
+    name: Build Windows Variants
+    needs: build-linux
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        variant:
+          - name: server-win
+            build_cmd: "cargo brs"
+            binary_dir: "target\\server\\release"
+            binary_name: "tank-coding-battle.exe"
+            artifact_name: "tank-coding-battle_server_win.zip"
+            output_binary: "tank-coding-battle_server_win.exe"
+          - name: client-win
+            build_cmd: "cargo brc"
+            binary_dir: "target\\client\\release"
+            binary_name: "tank-coding-battle.exe"
+            artifact_name: "tank-coding-battle_client_win.zip"
+            output_binary: "tank-coding-battle_client_win.exe"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache Cargo Registry (Windows - ${{ matrix.variant.name }})
+        uses: actions/cache@v3
+        with:
+          path: C:\Users\runneradmin\.cargo\registry
+          key: ${{ runner.os }}-cargo-${{ matrix.variant.name }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build ${{ matrix.variant.name }}
+        run: ${{ matrix.variant.build_cmd }}
+
+      - name: Package Artifacts (Windows - ${{ matrix.variant.name }})
+        shell: pwsh
+        run: |
+          Write-Host "Packaging $env:matrix_variant_name for Windows..."
+          New-Item -ItemType Directory -Path release_artifact | Out-Null
+          Copy-Item -Path "${{ matrix.variant.binary_dir }}\\${{ matrix.variant.binary_name }}" -Destination "release_artifact\\${{ matrix.variant.output_binary }}"
+          Copy-Item -Path "assets" -Destination "release_artifact\\assets" -Recurse
+          Compress-Archive -Path release_artifact\* -DestinationPath "${{ matrix.variant.artifact_name }}"
+
+      - name: Upload Artifact (Windows - ${{ matrix.variant.name }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.variant.artifact_name }}
+          path: ${{ matrix.variant.artifact_name }}
 
   release:
-    needs: build
+    name: Create GitHub Release
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Download server-linux artifact
+      - name: Checkout repository
+        uses: actions/checkout@v4
+  
+      - name: Download Linux Artifact
         uses: actions/download-artifact@v4
         with:
           name: tank-coding-battle_server_linux.zip
           path: .
-          
-      - name: Download server-win artifact
+  
+      - name: Download Windows Server Artifact
         uses: actions/download-artifact@v4
         with:
           name: tank-coding-battle_server_win.zip
           path: .
-          
-      - name: Download client-win artifact
+  
+      - name: Download Windows Client Artifact
         uses: actions/download-artifact@v4
         with:
           name: tank-coding-battle_client_win.zip
           path: .
-          
+  
       - name: Create GitHub Release
         id: create_release
         uses: ncipollo/release-action@v1.15.0
         with:
           tag: ${{ github.ref }}
-          artifacts: |
-            tank-coding-battle_server_linux.zip
-            tank-coding-battle_server_win.zip
-            tank-coding-battle_client_win.zip
+          artifacts: "tank-coding-battle_server_linux.zip,tank-coding-battle_server_win.zip,tank-coding-battle_client_win.zip"
+          # Optional: Attach a release body from a file if available
+          # bodyFile: "release_body.md"
