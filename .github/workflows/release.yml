@@ -129,6 +129,7 @@ jobs:
         uses: ncipollo/release-action@v1.15.0
         with:
           tag: ${{ github.ref }}
+          allowUpdates: true
           artifacts: "tank-coding-battle_server_linux.zip,tank-coding-battle_server_win.zip,tank-coding-battle_client_win.zip"
           # Optional: Attach a release body from a file if available
           # bodyFile: "release_body.md"
