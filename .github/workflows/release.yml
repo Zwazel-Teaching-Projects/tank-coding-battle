@@ -3,7 +3,8 @@ name: Build and Release Rust Application
 on:
   push:
     tags:
-      - 'v*'  # runs on any tag starting with "v"
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -61,7 +62,7 @@ jobs:
         run: ${{ matrix.build_cmd }}
 
       - name: Package artifacts (Linux)
-        if: runner.os != 'Windows_NT'
+        if: runner.os == 'Linux'
         run: |
           echo "Packaging ${{ matrix.build_variant }} for Linux..."
           mkdir release_artifact
@@ -70,7 +71,7 @@ jobs:
           zip -r "${{ matrix.artifact_name }}" release_artifact
 
       - name: Package artifacts (Windows)
-        if: runner.os == 'Windows_NT'
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Write-Host "Packaging $env:matrix_build_variant for Windows..."
