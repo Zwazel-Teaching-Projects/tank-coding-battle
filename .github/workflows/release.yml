@@ -49,7 +49,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        variant:
+        include:
           - name: server-win
             build_cmd: "cargo brs"
             binary_dir: "target\\server\\release"
@@ -72,29 +72,29 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Cache Cargo Registry (Windows - ${{ matrix.variant.name }})
+      - name: Cache Cargo Registry (Windows - ${{ matrix.name }})
         uses: actions/cache@v3
         with:
           path: C:\Users\runneradmin\.cargo\registry
-          key: ${{ runner.os }}-cargo-${{ matrix.variant.name }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ matrix.name }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build ${{ matrix.variant.name }}
-        run: ${{ matrix.variant.build_cmd }}
+      - name: Build ${{ matrix.name }}
+        run: ${{ matrix.build_cmd }}
 
-      - name: Package Artifacts (Windows - ${{ matrix.variant.name }})
+      - name: Package Artifacts (Windows - ${{ matrix.name }})
         shell: pwsh
         run: |
-          Write-Host "Packaging $env:matrix_variant_name for Windows..."
+          Write-Host "Packaging $env:matrix_name for Windows..."
           New-Item -ItemType Directory -Path release_artifact | Out-Null
-          Copy-Item -Path "${{ matrix.variant.binary_dir }}\\${{ matrix.variant.binary_name }}" -Destination "release_artifact\\${{ matrix.variant.output_binary }}"
+          Copy-Item -Path "${{ matrix.binary_dir }}\\${{ matrix.binary_name }}" -Destination "release_artifact\\${{ matrix.output_binary }}"
           Copy-Item -Path "assets" -Destination "release_artifact\\assets" -Recurse
-          Compress-Archive -Path release_artifact\* -DestinationPath "${{ matrix.variant.artifact_name }}"
+          Compress-Archive -Path release_artifact\* -DestinationPath "${{ matrix.artifact_name }}"
 
-      - name: Upload Artifact (Windows - ${{ matrix.variant.name }})
+      - name: Upload Artifact (Windows - ${{ matrix.name }})
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.variant.artifact_name }}
-          path: ${{ matrix.variant.artifact_name }}
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
 
   release:
     name: Create GitHub Release
