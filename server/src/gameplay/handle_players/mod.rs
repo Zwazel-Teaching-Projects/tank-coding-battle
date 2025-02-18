@@ -14,7 +14,8 @@ impl Plugin for HandlePlayersPlugin {
         app.register_type::<DummyClientMarker>()
             .add_plugins((movement_handling::MyMovementHandlingPlugin,))
             .add_observer(add_observers_to_client)
-            .add_observer(dummy_handling::add_observers_to_dummies);
+            .add_observer(dummy_handling::add_observers_to_dummies)
+            .add_observer(dummy_handling::add_dummy_simulation_observers_to_lobby);
     }
 }
 

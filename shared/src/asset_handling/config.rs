@@ -112,10 +112,10 @@ pub struct TankConfigSystemParam<'w> {
 }
 
 impl<'w> TankConfigSystemParam<'w> {
-    pub fn get_tank_type_config(&self, tank_type: TankType) -> Option<&TankConfig> {
+    pub fn get_tank_type_config(&self, tank_type: &TankType) -> Option<&TankConfig> {
         self.tank_configs
             .get(self.config_asset.tank.id())
-            .and_then(|tank_configs| tank_configs.tanks.get(&tank_type))
+            .and_then(|tank_configs| tank_configs.tanks.get(tank_type))
     }
 
     pub fn tank_configs(&self) -> &TankConfigs {
