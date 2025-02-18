@@ -38,7 +38,7 @@ pub fn handle_tank_movement(
     let my_lobby = lobby.get(in_lobby.0).expect("Failed to get lobby");
 
     tank_transform.position = check_collision_and_apply_movement(
-        &tank_transform.position,
+        &tank_transform,
         &next_tank_position,
         tank_config,
         &my_lobby
@@ -50,118 +50,93 @@ pub fn handle_tank_movement(
 }
 
 fn check_collision_and_apply_movement(
-    current_position: &Vec3,
+    current_transform: &TankTransform,
     target_position: &Vec3,
     tank_config: &TankConfig,
     map_definition: &MapDefinition,
 ) -> Vec3 {
     let max_slope = tank_config.max_slope;
-    let tank_size = tank_config.size; // x/z: half extents, y: vertical offset
+    let half_extents = tank_config.size; // x/z: half extents, y: vertical offset (ignored for collision)
 
-    // Retrieve current tile and its floor height.
-    let current_tile = match map_definition.get_closest_tile(*current_position) {
-        Some(tile) => tile,
-        None => return *current_position, // Out-of-bounds? The tank stays put.
-    };
-    let (curr_tile_x, curr_tile_y) = current_tile.into();
-    let current_floor = map_definition
-        .get_floor_height_of_tile(curr_tile_x, curr_tile_y)
-        .expect(&format!(
-            "Failed to get floor height of tile ({}, {})",
-            curr_tile_x, curr_tile_y
-        ));
+    let start_pos = current_transform.position;
+    let move_vec = *target_position - start_pos;
+    let distance = move_vec.length();
 
-    // Calculate movement delta.
-    let delta = *target_position - *current_position;
-    let dx = delta.x;
-    let dz = delta.z;
+    // Define a resolution for sampling—finer steps catch even the feeblest obstacle.
+    let step_size = 0.1; // Adjust as needed for precision
+    let steps = (distance / step_size).ceil() as usize;
+    let mut last_valid_position = start_pos;
 
-    // Helper to compute allowed movement factor.
-    let compute_t = |current: f32, delta: f32, bound: f32| -> f32 {
-        if delta.abs() < std::f32::EPSILON {
-            1.0
-        } else if delta > 0.0 {
-            (bound - current) / delta
-        } else {
-            (current - bound) / (-delta)
+    // Define the local corners of the tank's bounding box (relative to its center)
+    let local_corners = [
+        Vec3::new(half_extents.x, 0.0, half_extents.z),
+        Vec3::new(-half_extents.x, 0.0, half_extents.z),
+        Vec3::new(-half_extents.x, 0.0, -half_extents.z),
+        Vec3::new(half_extents.x, 0.0, -half_extents.z),
+    ];
+
+    // Sample the path from the start to the target position.
+    for i in 1..=steps {
+        let t = i as f32 / steps as f32;
+        let candidate_pos = start_pos + move_vec * t;
+
+        // Obtain the center tile (using the candidate's position)
+        let center_tile = map_definition.get_closest_tile(candidate_pos);
+        if center_tile.is_none() {
+            // Out of bounds – an invisible wall stops your advance!
+            break;
         }
-    };
+        let center_tile_def = center_tile.unwrap();
+        // Retrieve the floor height at the center tile.
+        let center_floor =
+            match map_definition.get_floor_height_of_tile(center_tile_def.x, center_tile_def.y) {
+                Some(h) => h,
+                None => break, // Shouldn't occur; treat as collision.
+            };
 
-    // If the target tile exists and its floor is known...
-    if let Some(target_tile) = map_definition.get_closest_tile(*target_position) {
-        let (target_tile_x, target_tile_y) = target_tile.into();
-        if let Some(target_floor) =
-            map_definition.get_floor_height_of_tile(target_tile_x, target_tile_y)
-        {
-            // Is the slope too steep for our war machine?
-            if target_floor > current_floor && (target_floor - current_floor) > max_slope {
-                let t_x = if dx > 0.0 {
-                    compute_t(
-                        current_position.x,
-                        dx,
-                        curr_tile_x as f32 + 1.0 - tank_size.x,
-                    )
-                } else if dx < 0.0 {
-                    compute_t(current_position.x, dx, curr_tile_x as f32 + tank_size.x)
-                } else {
-                    1.0
-                };
+        // Now, check each corner of the rotated bounding box.
+        let mut collision = false;
+        for local_corner in &local_corners {
+            // Rotate the local corner to world space
+            let rotated_corner = current_transform.rotation.mul_vec3(*local_corner);
+            let world_corner = candidate_pos + rotated_corner;
 
-                let t_z = if dz > 0.0 {
-                    compute_t(
-                        current_position.z,
-                        dz,
-                        curr_tile_y as f32 + 1.0 - tank_size.z,
-                    )
-                } else if dz < 0.0 {
-                    compute_t(current_position.z, dz, curr_tile_y as f32 + tank_size.z)
-                } else {
-                    1.0
-                };
+            // Check the tile under this corner.
+            let tile = map_definition.get_closest_tile(world_corner);
+            if tile.is_none() {
+                collision = true;
+                break;
+            }
+            let tile_def = tile.unwrap();
+            let tile_floor = match map_definition.get_floor_height_of_tile(tile_def.x, tile_def.y) {
+                Some(h) => h,
+                None => {
+                    collision = true;
+                    break;
+                }
+            };
 
-                let t_allowed = t_x.min(t_z).min(1.0);
-                let allowed_position = *current_position + delta * t_allowed;
-                return Vec3::new(
-                    allowed_position.x,
-                    current_floor + tank_size.y,
-                    allowed_position.z,
-                );
-            } else {
-                // Slope is acceptable – proceed with the full advance.
-                return Vec3::new(
-                    target_position.x,
-                    target_floor + tank_size.y,
-                    target_position.z,
-                );
+            // If the slope is too steep relative to the center floor, declare a collision.
+            if (tile_floor - center_floor).abs() > max_slope {
+                collision = true;
+                break;
             }
         }
+
+        // If any corner collides, we cannot proceed further.
+        if collision {
+            break;
+        }
+
+        // Otherwise, the candidate position is still valid.
+        last_valid_position = candidate_pos;
     }
 
-    // If the target tile is beyond our dominion, clamp movement to the map's borders.
-    let map_width = map_definition.width as f32;
-    let map_height = map_definition.height as f32;
-
-    let t_x = if dx > 0.0 {
-        compute_t(current_position.x, dx, map_width - tank_size.x)
-    } else if dx < 0.0 {
-        compute_t(current_position.x, dx, tank_size.x)
-    } else {
-        1.0
-    };
-
-    let t_z = if dz > 0.0 {
-        compute_t(current_position.z, dz, map_height - tank_size.z)
-    } else if dz < 0.0 {
-        compute_t(current_position.z, dz, tank_size.z)
-    } else {
-        1.0
-    };
-
-    let t_allowed = t_x.min(t_z).min(1.0);
-    let allowed_position = *current_position + delta * t_allowed;
-    Vec3::new(
-        allowed_position.x,
-        current_floor + tank_size.y,
-        allowed_position.z,
-    )
+    // Finally, adjust the Y coordinate of the valid position to match the terrain.
+    if let Some(center_tile) = map_definition.get_closest_tile(last_valid_position) {
+        if let Some(floor) = map_definition.get_floor_height_of_tile(center_tile.x, center_tile.y) {
+            last_valid_position.y = floor;
+        }
+    }
+    last_valid_position
 }

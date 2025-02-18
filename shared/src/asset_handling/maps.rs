@@ -196,24 +196,53 @@ impl MapDefinition {
     }
 
     pub fn get_closest_tile(&self, position: Vec3) -> Option<TileDefinition> {
-        // Position is in center of the tile, so we need to remove the offest to get the top-left corner of the tile
-        let position = position - Vec3::new(0.5, 0.0, 0.5);
-        let x = position.x.round() as usize;
-        let y = position.z.round() as usize;
+        // Position is in center of the tile, so we need to remove the offset to get the top-left corner of the tile
+        let adjusted = position - Vec3::new(0.5, 0.0, 0.5);
+        let x = adjusted.x.round() as usize;
+        let y = adjusted.z.round() as usize;
 
-        if x < self.width && y < self.height {
-            Some((x, y).into())
-        } else {
+        if x >= self.width || y >= self.height {
+            return None;
+        }
+
+        // The center of the candidate tile.
+        let tile_center = Vec3::new(x as f32 + 0.5, position.y, y as f32 + 0.5);
+
+        // If the given position is more than one tile unit away from the tile center, return None.
+        if (position - tile_center).length() > 1.0 {
             None
+        } else {
+            Some(TileDefinition { x, y })
         }
     }
 
     pub fn get_neighbours(&self, x: usize, y: usize) -> TileNeighbours {
         let center = TileDefinition { x, y };
-        let north = ((y + 1) < self.height).then(|| TileDefinition { x, y: y + 1 });
-        let east = (x > 0).then(|| TileDefinition { x: x - 1, y });
+        let north = (y + 1 < self.height).then(|| TileDefinition { x, y: y + 1 });
         let south = (y > 0).then(|| TileDefinition { x, y: y - 1 });
+        let east = (x > 0).then(|| TileDefinition { x: x - 1, y });
         let west = ((x + 1) < self.width).then(|| TileDefinition { x: x + 1, y });
+
+        let north_east = if x > 0 && (y + 1) < self.height {
+            Some(TileDefinition { x: x - 1, y: y + 1 })
+        } else {
+            None
+        };
+        let north_west = if (x + 1) < self.width && (y + 1) < self.height {
+            Some(TileDefinition { x: x + 1, y: y + 1 })
+        } else {
+            None
+        };
+        let south_east = if x > 0 && y > 0 {
+            Some(TileDefinition { x: x - 1, y: y - 1 })
+        } else {
+            None
+        };
+        let south_west = if (x + 1) < self.width && y > 0 {
+            Some(TileDefinition { x: x + 1, y: y - 1 })
+        } else {
+            None
+        };
 
         TileNeighbours {
             center,
@@ -221,6 +250,10 @@ impl MapDefinition {
             east,
             south,
             west,
+            north_east,
+            north_west,
+            south_east,
+            south_west,
         }
     }
 }
@@ -251,6 +284,10 @@ pub struct TileNeighbours {
     pub east: Option<TileDefinition>,
     pub south: Option<TileDefinition>,
     pub west: Option<TileDefinition>,
+    pub north_east: Option<TileDefinition>,
+    pub north_west: Option<TileDefinition>,
+    pub south_east: Option<TileDefinition>,
+    pub south_west: Option<TileDefinition>,
 }
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
