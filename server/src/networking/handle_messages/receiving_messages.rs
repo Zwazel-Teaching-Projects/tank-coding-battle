@@ -24,7 +24,7 @@ pub fn handle_reading_messages(
     )>,
     mut outgoing_message_queues: Query<&mut OutMessageQueue>,
     mut immediate_message_queues: Query<&mut ImmediateOutMessageQueue>,
-    lobby_management: LobbyManagementSystemParam,
+    mut lobby_management: LobbyManagementSystemParam,
 ) {
     for (sender, mut network_client, in_lobby, in_team) in clients.iter_mut() {
         let addr = network_client.get_address();
@@ -71,50 +71,66 @@ pub fn handle_reading_messages(
                 Ok(mut messages) => {
                     for message_container in messages.iter_mut() {
                         message_container.sender = Some(sender);
+                        // If we're in the lobby, add all messages to the lobby's message queue, so we can process them in the correct moment. expecting all non-server-only messages
                         if let Some(in_lobby) = in_lobby {
+                            // Set the received tick to the current tick of the lobby
                             message_container.tick_received = lobby_management
                                 .get_lobby_gamestate(**in_lobby)
                                 // TODO Replace with adding error to queue, not panicking
                                 .expect("Failed to get lobby game state")
                                 .tick;
-                        }
 
-                        info!(
-                            "Received message from client \"{:?}\":\n{:?}",
-                            addr, message_container
-                        );
-
-                        let lobby_arg = LobbyManagementArgument {
-                            lobby: in_lobby.map(|l| **l),
-                            sender: Some(sender),
-                            target_player: match message_container.target {
-                                MessageTarget::Client(e) => Some(e),
-                                _ => None,
-                            },
-                            team_name: in_team.map(|t| t.0.clone()),
-                        };
-
-                        let result = message_container.trigger_message_received(
-                            &mut commands,
-                            &lobby_management,
-                            lobby_arg,
-                            &mut outgoing_message_queues,
-                        );
-
-                        if let Err(e) = result {
-                            error!(
-                                "Failed to handle message from client \"{:?}\":\n{:?}",
-                                addr, e
+                            info!(
+                                "Received message from client \"{:?}\".\nClient in lobby, adding message to lobby queue to be processed later:\n\t{:?}",
+                                addr, message_container
                             );
 
-                            let mut error_queue = immediate_message_queues
-                                .get_mut(sender)
+                            // Add message to the lobby's message queue
+                            lobby_management
+                                .get_lobby_mut(**in_lobby)
                                 // TODO Replace with adding error to queue, not panicking
-                                .expect("Failed to get outgoing message queue from sender");
-                            error_queue.push_back(MessageContainer::new(
-                                MessageTarget::Client(sender),
-                                NetworkMessageType::MessageError(e),
-                            ));
+                                .expect("Failed to get lobby")
+                                .messages
+                                .push_back(message_container.clone());
+                        } else {
+                            // If we're not in the lobby, add the message to the immediate message queue. expecting server only messages
+                            info!(
+                                "Received message from client \"{:?}\".\nClient not in lobby, adding message to immediate queue to be processed immediately:\n\t{:?}",
+                                addr, message_container
+                            );
+
+                            let lobby_arg = LobbyManagementArgument {
+                                lobby: in_lobby.map(|l| **l),
+                                sender: Some(sender),
+                                target_player: match message_container.target {
+                                    MessageTarget::Client(e) => Some(e),
+                                    _ => None,
+                                },
+                                team_name: in_team.map(|t| t.0.clone()),
+                            };
+
+                            let result = message_container.trigger_message_received(
+                                &mut commands,
+                                &lobby_management,
+                                lobby_arg,
+                                &mut outgoing_message_queues,
+                            );
+
+                            if let Err(e) = result {
+                                error!(
+                                    "Failed to handle message from client \"{:?}\":\n{:?}",
+                                    addr, e
+                                );
+
+                                let mut error_queue = immediate_message_queues
+                                    .get_mut(sender)
+                                    // TODO Replace with adding error to queue, not panicking
+                                    .expect("Failed to get outgoing message queue from sender");
+                                error_queue.push_back(MessageContainer::new(
+                                    MessageTarget::Client(sender),
+                                    NetworkMessageType::MessageError(e),
+                                ));
+                            }
                         }
                     }
                 }
