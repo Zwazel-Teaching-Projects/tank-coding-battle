@@ -90,11 +90,11 @@ use super::message_data::{
             /// Will only be sent by a client
             /// Can only be sent to itself on the server
             #[target(ToSelf)]
-            MoveTank(MoveTankCommand),
+            MoveTankCommand(MoveTankCommand),
             #[target(ToSelf)]
-            RotateTankBody(RotateTankBodyCommand),
+            RotateTankBodyCommand(RotateTankBodyCommand),
             #[target(ToSelf)]
-            RotateTankTurret(RotateTankTurretCommand),
+            RotateTankTurretCommand(RotateTankTurretCommand),
         }
     }
 )]

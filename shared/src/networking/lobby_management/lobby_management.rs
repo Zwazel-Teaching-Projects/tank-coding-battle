@@ -21,7 +21,7 @@ pub struct LobbyManagementArgument {
 
 #[derive(SystemParam)]
 pub struct LobbyManagementSystemParam<'w, 's> {
-    lobby_resource: ResMut<'w, MyLobbies>,
+    pub lobby_resource: ResMut<'w, MyLobbies>,
     pub lobby_entities: Query<'w, 's, (Entity, &'static mut MyLobby, &'static mut LobbyGameState)>,
 }
 

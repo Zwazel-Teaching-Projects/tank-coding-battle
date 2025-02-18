@@ -6,6 +6,7 @@ use tick_systems::TickSystemsPlugin;
 
 pub mod game_state_handling;
 pub mod handle_players;
+pub mod process_messages_when_lobby_not_ready;
 pub mod simulation;
 pub mod start_lobby;
 pub mod system_sets;
@@ -19,9 +20,13 @@ impl Plugin for MyGameplayPlugin {
         app.configure_sets(
             Update,
             (
-                (MyGameplaySet::TickTimerProcessing,),
+                (
+                    MyGameplaySet::TickTimerProcessing,
+                    MyGameplaySet::ProcessMessagesBeforeLobbyReady,
+                ),
                 (
                     MyGameplaySet::IncrementTick,
+                    MyGameplaySet::ProcessCommands,
                     MyGameplaySet::RunSimulationStep,
                     MyGameplaySet::SimulationStepDone,
                     MyGameplaySet::UpdatingGameStates,
@@ -33,8 +38,12 @@ impl Plugin for MyGameplayPlugin {
         .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
         .add_systems(
             Update,
-            game_state_handling::check_if_client_states_are_all_up_to_date
-                .in_set(MyGameplaySet::UpdatingGameStates),
+            (
+                game_state_handling::check_if_client_states_are_all_up_to_date
+                    .in_set(MyGameplaySet::UpdatingGameStates),
+                process_messages_when_lobby_not_ready::process_messages_before_lobby_is_ready
+                    .in_set(MyGameplaySet::ProcessMessagesBeforeLobbyReady),
+            ),
         )
         .add_observer(add_observers_to_lobby);
     }
