@@ -74,6 +74,11 @@ pub struct TankConfig {
     pub body_rotation_speed: f32,
     /// The speed at which the turret of the tank at maximum rotates per tick in radians
     pub turret_rotation_speed: f32,
+    /// The maximum height this tank can "climb"
+    pub max_slope: f32,
+    /// The size of the tank (Vec3, x = width, y = height, z = depth)
+    /// half-extents for x (width), z (depth) and y (height)
+    pub size: Vec3,
 }
 
 #[derive(SystemParam)]

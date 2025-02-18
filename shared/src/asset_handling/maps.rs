@@ -153,12 +153,13 @@ pub struct MapDefinition {
 }
 
 impl MapDefinition {
-    pub fn get_height_at(&self, x: usize, y: usize) -> f32 {
-        self.tiles[y][x]
+    pub fn get_floor_height_of_tile(&self, x: usize, y: usize) -> Option<f32> {
+        self.tiles.get(y).and_then(|row| row.get(x)).copied()
     }
 
-    pub fn get_real_world_position(&self, x: usize, y: usize) -> Vec3 {
-        Vec3::new(x as f32 + 0.5, self.get_height_at(x, y), y as f32 + 0.5)
+    pub fn get_real_world_position_of_tile(&self, x: usize, y: usize) -> Option<Vec3> {
+        self.get_floor_height_of_tile(x, y)
+            .map(|height| Vec3::new(x as f32 + 0.5, height, y as f32 + 0.5))
     }
 
     pub fn get_all_spawn_points_of_group(&self, group: &str) -> Vec<(Vec3, usize)> {
@@ -167,10 +168,9 @@ impl MapDefinition {
             .filter_map(|marker| {
                 if marker.group == group {
                     match &marker.kind {
-                        MarkerType::Spawn { spawn_number } => Some((
-                            self.get_real_world_position(marker.tile.x, marker.tile.y),
-                            *spawn_number,
-                        )),
+                        MarkerType::Spawn { spawn_number } => self
+                            .get_real_world_position_of_tile(marker.tile.x, marker.tile.y)
+                            .map(|pos| (pos, *spawn_number)),
                         _ => None,
                     }
                 } else {
@@ -185,7 +185,7 @@ impl MapDefinition {
             if marker.group == group {
                 match &marker.kind {
                     MarkerType::Spawn { spawn_number: n } if *n == spawn_number => {
-                        Some(self.get_real_world_position(marker.tile.x, marker.tile.y))
+                        Some(self.get_real_world_position_of_tile(marker.tile.x, marker.tile.y)?)
                     }
                     _ => None,
                 }
@@ -194,6 +194,35 @@ impl MapDefinition {
             }
         })
     }
+
+    pub fn get_closest_tile(&self, position: Vec3) -> Option<TileDefinition> {
+        // Position is in center of the tile, so we need to remove the offest to get the top-left corner of the tile
+        let position = position - Vec3::new(0.5, 0.0, 0.5);
+        let x = position.x.round() as usize;
+        let y = position.z.round() as usize;
+
+        if x < self.width && y < self.height {
+            Some((x, y).into())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_neighbours(&self, x: usize, y: usize) -> TileNeighbours {
+        let center = TileDefinition { x, y };
+        let north = ((y + 1) < self.height).then(|| TileDefinition { x, y: y + 1 });
+        let east = (x > 0).then(|| TileDefinition { x: x - 1, y });
+        let south = (y > 0).then(|| TileDefinition { x, y: y - 1 });
+        let west = ((x + 1) < self.width).then(|| TileDefinition { x: x + 1, y });
+
+        TileNeighbours {
+            center,
+            north,
+            east,
+            south,
+            west,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
@@ -201,6 +230,27 @@ impl MapDefinition {
 pub struct TileDefinition {
     pub x: usize,
     pub y: usize,
+}
+
+impl From<(usize, usize)> for TileDefinition {
+    fn from((x, y): (usize, usize)) -> Self {
+        TileDefinition { x, y }
+    }
+}
+
+impl From<TileDefinition> for (usize, usize) {
+    fn from(TileDefinition { x, y }: TileDefinition) -> Self {
+        (x, y)
+    }
+}
+
+#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
+pub struct TileNeighbours {
+    pub center: TileDefinition,
+    pub north: Option<TileDefinition>,
+    pub east: Option<TileDefinition>,
+    pub south: Option<TileDefinition>,
+    pub west: Option<TileDefinition>,
 }
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]

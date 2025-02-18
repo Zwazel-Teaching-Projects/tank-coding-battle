@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::networking::messages::message_data::game_state::GameState;
 
-use super::{player_handling::TankTransform, tank_types::TankType};
+use super::player_handling::TankTransform;
 
 /// The full game state stored in the lobby
 /// This is the state that is sent to the spectators
@@ -81,9 +81,6 @@ pub struct ClientState {
     /// None if the client that receives this state does not know the position of the client.
     /// e.g. because the client has not spotted the other client yet.
     pub transform: Option<TankTransform>,
-
-    /// The tank type of the client
-    pub tank_type: Option<TankType>,
 }
 
 impl ClientState {
@@ -91,7 +88,6 @@ impl ClientState {
         ClientState {
             id,
             transform: None,
-            tank_type: None,
         }
     }
 
@@ -108,7 +104,6 @@ impl Default for ClientState {
         ClientState {
             id: Entity::PLACEHOLDER,
             transform: None,
-            tank_type: None,
         }
     }
 }

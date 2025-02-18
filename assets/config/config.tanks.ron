@@ -4,16 +4,34 @@
             moveSpeed: 1.0,
             bodyRotationSpeed: 0.8,
             turretRotationSpeed: 0.8,
+            maxSlope: 0.25,
+            size: (
+                0.25,
+                0.25,
+                0.25,
+            )
         ),
         HEAVY_TANK: (
             moveSpeed: 0.5,
             bodyRotationSpeed: 0.5,
             turretRotationSpeed: 0.3,
+            maxSlope: 0.25,
+            size: (
+                0.5,
+                0.5,
+                0.5,
+            )
         ),
         SELF_PROPELLED_GUN_TANK: (
             moveSpeed: 0.25,
             bodyRotationSpeed: 0.5,
             turretRotationSpeed: 0.0,
+            maxSlope: 0.25,
+            size: (
+                0.5,
+                0.5,
+                0.5,
+            )
         ),
     },
 )

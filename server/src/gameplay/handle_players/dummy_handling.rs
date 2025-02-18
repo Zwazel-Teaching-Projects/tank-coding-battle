@@ -48,7 +48,19 @@ pub fn simulate_movement(
                 .get_tank_type_config(tank_type)
                 .expect("Failed to get tank config");
 
-            // Simulate movement
+            /* // Simulate movement (always forward)
+            commands.trigger_targets(
+                MoveTankCommandTrigger {
+                    sender: None,
+                    message: MoveTankCommand {
+                        direction: MoveDirection::Forward,
+                        distance: tank_config.move_speed,
+                    },
+                },
+                *player,
+            ); */
+
+            // Simulate movement (randomly)
             if rand::random::<bool>() {
                 let direction = if rand::random() {
                     MoveDirection::Forward
@@ -67,7 +79,7 @@ pub fn simulate_movement(
                 );
             }
 
-            // Simulate rotation
+            // Simulate rotation (randomly)
             if rand::random::<bool>() {
                 let direction = if rand::random() {
                     RotationDirection::Clockwise
