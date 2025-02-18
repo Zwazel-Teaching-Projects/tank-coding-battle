@@ -4,10 +4,9 @@ use shared::{
     networking::lobby_management::{LobbyState, MyLobby},
 };
 
-use super::{
-    system_sets::MyGameplaySet,
-    triggers::{StartNextSimulationStepTrigger, StartNextTickProcessingTrigger},
-};
+use crate::gameplay::triggers::CollectAndTriggerMessagesTrigger;
+
+use super::{system_sets::MyGameplaySet, triggers::StartNextTickProcessingTrigger};
 
 pub struct TickSystemsPlugin;
 
@@ -49,9 +48,9 @@ fn increment_tick(
     game_state.tick += 1;
 
     info!(
-        "Start simulation step {} for lobby: {}",
+        "Start collecting and processing messages of tick {} for lobby: {}",
         game_state.tick, lobby.lobby_name
     );
 
-    commands.trigger_targets(StartNextSimulationStepTrigger, lobby_entity);
+    commands.trigger_targets(CollectAndTriggerMessagesTrigger, lobby_entity);
 }

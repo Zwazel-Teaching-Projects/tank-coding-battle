@@ -101,7 +101,6 @@ pub struct MyLobby {
 impl MyLobby {
     pub fn new(name: String, map_name: String, tick_rate: u64) -> Self {
         let time_per_tick = 1.0 / tick_rate as f32;
-        info!("Time per tick: {}", time_per_tick);
 
         Self {
             state: LobbyState::default(),

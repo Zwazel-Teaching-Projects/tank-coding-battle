@@ -79,11 +79,8 @@ pub fn handle_reading_messages(
                                 // TODO Replace with adding error to queue, not panicking
                                 .expect("Failed to get lobby game state")
                                 .tick;
-
-                            info!(
-                                "Received message from client \"{:?}\".\nClient in lobby, adding message to lobby queue to be processed later:\n\t{:?}",
-                                addr, message_container
-                            );
+                            message_container.tick_to_be_processed_at =
+                                message_container.tick_received + 1;
 
                             // Add message to the lobby's message queue
                             lobby_management
@@ -94,11 +91,6 @@ pub fn handle_reading_messages(
                                 .push_back(message_container.clone());
                         } else {
                             // If we're not in the lobby, add the message to the immediate message queue. expecting server only messages
-                            info!(
-                                "Received message from client \"{:?}\".\nClient not in lobby, adding message to immediate queue to be processed immediately:\n\t{:?}",
-                                addr, message_container
-                            );
-
                             let lobby_arg = LobbyManagementArgument {
                                 lobby: in_lobby.map(|l| **l),
                                 sender: Some(sender),

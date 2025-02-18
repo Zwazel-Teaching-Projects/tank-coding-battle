@@ -108,6 +108,9 @@ pub struct MessageContainer {
     pub tick_sent: u64,
     /// The tick when the message was received
     pub tick_received: u64,
+    /// The tick when the message should be processed at on the server
+    #[serde(skip)]
+    pub tick_to_be_processed_at: u64,
 }
 
 impl MessageContainer {
@@ -139,6 +142,7 @@ impl MessageContainer {
 
             tick_sent: 0,
             tick_received: 0,
+            tick_to_be_processed_at: 0,
         }
     }
 

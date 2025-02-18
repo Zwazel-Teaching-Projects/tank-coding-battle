@@ -6,6 +6,7 @@ use tick_systems::TickSystemsPlugin;
 
 pub mod game_state_handling;
 pub mod handle_players;
+pub mod process_messages;
 pub mod process_messages_when_lobby_not_ready;
 pub mod simulation;
 pub mod start_lobby;
@@ -57,5 +58,6 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .observe(simulation::process_tick_sim)
         .observe(simulation::move_dummies)
         .observe(start_lobby::check_if_lobby_should_start)
-        .observe(start_lobby::start_lobby);
+        .observe(start_lobby::start_lobby)
+        .observe(process_messages::process_lobby_messages);
 }

@@ -242,11 +242,6 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                         #target_match_arms
                     }.map_err(|e| ErrorMessageTypes::LobbyManagementError(e))?;
 
-                    #[cfg(debug_assertions)]
-                    {
-                        info!("Targets for {}: {:?}", stringify!(#variant_ident), targets);
-                    }
-
                     if is_forward {
                         // We'll forward these to out_message_queues
                         if !targets.is_empty() {

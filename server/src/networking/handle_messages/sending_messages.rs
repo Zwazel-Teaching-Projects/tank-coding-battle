@@ -62,8 +62,6 @@ pub fn sending_client_messages(
                     }
 
                     if !messages.is_empty() {
-                        info!("Sending messages to player: {:?}", messages);
-
                         let messages =
                             serde_json::to_vec(&messages).expect("Failed to serialize messages");
 

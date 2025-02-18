@@ -25,7 +25,7 @@ pub fn handle_awaiting_first_contact(
 ) {
     for (entity, mut timer) in clients.iter_mut() {
         if timer.0.tick(time.delta()).finished() {
-            info!("Client {:?} timed out waiting for first contact", entity);
+            warn!("Client {:?} timed out waiting for first contact", entity);
             commands.trigger(ClientDisconnectedTrigger(entity));
         }
     }
@@ -43,10 +43,6 @@ pub fn handle_first_contact_message(
     let server_config = server_config.server_config();
     let message = &trigger.message;
     let sender = trigger.sender.unwrap();
-    info!(
-        "Received first contact message: {:?} from {:?}",
-        message, sender
-    );
 
     // Update the client's state
     if let Ok((client_entity, mut client, mut message_queue)) = clients.get_mut(sender) {

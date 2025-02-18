@@ -51,14 +51,6 @@ pub fn update_lobby_state(
         client_state.tank_type = Some(tank_type.clone());
     }
 
-    info!(
-        "Updated lobby state for lobby: {}",
-        lobby_management
-            .get_lobby(lobby_entity)
-            .expect("Failed to get lobby")
-            .lobby_name
-    );
-
     commands.trigger_targets(
         UpdateClientGameStatesTrigger {
             lobby: lobby_entity,

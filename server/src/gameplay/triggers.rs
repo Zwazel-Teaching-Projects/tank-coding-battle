@@ -4,6 +4,9 @@ use bevy::prelude::*;
 pub struct StartNextTickProcessingTrigger;
 
 #[derive(Debug, Reflect, Event)]
+pub struct CollectAndTriggerMessagesTrigger;
+
+#[derive(Debug, Reflect, Event)]
 pub struct StartNextSimulationStepTrigger;
 
 #[derive(Debug, Reflect, Event)]
