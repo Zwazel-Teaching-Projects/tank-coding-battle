@@ -68,8 +68,11 @@ pub struct TankConfigs {
 #[derive(Debug, Default, Reflect, Clone, Asset, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct TankConfig {
+    /// The speed at which the tank at maximum moves per tick
     pub move_speed: f32,
+    /// The speed at which the body of the tank at maximum rotates per tick in radians
     pub body_rotation_speed: f32,
+    /// The speed at which the turret of the tank at maximum rotates per tick in radians
     pub turret_rotation_speed: f32,
 }
 

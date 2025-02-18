@@ -2,17 +2,17 @@
     tanks: {
         LIGHT_TANK: (
             moveSpeed: 1.0,
-            bodyRotationSpeed: 1.0,
-            turretRotationSpeed: 1.0,
+            bodyRotationSpeed: 0.8,
+            turretRotationSpeed: 0.8,
         ),
         HEAVY_TANK: (
             moveSpeed: 0.5,
             bodyRotationSpeed: 0.5,
-            turretRotationSpeed: 0.5,
+            turretRotationSpeed: 0.3,
         ),
         SELF_PROPELLED_GUN_TANK: (
             moveSpeed: 0.25,
-            bodyRotationSpeed: 0.25,
+            bodyRotationSpeed: 0.5,
             turretRotationSpeed: 0.0,
         ),
     },
