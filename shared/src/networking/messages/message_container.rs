@@ -64,6 +64,7 @@ use super::message_data::{
             /// A simple Text Message
             /// Can be sent to a single client, everyone in the team or everyone in the lobby
             /// The server does not do anything with this message, it only forwards it to the specified targets
+            /// We need to rename it, because we don't want it to be serialized as "TextDataWrapper"
             #[serde(rename = "SimpleTextMessage")]
             #[target(Client, Team, AllInLobby)]
             #[behaviour(Forward)]
@@ -82,6 +83,7 @@ use super::message_data::{
             StartGame(StartGameConfig),
             /// Sent to the client when they successfully joined a lobby
             /// Can not be sent by a client, only by the server
+            /// We need to rename it, because we don't want it to be serialized as "TextDataWrapper"
             #[serde(rename = "SuccessfullyJoinedLobby")]
             SuccessFullyJoinedLobby(TextDataWrapper),
             /// Sent from the client to the server to move the tank
