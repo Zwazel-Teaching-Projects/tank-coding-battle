@@ -1,0 +1,13 @@
+(
+    tanks: {
+        LIGHT_TANK: (
+            speed: 1.0,
+        ),
+        HEAVY_TANK: (
+            speed: 0.5,
+        ),
+        SELF_PROPELLED_GUN_TANK: (
+            speed: 0.25,
+        ),
+    },
+)

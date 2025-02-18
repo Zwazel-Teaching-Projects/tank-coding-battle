@@ -1,7 +1,7 @@
 use bevy::{prelude::*, utils::HashMap};
 use shared::{
-    asset_handling::config::ServerConfigSystemParam,
-    game::player_handling::TankTransform,
+    asset_handling::config::{ServerConfigSystemParam, TankConfigSystemParam},
+    game::{player_handling::TankTransform, tank_types::TankType},
     networking::{
         lobby_management::{
             lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
@@ -148,6 +148,7 @@ pub fn check_if_lobby_should_start(
                         InLobby(lobby_entity),
                         dummy_client,
                         ClientType::Dummy,
+                        TankType::LightTank,
                     ))
                     .id();
                 team.players.push(dummy);
@@ -189,6 +190,7 @@ pub fn start_lobby(
     client_in_team: Query<&InTeam>,
     mut tank_positions: Query<&mut TankTransform>,
     server_config: ServerConfigSystemParam,
+    tank_config: TankConfigSystemParam,
 ) {
     let lobby_entity = trigger.entity();
     let lobby = lobby_management
@@ -206,6 +208,7 @@ pub fn start_lobby(
         .teams;
 
     let server_config = server_config.server_config();
+    let tank_configs = tank_config.tank_configs();
 
     let connected_clients =
         get_connected_configs_in_lobby(&lobby_management, lobby_entity, &clients);
@@ -257,6 +260,7 @@ pub fn start_lobby(
                         tick_rate: server_config.tick_rate,
                         map_definition: map.clone(),
                         team_configs: team_configs.clone(),
+                        tank_configs: tank_configs.tanks.clone(),
                     }),
                 ));
             }

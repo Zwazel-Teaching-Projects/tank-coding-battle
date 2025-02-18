@@ -95,6 +95,7 @@ impl MapConfig {
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct TeamConfig {
+    pub team_name: String,
     pub color: SimplifiedRGB,
     pub max_players: usize,
 

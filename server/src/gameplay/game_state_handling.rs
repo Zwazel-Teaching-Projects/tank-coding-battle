@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     game::{
         game_state::{ClientState, PersonalizedClientGameState},
-        player_handling::TankTransform,
+        player_handling::TankTransform, tank_types::TankType,
     },
     networking::{
         lobby_management::{lobby_management::LobbyManagementSystemParam, LobbyState},
@@ -22,7 +22,7 @@ use super::triggers::{
 pub fn update_lobby_state(
     trigger: Trigger<UpdateLobbyGameStateTrigger>,
     mut lobby_management: LobbyManagementSystemParam,
-    tank_positions: Query<&TankTransform>,
+    client_infos: Query<(&TankTransform, &TankType)>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
@@ -39,7 +39,7 @@ pub fn update_lobby_state(
         .expect("Failed to get lobby game state");
 
     for player_entity in player_entities.iter() {
-        let tank_position = tank_positions
+        let (tank_position, tank_type) = client_infos
             .get(*player_entity)
             .expect("Failed to get tank position");
 
@@ -48,6 +48,7 @@ pub fn update_lobby_state(
             .entry(*player_entity)
             .or_insert_with(|| ClientState::new(*player_entity));
         client_state.transform = Some(tank_position.clone());
+        client_state.tank_type = Some(tank_type.clone());
     }
 
     info!(

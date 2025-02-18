@@ -6,7 +6,13 @@ use shared::{
             lobby_management::LobbyManagementSystemParam, AwaitingFirstContact,
             PlayerWantsToJoinLobbyTrigger,
         },
-        messages::message_container::FirstContactTrigger,
+        messages::{
+            message_container::{
+                FirstContactTrigger, MessageContainer, MessageTarget, NetworkMessageType,
+            },
+            message_data::{first_contact::ClientType, message_error_types::ErrorMessageTypes},
+            message_queue::ImmediateOutMessageQueue,
+        },
     },
 };
 
@@ -31,7 +37,7 @@ pub fn handle_first_contact_message(
     trigger: Trigger<FirstContactTrigger>,
     mut commands: Commands,
     mut lobby_management: LobbyManagementSystemParam,
-    mut clients: Query<(Entity, &mut MyNetworkClient)>,
+    mut clients: Query<(Entity, &mut MyNetworkClient, &mut ImmediateOutMessageQueue)>,
     server_config: ServerConfigSystemParam,
 ) {
     let server_config = server_config.server_config();
@@ -43,7 +49,7 @@ pub fn handle_first_contact_message(
     );
 
     // Update the client's state
-    if let Ok((client_entity, mut client)) = clients.get_mut(sender) {
+    if let Ok((client_entity, mut client, mut message_queue)) = clients.get_mut(sender) {
         client.name = Some(message.bot_name.clone());
         if let Some(assigned_spawn_point) = message.bot_assigned_spawn_point {
             client.assigned_spawn_point = Some(assigned_spawn_point);
@@ -52,6 +58,25 @@ pub fn handle_first_contact_message(
         commands
             .entity(client_entity)
             .insert(message.client_type.clone());
+
+        match message.client_type {
+            ClientType::Player => {
+                if let Some(tank_type) = &message.tank_type {
+                    commands.entity(client_entity).insert(tank_type.clone());
+                } else {
+                    error!("Player client did not specify a tank type");
+                    message_queue.push_back(MessageContainer::new(
+                        MessageTarget::Client(client_entity),
+                        NetworkMessageType::MessageError(ErrorMessageTypes::InvalidFirstContact(
+                            "Player client did not specify a tank type".to_string(),
+                        )),
+                    ));
+
+                    return;
+                }
+            }
+            _ => {}
+        }
     }
 
     // get or insert lobby

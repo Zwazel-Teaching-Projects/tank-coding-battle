@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::networking::messages::message_data::game_state::GameState;
 
-use super::player_handling::TankTransform;
+use super::{player_handling::TankTransform, tank_types::TankType};
 
 /// The full game state stored in the lobby
 /// This is the state that is sent to the spectators
@@ -43,7 +43,9 @@ impl PersonalizedClientGameState {
     pub fn clear_states(&mut self) {
         self.personal_state.transform = None;
         for (_, state) in self.other_client_states.iter_mut() {
-            *state = None;
+            state
+                .as_mut()
+                .map(|state| state.clear_non_persistent_information());
         }
     }
 }
@@ -79,6 +81,9 @@ pub struct ClientState {
     /// None if the client that receives this state does not know the position of the client.
     /// e.g. because the client has not spotted the other client yet.
     pub transform: Option<TankTransform>,
+
+    /// The tank type of the client
+    pub tank_type: Option<TankType>,
 }
 
 impl ClientState {
@@ -86,7 +91,15 @@ impl ClientState {
         ClientState {
             id,
             transform: None,
+            tank_type: None,
         }
+    }
+
+    /// Clears all information about the client that do not persist between ticks
+    /// e.g. the transform
+    /// While the tank type is not cleared, as once a client knows the tank type of another client, it will not forget it as it is a constant property
+    pub fn clear_non_persistent_information(&mut self) {
+        self.transform = None;
     }
 }
 
@@ -95,6 +108,7 @@ impl Default for ClientState {
         ClientState {
             id: Entity::PLACEHOLDER,
             transform: None,
+            tank_type: None,
         }
     }
 }

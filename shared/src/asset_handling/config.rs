@@ -1,4 +1,4 @@
-use bevy::{ecs::system::SystemParam, prelude::*};
+use bevy::{ecs::system::SystemParam, prelude::*, utils::HashMap};
 use bevy_asset_loader::{
     asset_collection::AssetCollection,
     loading_state::{
@@ -7,9 +7,9 @@ use bevy_asset_loader::{
     },
 };
 use bevy_common_assets::ron::RonAssetPlugin;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use crate::main_state::MyMainState;
+use crate::{game::tank_types::TankType, main_state::MyMainState};
 
 pub struct MyConfigPlugin;
 
@@ -18,10 +18,13 @@ impl Plugin for MyConfigPlugin {
         app.add_plugins((
             RonAssetPlugin::<ServerConfig>::new(&["server.ron"]),
             RonAssetPlugin::<ClientConfig>::new(&["client.ron"]),
+            RonAssetPlugin::<TankConfigs>::new(&["tanks.ron"]),
         ))
         .register_type::<MyConfigAsset>()
         .register_type::<ServerConfig>()
         .register_type::<ClientConfig>()
+        .register_type::<TankConfigs>()
+        .register_type::<TankConfig>()
         .configure_loading_state(
             LoadingStateConfig::new(MyMainState::SettingUp).load_collection::<MyConfigAsset>(),
         );
@@ -35,6 +38,8 @@ struct MyConfigAsset {
     server: Handle<ServerConfig>,
     #[asset(path = "config/config.client.ron")]
     client: Handle<ClientConfig>,
+    #[asset(path = "config/config.tanks.ron")]
+    tank: Handle<TankConfigs>,
 }
 
 #[derive(Debug, Default, Reflect, Clone, Asset, Deserialize)]
@@ -53,6 +58,17 @@ pub struct ClientConfig {
     pub name: String,
     pub lobby_name: String,
     pub fill_empty_slots_with_dummies: bool,
+}
+
+#[derive(Debug, Default, Reflect, Clone, Asset, Deserialize, PartialEq)]
+pub struct TankConfigs {
+    pub tanks: HashMap<TankType, TankConfig>,
+}
+
+#[derive(Debug, Default, Reflect, Clone, Asset, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TankConfig {
+    pub speed: f32,
 }
 
 #[derive(SystemParam)]
@@ -84,5 +100,25 @@ impl<'w> ClientConfigSystemParam<'w> {
         self.client_configs
             .get(self.config_asset.client.id())
             .expect("Client config not loaded")
+    }
+}
+
+#[derive(SystemParam)]
+pub struct TankConfigSystemParam<'w> {
+    config_asset: Res<'w, MyConfigAsset>,
+    tank_configs: Res<'w, Assets<TankConfigs>>,
+}
+
+impl<'w> TankConfigSystemParam<'w> {
+    pub fn get_tank_type_config(&self, tank_type: TankType) -> Option<&TankConfig> {
+        self.tank_configs
+            .get(self.config_asset.tank.id())
+            .and_then(|tank_configs| tank_configs.tanks.get(&tank_type))
+    }
+
+    pub fn tank_configs(&self) -> &TankConfigs {
+        self.tank_configs
+            .get(self.config_asset.tank.id())
+            .expect("Tank configs not loaded")
     }
 }

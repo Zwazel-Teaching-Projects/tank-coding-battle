@@ -1,6 +1,7 @@
 (
     teams: {
         "Red": (
+            teamName: "Red",
             color: (
                 r: 1.0,
                 g: 0.0,
@@ -9,6 +10,7 @@
             maxPlayers: 2,
         ),
         "Blue": (
+            teamName: "Blue",
             color: (
                 r: 0.0,
                 g: 0.0,
