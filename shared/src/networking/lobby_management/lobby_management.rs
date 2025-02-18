@@ -186,7 +186,10 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
             .map_err(|_| format!("Failed to get game state for lobby entity: {}", lobby))
     }
 
-    pub fn get_lobby_gamestate_mut(&mut self, lobby: Entity) -> Result<Mut<LobbyGameState>, String> {
+    pub fn get_lobby_gamestate_mut(
+        &mut self,
+        lobby: Entity,
+    ) -> Result<Mut<LobbyGameState>, String> {
         self.lobby_entities
             .get_mut(lobby)
             .map(|(_, _, game_state)| game_state)
@@ -259,6 +262,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                             Ok(team
                                 .players
                                 .iter()
+                                // Filtering out the sender
                                 .filter(|&&player| Some(player) != arg.sender)
                                 .cloned()
                                 .collect())
@@ -294,5 +298,11 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
         Ok(vec![arg.lobby.ok_or("No lobby provided")?])
+    }
+
+    pub fn targets_get_self(&self, arg: LobbyManagementArgument) -> Result<Vec<Entity>, String> {
+        arg.sender
+            .map(|sender| Ok(vec![sender]))
+            .unwrap_or(Err("No sender provided".to_string()))
     }
 }

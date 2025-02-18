@@ -8,8 +8,15 @@ use crate::networking::{
 };
 
 use super::message_data::{
-    first_contact::FirstContactData, game_starts::GameStarts, game_state::GameState,
-    message_error_types::ErrorMessageTypes, start_game_config::StartGameConfig,
+    first_contact::FirstContactData,
+    game_starts::GameStarts,
+    game_state::GameState,
+    message_error_types::ErrorMessageTypes,
+    start_game_config::StartGameConfig,
+    tank_messages::{
+        move_tank::MoveTankCommand, rotate_tank_body::RotateTankBodyCommand,
+        rotate_tank_turret::RotateTankTurretCommand,
+    },
     text_data::TextDataWrapper,
 };
 
@@ -31,11 +38,14 @@ use super::message_data::{
             // To everyone in the same lobby
             AllInLobby,
             #[get_targets(targets_get_single_player)]
-            // To a single player
+            // To a single player, excluding the the sender itself
             Client(Entity),
             #[get_targets(targets_get_lobby_directly)]
             // To the lobby itself (for example to start the game)
             ToLobbyDirectly,
+            // To the sender itself (used for commands, e.g. tank movement)
+            #[get_targets(targets_get_self)]
+            ToSelf,
         }
     },
     message = {
@@ -43,20 +53,46 @@ use super::message_data::{
         #[serde(tag = "message_type")]
         #[generate_message_data_triggers]
         pub enum NetworkMessageType {
+            /// The first message sent by the client to the server
+            /// Used to determine the client type and the lobby to join or create and the team to join and other initial information
             #[target(ServerOnly)]
             FirstContact(FirstContactData),
+            /// The current game state, sent each tick to the clients
+            /// Each client could receive a different state, depending on their view of the game
+            /// Can not be sent by a client, only by the server
             GameState(GameState),
+            /// A simple Text Message
+            /// Can be sent to a single client, everyone in the team or everyone in the lobby
+            /// The server does not do anything with this message, it only forwards it to the specified targets
             #[serde(rename = "SimpleTextMessage")]
             #[target(Client, Team, AllInLobby)]
             #[behaviour(Forward)]
             SimpleTextMessage(TextDataWrapper),
+            /// An error message, sent to the client that caused the error.
+            /// Can not be sent by a client, only by the server
             MessageError(ErrorMessageTypes),
+            /// Sent to the client when the game starts, contains the game configuration
+            /// e.g. the map, the teams, the players, etc.
+            /// Can not be sent by a client, only by the server
             #[serde(rename = "GameConfig")]
             GameStarts(GameStarts),
+            /// Sent to the lobby by a client to start the game
+            /// Can only be sent to the lobby directly
             #[target(ToLobbyDirectly)]
             StartGame(StartGameConfig),
+            /// Sent to the client when they successfully joined a lobby
+            /// Can not be sent by a client, only by the server
             #[serde(rename = "SuccessfullyJoinedLobby")]
             SuccessFullyJoinedLobby(TextDataWrapper),
+            /// Sent from the client to the server to move the tank
+            /// Will only be sent by a client
+            /// Can only be sent to itself on the server
+            #[target(ToSelf)]
+            MoveTank(MoveTankCommand),
+            #[target(ToSelf)]
+            RotateTankBody(RotateTankBodyCommand),
+            #[target(ToSelf)]
+            RotateTankTurret(RotateTankTurretCommand),
         }
     }
 )]

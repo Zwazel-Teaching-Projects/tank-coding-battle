@@ -44,7 +44,7 @@ pub fn move_dummies(
                 .get(tank_type)
                 .expect("Failed to get tank config");
 
-            transform.position.x += tank_config.speed;
+            transform.position.x += tank_config.move_speed;
         }
     }
 }

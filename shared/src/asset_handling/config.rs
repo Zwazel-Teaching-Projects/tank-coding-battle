@@ -68,7 +68,9 @@ pub struct TankConfigs {
 #[derive(Debug, Default, Reflect, Clone, Asset, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct TankConfig {
-    pub speed: f32,
+    pub move_speed: f32,
+    pub body_rotation_speed: f32,
+    pub turret_rotation_speed: f32,
 }
 
 #[derive(SystemParam)]
