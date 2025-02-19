@@ -238,6 +238,8 @@ pub fn start_lobby(
                             .expect("Failed to get client team");
                         let spawn_point_position =
                             map.get_spawn_point_position(client_team, spawn_point);
+                        let spawn_point_rotation =
+                            map.get_spawn_point_rotation(client_team, spawn_point);
 
                         if let Some(spawn_point_position) = spawn_point_position {
                             let tank_config = tank_configs
@@ -249,6 +251,15 @@ pub fn start_lobby(
                         } else {
                             error!(
                                 "Failed to get spawn point position for team {} and spawn point {}",
+                                client_team, spawn_point
+                            );
+                        }
+
+                        if let Some(spawn_point_rotation) = spawn_point_rotation {
+                            tank_transform.rotation = spawn_point_rotation;
+                        } else {
+                            error!(
+                                "Failed to get spawn point rotation for team {} and spawn point {}",
                                 client_team, spawn_point
                             );
                         }

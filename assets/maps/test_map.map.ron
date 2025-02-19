@@ -40,21 +40,22 @@
             [1.25,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.5,],
         ],
         layers: [
-            (
+            /* (
                 kind: FOREST,
                 costModifier: 2.0,
                 tiles: [
                     (x: 0, y: 0), (x: 1, y: 0), (x: 2, y: 0),
                 ]
-            ),
-        ],
+            ), */
+        ], 
         markers: [
             (
                 tile: (x: 0, y: 0),
                 group: "Red",
                 kind: (
                     type: "Spawn",
-                    spawnNumber: 0
+                    spawnNumber: 0,
+                    lookDirection: "NORTH",
                 ),
             ),
             (
@@ -62,7 +63,8 @@
                 group: "Red",
                 kind: (
                     type: "Spawn",
-                    spawnNumber: 1
+                    spawnNumber: 1,
+                    lookDirection: "NORTH",
                 ),
             ),
             (
@@ -70,7 +72,8 @@
                 group: "Blue",
                 kind: (
                     type: "Spawn",
-                    spawnNumber: 0
+                    spawnNumber: 0,
+                    lookDirection: "SOUTH",
                 ),
             ),
             (
@@ -78,7 +81,8 @@
                 group: "Blue",
                 kind: (
                     type: "Spawn",
-                    spawnNumber: 1
+                    spawnNumber: 1,
+                    lookDirection: "SOUTH",
                 ),
             ),
         ]

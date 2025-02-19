@@ -168,7 +168,7 @@ impl MapDefinition {
             .filter_map(|marker| {
                 if marker.group == group {
                     match &marker.kind {
-                        MarkerType::Spawn { spawn_number } => self
+                        MarkerType::Spawn { spawn_number, .. } => self
                             .get_real_world_position_of_tile(marker.tile.x, marker.tile.y)
                             .map(|pos| (pos, *spawn_number)),
                         _ => None,
@@ -184,9 +184,27 @@ impl MapDefinition {
         self.markers.iter().find_map(|marker| {
             if marker.group == group {
                 match &marker.kind {
-                    MarkerType::Spawn { spawn_number: n } if *n == spawn_number => {
+                    MarkerType::Spawn {
+                        spawn_number: n, ..
+                    } if *n == spawn_number => {
                         Some(self.get_real_world_position_of_tile(marker.tile.x, marker.tile.y)?)
                     }
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn get_spawn_point_rotation(&self, group: &str, spawn_number: usize) -> Option<Quat> {
+        self.markers.iter().find_map(|marker| {
+            if marker.group == group {
+                match &marker.kind {
+                    MarkerType::Spawn {
+                        spawn_number: n,
+                        look_direction,
+                    } if *n == spawn_number => Some(look_direction.to_quat()),
                     _ => None,
                 }
             } else {
@@ -324,13 +342,38 @@ pub enum MarkerType {
     #[serde(rename_all = "camelCase")]
     Spawn {
         spawn_number: usize,
+        look_direction: LookDirection,
     },
     Flag,
 }
 
 impl Default for MarkerType {
     fn default() -> Self {
-        MarkerType::Spawn { spawn_number: 0 }
+        MarkerType::Spawn {
+            spawn_number: 0,
+            look_direction: LookDirection::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum LookDirection {
+    #[default]
+    North,
+    East,
+    South,
+    West,
+}
+
+impl LookDirection {
+    pub fn to_quat(&self) -> Quat {
+        match self {
+            LookDirection::North => Quat::from_rotation_y(0.0),
+            LookDirection::East => Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+            LookDirection::South => Quat::from_rotation_y(std::f32::consts::PI),
+            LookDirection::West => Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2),
+        }
     }
 }
 
