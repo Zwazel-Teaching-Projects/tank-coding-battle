@@ -32,13 +32,13 @@ pub fn visualize_cells(
             .get_closest_tile(position)
             .expect(format!("Failed to get closest tile to position {:?}", position).as_str());
         if let Some(_) =
-            map_definition.get_real_world_position_of_tile(closest_tile.x, closest_tile.y)
+            map_definition.get_real_world_position_of_tile((closest_tile.x, closest_tile.y))
         {
-            let neighbors = map_definition.get_neighbours(closest_tile.x, closest_tile.y);
+            let neighbors = map_definition.get_neighbours((closest_tile.x, closest_tile.y));
 
             // Center
             let center_position = map_definition
-                .get_real_world_position_of_tile(neighbors.center.x, neighbors.center.y)
+                .get_real_world_position_of_tile((neighbors.center.x, neighbors.center.y))
                 .expect(
                     format!(
                         "Failed to get real world position of tile {:?}",
@@ -55,7 +55,7 @@ pub fn visualize_cells(
             // North
             if let Some(north) = neighbors.north {
                 let north_position = map_definition
-                    .get_real_world_position_of_tile(north.x, north.y)
+                    .get_real_world_position_of_tile((north.x, north.y))
                     .expect(
                         format!("Failed to get real world position of tile {:?}", north).as_str(),
                     );
@@ -78,7 +78,7 @@ pub fn visualize_cells(
             // East
             if let Some(east) = neighbors.east {
                 let east_position = map_definition
-                    .get_real_world_position_of_tile(east.x, east.y)
+                    .get_real_world_position_of_tile((east.x, east.y))
                     .expect(
                         format!("Failed to get real world position of tile {:?}", east).as_str(),
                     );
@@ -101,7 +101,7 @@ pub fn visualize_cells(
             // South
             if let Some(south) = neighbors.south {
                 let south_position = map_definition
-                    .get_real_world_position_of_tile(south.x, south.y)
+                    .get_real_world_position_of_tile((south.x, south.y))
                     .expect(
                         format!("Failed to get real world position of tile {:?}", south).as_str(),
                     );
@@ -124,7 +124,7 @@ pub fn visualize_cells(
             // West
             if let Some(west) = neighbors.west {
                 let west_position = map_definition
-                    .get_real_world_position_of_tile(west.x, west.y)
+                    .get_real_world_position_of_tile((west.x, west.y))
                     .expect(
                         format!("Failed to get real world position of tile {:?}", west).as_str(),
                     );

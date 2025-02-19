@@ -138,7 +138,7 @@ impl From<SimplifiedRGB> for Color {
 #[serde(rename_all = "camelCase")]
 pub struct MapDefinition {
     pub width: usize,
-    pub height: usize,
+    pub depth: usize,
 
     pub floor_color: SimplifiedRGB,
 
@@ -153,13 +153,16 @@ pub struct MapDefinition {
 }
 
 impl MapDefinition {
-    pub fn get_floor_height_of_tile(&self, x: usize, y: usize) -> Option<f32> {
-        self.tiles.get(y).and_then(|row| row.get(x)).copied()
+    pub fn get_floor_height_of_tile(&self, tile: impl Into<TileDefinition>) -> Option<f32> {
+        let tile = TileDefinition::from(tile.into());
+        self.tiles
+            .get(tile.y)
+            .and_then(|row| row.get(tile.x))
+            .copied()
     }
 
-    pub fn get_real_world_position_of_tile(&self, x: usize, y: usize) -> Option<Vec3> {
-        self.get_floor_height_of_tile(x, y)
-            .map(|height| Vec3::new(x as f32 + 0.5, height, y as f32 + 0.5))
+    pub fn get_real_world_position_of_tile(&self, tile: impl Into<TileDefinition>) -> Option<Vec3> {
+        self.get_center_of_tile(tile.into())
     }
 
     pub fn get_all_spawn_points_of_group(&self, group: &str) -> Vec<(Vec3, usize)> {
@@ -169,7 +172,7 @@ impl MapDefinition {
                 if marker.group == group {
                     match &marker.kind {
                         MarkerType::Spawn { spawn_number, .. } => self
-                            .get_real_world_position_of_tile(marker.tile.x, marker.tile.y)
+                            .get_real_world_position_of_tile((marker.tile.x, marker.tile.y))
                             .map(|pos| (pos, *spawn_number)),
                         _ => None,
                     }
@@ -187,7 +190,7 @@ impl MapDefinition {
                     MarkerType::Spawn {
                         spawn_number: n, ..
                     } if *n == spawn_number => {
-                        Some(self.get_real_world_position_of_tile(marker.tile.x, marker.tile.y)?)
+                        Some(self.get_real_world_position_of_tile((marker.tile.x, marker.tile.y))?)
                     }
                     _ => None,
                 }
@@ -214,39 +217,39 @@ impl MapDefinition {
     }
 
     pub fn get_closest_tile(&self, position: Vec3) -> Option<TileDefinition> {
-        // Position is in center of the tile, so we need to remove the offset to get the top-left corner of the tile
-        let adjusted = position - Vec3::new(0.5, 0.0, 0.5);
-        let x = adjusted.x.round() as usize;
-        let y = adjusted.z.round() as usize;
+        const CELL_SIZE: f32 = 1.0;
+        let (x, y) = (position.x, position.z);
 
-        if x >= self.width || y >= self.height {
+        // Compute the indices by shifting by half a cell, dividing, and rounding.
+        let col = ((x - CELL_SIZE / 2.0) / CELL_SIZE).round() as isize;
+        let row = ((y - CELL_SIZE / 2.0) / CELL_SIZE).round() as isize;
+
+        // Ensure the indices are within bounds of the grid.
+        if row < 0
+            || row >= self.tiles.len() as isize
+            || col < 0
+            || col >= self.tiles[0].len() as isize
+        {
             return None;
         }
 
-        // The center of the candidate tile.
-        let tile_center = Vec3::new(x as f32 + 0.5, position.y, y as f32 + 0.5);
-
-        // If the given position is more than one tile unit away from the tile center, return None.
-        if (position - tile_center).length() > 1.0 {
-            None
-        } else {
-            Some(TileDefinition { x, y })
-        }
+        Some((col as usize, row as usize).into())
     }
 
-    pub fn get_neighbours(&self, x: usize, y: usize) -> TileNeighbours {
+    pub fn get_neighbours(&self, tile: impl Into<TileDefinition>) -> TileNeighbours {
+        let TileDefinition { x, y } = tile.into();
         let center = TileDefinition { x, y };
-        let north = (y + 1 < self.height).then(|| TileDefinition { x, y: y + 1 });
+        let north = (y + 1 < self.depth).then(|| TileDefinition { x, y: y + 1 });
         let south = (y > 0).then(|| TileDefinition { x, y: y - 1 });
         let east = (x > 0).then(|| TileDefinition { x: x - 1, y });
         let west = ((x + 1) < self.width).then(|| TileDefinition { x: x + 1, y });
 
-        let north_east = if x > 0 && (y + 1) < self.height {
+        let north_east = if x > 0 && (y + 1) < self.depth {
             Some(TileDefinition { x: x - 1, y: y + 1 })
         } else {
             None
         };
-        let north_west = if (x + 1) < self.width && (y + 1) < self.height {
+        let north_west = if (x + 1) < self.width && (y + 1) < self.depth {
             Some(TileDefinition { x: x + 1, y: y + 1 })
         } else {
             None
@@ -273,6 +276,19 @@ impl MapDefinition {
             south_east,
             south_west,
         }
+    }
+
+    pub fn get_center_of_map(&self) -> Vec3 {
+        Vec3::new(self.width as f32 / 2.0, 0.0, self.depth as f32 / 2.0)
+    }
+
+    pub fn get_center_of_tile(&self, tile: impl Into<TileDefinition>) -> Option<Vec3> {
+        let TileDefinition { x, y } = tile.into();
+        if let Some(height) = self.get_floor_height_of_tile((x, y)) {
+            return Some(Vec3::new(x as f32 + 0.5, height, y as f32 + 0.5));
+        }
+
+        None
     }
 }
 

@@ -67,10 +67,11 @@ pub fn sending_client_messages(
 
                         let length = (messages.len() as u32).to_le_bytes();
 
-                        let _ = stream.write_all(&length).expect("Failed to send length");
-                        let _ = stream
-                            .write_all(&messages)
-                            .expect("Failed to send messages");
+                        if let Err(err) = stream.write_all(&length) {
+                            error!("Failed to send length to client: {}", err);
+                        } else if let Err(err) = stream.write_all(&messages) {
+                            error!("Failed to send messages to client: {}", err);
+                        }
                     }
                 } else {
                     // Is a dummy client

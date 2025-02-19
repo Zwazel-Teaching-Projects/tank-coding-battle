@@ -128,13 +128,13 @@ fn check_collision_and_apply_movement(
                 if tx < 0
                     || tz < 0
                     || (tx as usize) >= map_definition.width
-                    || (tz as usize) >= map_definition.height
+                    || (tz as usize) >= map_definition.depth
                 {
                     collision = true;
                     break;
                 }
                 if let Some(tile_height) =
-                    map_definition.get_floor_height_of_tile(tx as usize, tz as usize)
+                    map_definition.get_floor_height_of_tile((tx as usize, tz as usize))
                 {
                     // Update candidate floor: use the highest floor value beneath the tank.
                     candidate_floor = candidate_floor.max(tile_height);
@@ -159,7 +159,7 @@ fn check_collision_and_apply_movement(
         for tx in tile_min_x..tile_max_x {
             for tz in tile_min_z..tile_max_z {
                 if let Some(tile_height) =
-                    map_definition.get_floor_height_of_tile(tx as usize, tz as usize)
+                    map_definition.get_floor_height_of_tile((tx as usize, tz as usize))
                 {
                     if (candidate_floor - tile_height).abs() > max_slope {
                         collision = true;
