@@ -11,7 +11,6 @@ use shared::{
 pub struct MyPositionGizmos {}
 
 const NEIGHBOR_SIZE: f32 = 0.3;
-const CENTER_SIZE: f32 = 0.5;
 
 /// Visualizes neighboring cells of a given cell and the cell itself
 pub fn visualize_cells(
@@ -32,13 +31,10 @@ pub fn visualize_cells(
         let closest_tile = map_definition
             .get_closest_tile(position)
             .expect(format!("Failed to get closest tile to position {:?}", position).as_str());
-        if let Some(tile) = map_definition
-            .get_real_world_position_of_tile(closest_tile.x, closest_tile.y)
+        if let Some(_) =
+            map_definition.get_real_world_position_of_tile(closest_tile.x, closest_tile.y)
         {
-            my_gizmos.circle(Isometry3d::new(tile, rotation), CENTER_SIZE, GREEN);
-
-            let neighbors = map_definition
-                .get_neighbours(closest_tile.x, closest_tile.y);
+            let neighbors = map_definition.get_neighbours(closest_tile.x, closest_tile.y);
 
             // Center
             let center_position = map_definition

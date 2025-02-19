@@ -55,88 +55,136 @@ fn check_collision_and_apply_movement(
     tank_config: &TankConfig,
     map_definition: &MapDefinition,
 ) -> Vec3 {
+    // Extract configuration values.
     let max_slope = tank_config.max_slope;
-    let half_extents = tank_config.size; // x/z: half extents, y: vertical offset (ignored for collision)
+    // For horizontal collision, use half extents from size.x and size.z.
+    let half_width = tank_config.size.x;
+    let half_depth = tank_config.size.z;
+    // Vertical offset: the tank’s “base” height offset relative to the map floor.
+    let vertical_offset = tank_config.size.y;
 
-    let start_pos = current_transform.position;
-    let move_vec = *target_position - start_pos;
-    let distance = move_vec.length();
+    // We'll start from the current position and step toward the target.
+    let mut safe_position = current_transform.position;
+    let total_distance = (*target_position - current_transform.position).length();
+    // Define a small step size (adjust as needed).
+    let step_size = 0.1;
+    let steps = (total_distance / step_size).ceil() as i32;
 
-    // Define a resolution for sampling—finer steps catch even the feeblest obstacle.
-    let step_size = 0.1; // Adjust as needed for precision
-    let steps = (distance / step_size).ceil() as usize;
-    let mut last_valid_position = start_pos;
-
-    // Define the local corners of the tank's bounding box (relative to its center)
-    let local_corners = [
-        Vec3::new(half_extents.x, 0.0, half_extents.z),
-        Vec3::new(-half_extents.x, 0.0, half_extents.z),
-        Vec3::new(-half_extents.x, 0.0, -half_extents.z),
-        Vec3::new(half_extents.x, 0.0, -half_extents.z),
-    ];
-
-    // Sample the path from the start to the target position.
+    // We assume that the tank always moves forward in the direction it faces.
+    // (If target_position is computed from input, then a linear interpolation works fine.)
     for i in 1..=steps {
+        // Linear interpolation parameter.
         let t = i as f32 / steps as f32;
-        let candidate_pos = start_pos + move_vec * t;
+        // Candidate new position along the movement path.
+        let candidate_horizontal = current_transform.position.lerp(*target_position, t);
 
-        // Obtain the center tile (using the candidate's position)
-        let center_tile = map_definition.get_closest_tile(candidate_pos);
-        if center_tile.is_none() {
-            // Out of bounds – an invisible wall stops your advance!
-            break;
-        }
-        let center_tile_def = center_tile.unwrap();
-        // Retrieve the floor height at the center tile.
-        let center_floor =
-            match map_definition.get_floor_height_of_tile(center_tile_def.x, center_tile_def.y) {
-                Some(h) => h,
-                None => break, // Shouldn't occur; treat as collision.
-            };
+        // Compute the tank's rotated footprint.
+        // We'll derive the right and forward vectors from the tank's rotation.
+        // (Assuming that, in local space, forward is along +Z and right is along +X.)
+        let forward = current_transform.rotation * Vec3::new(0.0, 0.0, 1.0);
+        let right = current_transform.rotation * Vec3::new(1.0, 0.0, 0.0);
 
-        // Now, check each corner of the rotated bounding box.
-        let mut collision = false;
-        for local_corner in &local_corners {
-            // Rotate the local corner to world space
-            let rotated_corner = current_transform.rotation.mul_vec3(*local_corner);
-            let world_corner = candidate_pos + rotated_corner;
+        // Compute the four corners of the tank's base in world space.
+        let corners = [
+            candidate_horizontal + right * half_width + forward * half_depth,
+            candidate_horizontal - right * half_width + forward * half_depth,
+            candidate_horizontal + right * half_width - forward * half_depth,
+            candidate_horizontal - right * half_width - forward * half_depth,
+        ];
 
-            // Check the tile under this corner.
-            let tile = map_definition.get_closest_tile(world_corner);
-            if tile.is_none() {
-                collision = true;
-                break;
+        // Determine the axis-aligned bounding box (AABB) of these corners.
+        let (mut min_x, mut max_x, mut min_z, mut max_z) =
+            (std::f32::MAX, std::f32::MIN, std::f32::MAX, std::f32::MIN);
+        for corner in &corners {
+            if corner.x < min_x {
+                min_x = corner.x;
             }
-            let tile_def = tile.unwrap();
-            let tile_floor = match map_definition.get_floor_height_of_tile(tile_def.x, tile_def.y) {
-                Some(h) => h,
-                None => {
+            if corner.x > max_x {
+                max_x = corner.x;
+            }
+            if corner.z < min_z {
+                min_z = corner.z;
+            }
+            if corner.z > max_z {
+                max_z = corner.z;
+            }
+        }
+
+        // Convert world coordinates to tile indices.
+        let tile_min_x = min_x.floor() as isize;
+        let tile_max_x = max_x.ceil() as isize;
+        let tile_min_z = min_z.floor() as isize;
+        let tile_max_z = max_z.ceil() as isize;
+
+        let mut collision = false;
+        // We'll also compute the candidate "floor" height as the maximum tile height
+        // beneath the tank's footprint—this simulates the tank climbing up.
+        let mut candidate_floor = std::f32::MIN;
+
+        // Iterate over all tiles covered by the AABB.
+        for tx in tile_min_x..tile_max_x {
+            for tz in tile_min_z..tile_max_z {
+                // Out-of-bounds is treated as a collision (an invisible wall).
+                if tx < 0
+                    || tz < 0
+                    || (tx as usize) >= map_definition.width
+                    || (tz as usize) >= map_definition.height
+                {
                     collision = true;
                     break;
                 }
-            };
-
-            // If the slope is too steep relative to the center floor, declare a collision.
-            if (tile_floor - center_floor).abs() > max_slope {
-                collision = true;
+                if let Some(tile_height) =
+                    map_definition.get_floor_height_of_tile(tx as usize, tz as usize)
+                {
+                    // Update candidate floor: use the highest floor value beneath the tank.
+                    candidate_floor = candidate_floor.max(tile_height);
+                } else {
+                    collision = true;
+                    break;
+                }
+            }
+            if collision {
                 break;
             }
         }
 
-        // If any corner collides, we cannot proceed further.
+        // If any tile is out-of-bounds, we have a collision.
         if collision {
             break;
         }
 
-        // Otherwise, the candidate position is still valid.
-        last_valid_position = candidate_pos;
+        // Check that the terrain variation under the tank is not too steep.
+        // In other words, for every tile beneath the tank, the difference between
+        // the candidate floor (max height) and the tile's height must be ≤ max_slope.
+        for tx in tile_min_x..tile_max_x {
+            for tz in tile_min_z..tile_max_z {
+                if let Some(tile_height) =
+                    map_definition.get_floor_height_of_tile(tx as usize, tz as usize)
+                {
+                    if (candidate_floor - tile_height).abs() > max_slope {
+                        collision = true;
+                        break;
+                    }
+                }
+            }
+            if collision {
+                break;
+            }
+        }
+
+        // If a collision is detected at this step, stop moving further.
+        if collision {
+            break;
+        }
+
+        // Otherwise, update the safe position.
+        // We set the tank's y coordinate so that its base sits at candidate_floor plus vertical_offset.
+        safe_position = Vec3::new(
+            candidate_horizontal.x,
+            candidate_floor + vertical_offset,
+            candidate_horizontal.z,
+        );
     }
 
-    // Finally, adjust the Y coordinate of the valid position to match the terrain.
-    if let Some(center_tile) = map_definition.get_closest_tile(last_valid_position) {
-        if let Some(floor) = map_definition.get_floor_height_of_tile(center_tile.x, center_tile.y) {
-            last_valid_position.y = floor;
-        }
-    }
-    last_valid_position
+    safe_position
 }
