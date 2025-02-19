@@ -1,4 +1,7 @@
-use bevy::{color::palettes::css::WHITE, prelude::*};
+use bevy::{
+    color::palettes::css::{GREEN, WHITE},
+    prelude::*,
+};
 use bevy_mod_billboard::BillboardText;
 use shared::{
     game::player_handling::TankTransform,
@@ -62,6 +65,7 @@ pub fn create_player_visualisation(
                 tank_type.clone(),
             ))
             .with_children(|commands| {
+                // Name tag
                 commands.spawn((
                     BillboardText::new(&player.client_name),
                     TextFont::from_font(font.clone()).with_font_size(60.0),
@@ -69,6 +73,17 @@ pub fn create_player_visualisation(
                     TextLayout::new_with_justify(JustifyText::Center),
                     Transform::from_translation(Vec3::new(0.0, 1.0, 0.0))
                         .with_scale(Vec3::splat(0.0085)),
+                ));
+
+                // Forward marker
+                commands.spawn((
+                    Name::new("Forward marker"),
+                    Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.1))),
+                    MeshMaterial3d(materials.add(StandardMaterial {
+                        base_color: GREEN.into(),
+                        ..Default::default()
+                    })),
+                    Transform::from_translation(Vec3::new(0.0, 0.0, tank_config.size.z + 0.2)),
                 ));
             })
             .id();
