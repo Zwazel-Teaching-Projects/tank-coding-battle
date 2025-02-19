@@ -1,7 +1,7 @@
 use bevy::{prelude::*, utils::HashMap};
 use shared::{
-    asset_handling::config::ServerConfigSystemParam,
-    game::player_handling::TankTransform,
+    asset_handling::config::{ServerConfigSystemParam, TankConfigSystemParam},
+    game::{player_handling::TankTransform, tank_types::TankType},
     networking::{
         lobby_management::{
             lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
@@ -148,6 +148,7 @@ pub fn check_if_lobby_should_start(
                         InLobby(lobby_entity),
                         dummy_client,
                         ClientType::Dummy,
+                        TankType::LightTank,
                     ))
                     .id();
                 team.players.push(dummy);
@@ -185,10 +186,11 @@ pub fn start_lobby(
     trigger: Trigger<StartLobbyTrigger>,
     mut lobby_management: LobbyManagementSystemParam,
     mut queues: Query<&mut ImmediateOutMessageQueue>,
-    clients: Query<(&MyNetworkClient, &ClientType)>,
+    clients: Query<(&MyNetworkClient, &ClientType, Option<&TankType>)>,
     client_in_team: Query<&InTeam>,
     mut tank_positions: Query<&mut TankTransform>,
     server_config: ServerConfigSystemParam,
+    tank_config: TankConfigSystemParam,
 ) {
     let lobby_entity = trigger.entity();
     let lobby = lobby_management
@@ -206,6 +208,7 @@ pub fn start_lobby(
         .teams;
 
     let server_config = server_config.server_config();
+    let tank_configs = tank_config.tank_configs();
 
     let connected_clients =
         get_connected_configs_in_lobby(&lobby_management, lobby_entity, &clients);
@@ -220,7 +223,7 @@ pub fn start_lobby(
                 let mut tank_transform = tank_positions
                     .get_mut(client_entity)
                     .expect("Failed to get tank transform");
-                let (client, client_type) =
+                let (client, client_type, tank_type) =
                     clients.get(client_entity).expect("Failed to get client");
 
                 match client_type {
@@ -237,7 +240,12 @@ pub fn start_lobby(
                             map.get_spawn_point_position(client_team, spawn_point);
 
                         if let Some(spawn_point_position) = spawn_point_position {
-                            tank_transform.position = spawn_point_position;
+                            let tank_config = tank_configs
+                                .tanks
+                                .get(tank_type.expect("Failed to get tank type"))
+                                .expect("Failed to get tank config");
+                            tank_transform.position =
+                                spawn_point_position + Vec3::new(0.0, tank_config.size.y, 0.0);
                         } else {
                             error!(
                                 "Failed to get spawn point position for team {} and spawn point {}",
@@ -255,6 +263,7 @@ pub fn start_lobby(
                         tick_rate: server_config.tick_rate,
                         map_definition: map.clone(),
                         team_configs: team_configs.clone(),
+                        tank_configs: tank_configs.tanks.clone(),
                     }),
                 ));
             }
@@ -271,7 +280,7 @@ pub fn start_lobby(
 fn get_connected_configs_in_lobby(
     lobby_management: &LobbyManagementSystemParam,
     lobby_entity: Entity,
-    clients: &Query<(&MyNetworkClient, &ClientType)>,
+    clients: &Query<(&MyNetworkClient, &ClientType, Option<&TankType>)>,
 ) -> Vec<ConnectedClientConfig> {
     lobby_management
         .get_lobby(lobby_entity)
@@ -282,11 +291,12 @@ fn get_connected_configs_in_lobby(
             // Iterate through each team directly
             for (team_name, team) in map_config.teams.iter() {
                 for player in team.players.iter() {
-                    if let Some((client, _client_type)) = clients.get(*player).ok() {
+                    if let Some((client, _client_type, tank_type)) = clients.get(*player).ok() {
                         connected_configs.push(ConnectedClientConfig {
                             client_id: *player,
                             client_name: client.name.as_ref().unwrap().clone(),
                             client_team: team_name.clone(),
+                            client_tank_type: tank_type.expect("Failed to get tank type").clone(),
                             assigned_spawn_point: client.assigned_spawn_point.unwrap(),
                         });
                     } else {

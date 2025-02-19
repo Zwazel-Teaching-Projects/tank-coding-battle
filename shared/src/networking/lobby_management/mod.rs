@@ -17,7 +17,8 @@ use crate::{
 };
 
 use super::messages::{
-    message_data::first_contact::ClientType, message_queue::ImmediateOutMessageQueue,
+    message_data::first_contact::ClientType,
+    message_queue::{ImmediateOutMessageQueue, MessageQueue},
 };
 
 pub mod lobby_management;
@@ -89,14 +90,17 @@ pub struct MyLobby {
     pub map_name: String,
     pub map_config: Option<MapConfig>,
 
+    /// Timer for ticking the lobby
     pub tick_timer: Timer,
+    /// The currently, finished tick
     pub tick_processed: u64,
+    /// All unprocessed messages received by the lobby (will be processed in the next tick, or dropped if the messages are too old)
+    pub messages: MessageQueue,
 }
 
 impl MyLobby {
     pub fn new(name: String, map_name: String, tick_rate: u64) -> Self {
         let time_per_tick = 1.0 / tick_rate as f32;
-        info!("Time per tick: {}", time_per_tick);
 
         Self {
             state: LobbyState::default(),
@@ -110,6 +114,8 @@ impl MyLobby {
 
             tick_timer: Timer::from_seconds(time_per_tick, TimerMode::Repeating),
             tick_processed: 0,
+
+            messages: MessageQueue::default(),
         }
     }
 

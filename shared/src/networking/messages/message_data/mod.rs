@@ -5,6 +5,7 @@ pub mod game_starts;
 pub mod game_state;
 pub mod message_error_types;
 pub mod start_game_config;
+pub mod tank_messages;
 pub mod text_data;
 
 pub struct MySharedMessageDataPlugin;
@@ -17,6 +18,7 @@ impl Plugin for MySharedMessageDataPlugin {
             .register_type::<game_starts::GameStarts>()
             .register_type::<game_starts::ConnectedClientConfig>()
             .register_type::<text_data::TextDataWrapper>()
-            .register_type::<game_state::GameState>();
+            .register_type::<game_state::GameState>()
+            .add_plugins((tank_messages::MyTankMessagesPlugin,));
     }
 }

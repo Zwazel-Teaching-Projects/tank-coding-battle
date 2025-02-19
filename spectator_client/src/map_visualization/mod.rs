@@ -5,12 +5,14 @@ use shared::{
 };
 use visualize_markers::{draw_markers, MyMarkerGizmos};
 use visualize_players::update_player_positions;
+use visualize_positions::{visualize_cells, MyPositionGizmos};
 
 use crate::networking::MyNetworkStream;
 
 pub mod create_map;
 pub mod visualize_markers;
 pub mod visualize_players;
+pub mod visualize_positions;
 
 pub struct MyMapVisualizationPlugin;
 
@@ -18,15 +20,16 @@ impl Plugin for MyMapVisualizationPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MapMeshMarker>()
             .init_gizmo_group::<MyMarkerGizmos>()
+            .init_gizmo_group::<MyPositionGizmos>()
             .add_systems(
                 Update,
                 (
                     (
                         (listen_for_map_changes,).run_if(any_with_component::<MapMeshMarker>),
-                        (draw_markers,),
+                        (draw_markers, visualize_cells),
                     )
                         .run_if(resource_exists::<GameStarts>),
-                    update_player_positions,
+                    (update_player_positions,),
                 )
                     .run_if(in_state(MyMainState::Ready)),
             )

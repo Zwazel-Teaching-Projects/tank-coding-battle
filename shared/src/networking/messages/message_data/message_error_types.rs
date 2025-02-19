@@ -14,4 +14,5 @@ pub enum ErrorMessageTypes {
     LobbyNotReadyToStart(String),
     TeamDoesNotExist(String),
     TeamFull(String),
+    InvalidFirstContact(String),
 }

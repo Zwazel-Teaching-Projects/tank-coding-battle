@@ -11,7 +11,7 @@ pub struct GameState {
         serialize_with = "serialize_hashmap",
         deserialize_with = "deserialize_hashmap"
     )]
-    pub client_states: HashMap<Entity, ClientState>,
+    pub client_states: HashMap<Entity, Option<ClientState>>,
 }
 
 fn serialize_hashmap<S, V>(map: &HashMap<Entity, V>, serializer: S) -> Result<S::Ok, S::Error>

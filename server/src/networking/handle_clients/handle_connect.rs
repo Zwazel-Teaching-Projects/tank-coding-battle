@@ -30,6 +30,8 @@ pub fn accept_connections_system(
                     .observe(remove_player_from_lobby)
                     .id();
 
+                info!("New client connected: {:?}", networked_client);
+
                 commands.trigger(ClientConnectedTrigger(networked_client));
             }
             Err(e) => {

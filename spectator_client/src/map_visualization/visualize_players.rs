@@ -25,6 +25,7 @@ pub fn create_player_visualisation(
 ) {
     let game_start = trigger.event();
     let map_definition = &game_start.map_definition;
+    let tank_configs = &game_start.tank_configs;
     let font = asset_server.load("fonts/FiraSans-Regular.ttf");
 
     for player in game_start.connected_clients.iter() {
@@ -34,21 +35,31 @@ pub fn create_player_visualisation(
             .map(|config| Color::from(config.color.clone()))
             .unwrap_or(WHITE.into());
 
+        let tank_type = &player.client_tank_type;
+        let tank_config = tank_configs
+            .get(tank_type)
+            .expect("Failed to get tank config");
+
         let player_position = map_definition
             .get_spawn_point_position(&player.client_team, player.assigned_spawn_point)
-            .unwrap()
-            + Vec3::new(0.0, 0.5, 0.0);
+            .expect("Failed to get spawn point position")
+            + Vec3::new(0.0, tank_config.size.y, 0.0);
 
         let entity = commands
             .spawn((
                 Name::new(player.client_name.clone()),
-                Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+                Mesh3d(meshes.add(Cuboid::new(
+                    tank_config.size.x * 2.0,
+                    tank_config.size.y * 2.0,
+                    tank_config.size.z * 2.0,
+                ))),
                 MeshMaterial3d(materials.add(team_color)),
                 Transform::from_translation(player_position),
                 TankTransform {
                     position: player_position,
                     rotation: Quat::IDENTITY,
                 },
+                tank_type.clone(),
             ))
             .with_children(|commands| {
                 commands.spawn((

@@ -24,12 +24,12 @@ pub fn handle_reading_messages(
     )>,
     mut outgoing_message_queues: Query<&mut OutMessageQueue>,
     mut immediate_message_queues: Query<&mut ImmediateOutMessageQueue>,
-    lobby_management: LobbyManagementSystemParam,
+    mut lobby_management: LobbyManagementSystemParam,
 ) {
     for (sender, mut network_client, in_lobby, in_team) in clients.iter_mut() {
         let addr = network_client.get_address();
         if let Some(stream) = &mut network_client.stream {
-            // First, read the 4-byte length prefix
+            // Read the 4-byte length prefix for the payload length
             let mut len_buf = [0u8; 4];
             if let Err(e) = stream.read_exact(&mut len_buf) {
                 if e.kind() == std::io::ErrorKind::WouldBlock {
@@ -41,13 +41,12 @@ pub fn handle_reading_messages(
                 }
             }
             let msg_len = u32::from_be_bytes(len_buf) as usize;
-
             if msg_len == 0 {
                 // No message to read
                 continue;
             }
 
-            // Allocate a buffer to hold the entire message
+            // Read the actual message payload into a buffer
             let mut buf = vec![0u8; msg_len];
             if let Err(e) = stream.read_exact(&mut buf) {
                 error!(
@@ -67,59 +66,69 @@ pub fn handle_reading_messages(
                 }
             };
 
-            // Deserialize the JSON into your MessageContainer
-            match serde_json::from_str::<MessageContainer>(&received) {
-                Ok(mut message_container) => {
-                    message_container.sender = Some(sender);
-                    if let Some(in_lobby) = in_lobby {
-                        message_container.tick_received = lobby_management
-                            .get_lobby_gamestate(**in_lobby)
-                            // TODO Replace with adding error to queue, not panicking
-                            .expect("Failed to get lobby game state")
-                            .tick;
-                    }
+            // Deserialize the JSON into an array of MessageContainers
+            match serde_json::from_str::<Vec<MessageContainer>>(&received) {
+                Ok(mut messages) => {
+                    for message_container in messages.iter_mut() {
+                        message_container.sender = Some(sender);
+                        // If we're in the lobby, add all messages to the lobby's message queue, so we can process them in the correct moment. expecting all non-server-only messages
+                        if let Some(in_lobby) = in_lobby {
+                            // Set the received tick to the current tick of the lobby
+                            message_container.tick_received = lobby_management
+                                .get_lobby_gamestate(**in_lobby)
+                                // TODO Replace with adding error to queue, not panicking
+                                .expect("Failed to get lobby game state")
+                                .tick;
+                            message_container.tick_to_be_processed_at =
+                                message_container.tick_received + 1;
 
-                    info!(
-                        "Received message from client \"{:?}\":\n{:?}",
-                        addr, message_container
-                    );
+                            // Add message to the lobby's message queue
+                            lobby_management
+                                .get_lobby_mut(**in_lobby)
+                                // TODO Replace with adding error to queue, not panicking
+                                .expect("Failed to get lobby")
+                                .messages
+                                .push_back(message_container.clone());
+                        } else {
+                            // If we're not in the lobby, add the message to the immediate message queue. expecting server only messages
+                            let lobby_arg = LobbyManagementArgument {
+                                lobby: in_lobby.map(|l| **l),
+                                sender: Some(sender),
+                                target_player: match message_container.target {
+                                    MessageTarget::Client(e) => Some(e),
+                                    _ => None,
+                                },
+                                team_name: in_team.map(|t| t.0.clone()),
+                            };
 
-                    let lobby_arg = LobbyManagementArgument {
-                        lobby: in_lobby.map(|l| **l),
-                        sender: Some(sender),
-                        target_player: match message_container.target {
-                            MessageTarget::Client(e) => Some(e),
-                            _ => None,
-                        },
-                        team_name: in_team.map(|t| t.0.clone()),
-                    };
+                            let result = message_container.trigger_message_received(
+                                &mut commands,
+                                &lobby_management,
+                                lobby_arg,
+                                &mut outgoing_message_queues,
+                            );
 
-                    let result = message_container.trigger_message_received(
-                        &mut commands,
-                        &lobby_management,
-                        lobby_arg,
-                        &mut outgoing_message_queues,
-                    );
+                            if let Err(e) = result {
+                                error!(
+                                    "Failed to handle message from client \"{:?}\":\n{:?}",
+                                    addr, e
+                                );
 
-                    if let Err(e) = result {
-                        error!(
-                            "Failed to handle message from client \"{:?}\":\n{:?}",
-                            addr, e
-                        );
-
-                        let mut error_queue = immediate_message_queues
-                            .get_mut(sender)
-                            // TODO Replace with adding error to queue, not panicking
-                            .expect("Failed to get outgoing message queue from sender");
-                        error_queue.push_back(MessageContainer::new(
-                            MessageTarget::Client(sender),
-                            NetworkMessageType::MessageError(e),
-                        ));
+                                let mut error_queue = immediate_message_queues
+                                    .get_mut(sender)
+                                    // TODO Replace with adding error to queue, not panicking
+                                    .expect("Failed to get outgoing message queue from sender");
+                                error_queue.push_back(MessageContainer::new(
+                                    MessageTarget::Client(sender),
+                                    NetworkMessageType::MessageError(e),
+                                ));
+                            }
+                        }
                     }
                 }
                 Err(e) => {
                     error!(
-                        "Failed to parse JSON from {:?}: {}. Raw data: {}",
+                        "Failed to parse JSON array from {:?}: {}. Raw data: {}",
                         addr, e, received
                     );
                     // TODO add error message to queue
