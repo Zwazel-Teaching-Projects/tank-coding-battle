@@ -1,6 +1,18 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
+#[reflect(Component)]
+pub struct TankBodyMarker {
+    pub turret: Option<Entity>,
+}
+
+#[derive(Debug, Component, Reflect, Clone, PartialEq)]
+#[reflect(Component)]
+pub struct TankTurretMarker {
+    pub body: Entity,
+}
+
 #[derive(Debug, Component, Reflect, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[reflect(Component)]
 #[serde(rename_all = "camelCase")]

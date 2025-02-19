@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     game::{
         game_state::{ClientState, PersonalizedClientGameState},
-        player_handling::TankTransform,
+        player_handling::{TankBodyMarker, TankTransform, TankTurretMarker},
         tank_types::TankType,
     },
     networking::{
@@ -23,7 +23,8 @@ use super::triggers::{
 pub fn update_lobby_state(
     trigger: Trigger<UpdateLobbyGameStateTrigger>,
     mut lobby_management: LobbyManagementSystemParam,
-    client_infos: Query<(&TankTransform, &TankType)>,
+    tanks: Query<(&TankTransform, &TankType, &TankBodyMarker)>,
+    turrets: Query<&TankTransform, With<TankTurretMarker>>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
@@ -40,15 +41,19 @@ pub fn update_lobby_state(
         .expect("Failed to get lobby game state");
 
     for player_entity in player_entities.iter() {
-        let (tank_position, _tank_type) = client_infos
-            .get(*player_entity)
-            .expect("Failed to get tank position");
+        let (tank_transform, _tank_type, tank_body) =
+            tanks.get(*player_entity).expect("Failed to get tank");
+
+        let turret_transform = turrets
+            .get(tank_body.turret.expect("Failed to get turret entity"))
+            .expect("Failed to get turret");
 
         let client_state = game_state
             .client_states
             .entry(*player_entity)
             .or_insert_with(|| ClientState::new(*player_entity));
-        client_state.transform = Some(tank_position.clone());
+        client_state.transform_body = Some(tank_transform.clone());
+        client_state.transform_turret = Some(turret_transform.clone());
     }
 
     commands.trigger_targets(

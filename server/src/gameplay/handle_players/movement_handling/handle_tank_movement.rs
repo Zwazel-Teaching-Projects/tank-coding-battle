@@ -7,9 +7,7 @@ use shared::{
     game::{player_handling::TankTransform, tank_types::TankType},
     networking::{
         lobby_management::{InLobby, MyLobby},
-        messages::{
-            message_container::MoveTankCommandTrigger, message_data::tank_messages::MoveDirection,
-        },
+        messages::message_container::MoveTankCommandTrigger,
     },
 };
 
@@ -26,10 +24,7 @@ pub fn handle_tank_movement(
     let tank_config = tank_config
         .get_tank_type_config(tank_type)
         .expect("Failed to get tank config");
-    let direction = match trigger.direction {
-        MoveDirection::Forward => 1.0,
-        MoveDirection::Backward => -1.0,
-    };
+    let direction = trigger.direction.to_movement();
     let speed = tank_config.move_speed.min(trigger.distance);
     let distance = direction * speed;
     let move_direction = tank_transform.rotation * Vec3::new(0.0, 0.0, distance);

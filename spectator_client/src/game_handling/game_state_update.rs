@@ -1,13 +1,18 @@
 use bevy::prelude::*;
 use shared::{
-    game::player_handling::TankTransform, networking::messages::message_container::GameStateTrigger,
+    game::player_handling::{TankBodyMarker, TankTransform, TankTurretMarker},
+    networking::messages::message_container::GameStateTrigger,
 };
 
 use super::entity_mapping::MyEntityMapping;
 
 pub fn game_state_updated(
     game_state: Trigger<GameStateTrigger>,
-    mut clients: Query<(&mut TankTransform, &MyEntityMapping)>,
+    mut tank_body: Query<
+        (&mut TankTransform, &MyEntityMapping, &TankBodyMarker),
+        Without<TankTurretMarker>,
+    >,
+    mut tank_turret: Query<&mut TankTransform, With<TankTurretMarker>>,
 ) {
     let game_state = &(**game_state.event());
 
@@ -15,21 +20,34 @@ pub fn game_state_updated(
         .client_states
         .iter()
         .for_each(|(client_entity, client_state)| {
-            clients
-                .iter_mut()
-                .for_each(|(mut tank_transform, entity_mapping)| {
+            tank_body.iter_mut().for_each(
+                |(mut current_body_transform, entity_mapping, tank_body)| {
                     if entity_mapping.server_entity == *client_entity {
-                        let transform = client_state
+                        let new_body_transform = client_state
                             .as_ref()
                             .expect("Client state is missing")
-                            .transform
+                            .transform_body
                             .clone()
                             .expect("Position is missing");
-                        tank_transform.position = transform.position;
-                        tank_transform.rotation = transform.rotation;
+                        current_body_transform.position = new_body_transform.position;
+                        current_body_transform.rotation = new_body_transform.rotation;
+
+                        let new_turret_transform = client_state
+                            .as_ref()
+                            .expect("Client state is missing")
+                            .transform_turret
+                            .clone()
+                            .expect("Position is missing");
+                        let mut current_turret_transform = tank_turret
+                            .get_mut(tank_body.turret.expect("Failed to get turret entity"))
+                            .expect("Failed to get turret");
+
+                        current_turret_transform.position = new_turret_transform.position;
+                        current_turret_transform.rotation = new_turret_transform.rotation;
 
                         return;
                     }
-                });
+                },
+            );
         });
 }

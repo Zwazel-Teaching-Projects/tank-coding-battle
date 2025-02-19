@@ -1,7 +1,10 @@
 use bevy::{prelude::*, utils::HashMap};
 use shared::{
     asset_handling::config::{ServerConfigSystemParam, TankConfigSystemParam},
-    game::{player_handling::TankTransform, tank_types::TankType},
+    game::{
+        player_handling::{TankBodyMarker, TankTransform},
+        tank_types::TankType,
+    },
     networking::{
         lobby_management::{
             lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
@@ -149,6 +152,7 @@ pub fn check_if_lobby_should_start(
                         dummy_client,
                         ClientType::Dummy,
                         TankType::LightTank,
+                        TankBodyMarker::default(),
                     ))
                     .id();
                 team.players.push(dummy);

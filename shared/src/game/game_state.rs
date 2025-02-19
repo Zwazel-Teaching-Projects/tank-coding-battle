@@ -41,7 +41,7 @@ pub struct PersonalizedClientGameState {
 
 impl PersonalizedClientGameState {
     pub fn clear_states(&mut self) {
-        self.personal_state.transform = None;
+        self.personal_state.transform_body = None;
         for (_, state) in self.other_client_states.iter_mut() {
             state
                 .as_mut()
@@ -77,17 +77,23 @@ impl From<PersonalizedClientGameState> for GameState {
 pub struct ClientState {
     /// This is the entity id of the client
     pub id: Entity,
-    /// The position and rotation of the client.
+    /// The position and rotation of the clients body.
     /// None if the client that receives this state does not know the position of the client.
     /// e.g. because the client has not spotted the other client yet.
-    pub transform: Option<TankTransform>,
+    pub transform_body: Option<TankTransform>,
+    /// The position and rotation of the clients turret.
+    /// Relative to the body.
+    /// None if the client that receives this state does not know the position of the client.
+    /// e.g. because the client has not spotted the other client yet.
+    pub transform_turret: Option<TankTransform>,
 }
 
 impl ClientState {
     pub fn new(id: Entity) -> Self {
         ClientState {
             id,
-            transform: None,
+            transform_body: None,
+            transform_turret: None,
         }
     }
 
@@ -95,7 +101,8 @@ impl ClientState {
     /// e.g. the transform
     /// While the tank type is not cleared, as once a client knows the tank type of another client, it will not forget it as it is a constant property
     pub fn clear_non_persistent_information(&mut self) {
-        self.transform = None;
+        self.transform_body = None;
+        self.transform_turret = None;
     }
 }
 
@@ -103,7 +110,8 @@ impl Default for ClientState {
     fn default() -> Self {
         ClientState {
             id: Entity::PLACEHOLDER,
-            transform: None,
+            transform_body: None,
+            transform_turret: None,
         }
     }
 }

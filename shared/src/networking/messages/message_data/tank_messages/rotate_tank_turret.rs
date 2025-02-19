@@ -11,5 +11,6 @@ use super::RotationDirection;
 #[serde(rename_all = "camelCase")]
 pub struct RotateTankTurretCommand {
     pub direction: RotationDirection,
-    pub angle: f32,
+    pub yaw_angle: f32,
+    pub pitch_angle: f32,
 }

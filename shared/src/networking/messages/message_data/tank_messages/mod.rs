@@ -26,6 +26,15 @@ pub enum MoveDirection {
     Backward,
 }
 
+impl MoveDirection {
+    pub fn to_movement(&self) -> f32 {
+        match self {
+            MoveDirection::Forward => 1.0,
+            MoveDirection::Backward => -1.0,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Reflect, Clone, PartialEq, Component, Default)]
 #[reflect(Component)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -33,4 +42,13 @@ pub enum RotationDirection {
     #[default]
     Clockwise,
     CounterClockwise,
+}
+
+impl RotationDirection {
+    pub fn to_radians(&self) -> f32 {
+        match self {
+            RotationDirection::Clockwise => -1.0,
+            RotationDirection::CounterClockwise => 1.0,
+        }
+    }
 }

@@ -4,6 +4,7 @@ use dummy_handling::DummyClientMarker;
 use crate::networking::handle_clients::lib::MyNetworkClient;
 
 pub mod dummy_handling;
+pub mod insert_turret;
 pub mod movement_handling;
 pub mod update_client_states;
 
@@ -14,6 +15,7 @@ impl Plugin for HandlePlayersPlugin {
         app.register_type::<DummyClientMarker>()
             .add_plugins((movement_handling::MyMovementHandlingPlugin,))
             .add_observer(add_observers_to_client)
+            .add_observer(insert_turret::insert_turret)
             .add_observer(dummy_handling::add_observers_to_dummies)
             .add_observer(dummy_handling::add_dummy_simulation_observers_to_lobby);
     }

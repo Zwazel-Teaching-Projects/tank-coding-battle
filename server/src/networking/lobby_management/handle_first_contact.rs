@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use shared::{
     asset_handling::config::ServerConfigSystemParam,
+    game::player_handling::TankBodyMarker,
     networking::{
         lobby_management::{
             lobby_management::LobbyManagementSystemParam, AwaitingFirstContact,
@@ -58,7 +59,9 @@ pub fn handle_first_contact_message(
         match message.client_type {
             ClientType::Player => {
                 if let Some(tank_type) = &message.tank_type {
-                    commands.entity(client_entity).insert(tank_type.clone());
+                    commands
+                        .entity(client_entity)
+                        .insert((tank_type.clone(), TankBodyMarker::default()));
                 } else {
                     error!("Player client did not specify a tank type");
                     message_queue.push_back(MessageContainer::new(

@@ -4,7 +4,7 @@ use bevy::{
 };
 use bevy_mod_billboard::BillboardText;
 use shared::{
-    game::player_handling::TankTransform,
+    game::player_handling::{TankBodyMarker, TankTransform, TankTurretMarker},
     networking::messages::message_container::GameStartsTrigger,
 };
 
@@ -48,7 +48,8 @@ pub fn create_player_visualisation(
             .expect("Failed to get spawn point position")
             + Vec3::new(0.0, tank_config.size.y, 0.0);
 
-        let entity = commands
+        // Tank Body
+        let tank_body_entity = commands
             .spawn((
                 Name::new(player.client_name.clone()),
                 Mesh3d(meshes.add(Cuboid::new(
@@ -88,9 +89,45 @@ pub fn create_player_visualisation(
             })
             .id();
 
-        commands.entity(entity).insert(MyEntityMapping {
-            server_entity: player.client_id,
-            client_entity: entity,
-        });
+        // Turret
+        let turret = commands
+            .spawn((
+                Name::new("Turret Root"),
+                Transform::from_translation(Vec3::new(0.0, tank_config.size.y, 0.0)),
+                TankTransform {
+                    position: Vec3::new(0.0, tank_config.size.y, 0.0),
+                    rotation: Quat::IDENTITY,
+                },
+                TankTurretMarker {
+                    body: tank_body_entity,
+                },
+            ))
+            .with_children(|commands| {
+                // Turret, placed a bit in front of the turret root. This is just for visualization.
+                // more rectangle, long not wide or tall
+                commands.spawn((
+                    Name::new("Turret"),
+                    Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.5))),
+                    MeshMaterial3d(materials.add(StandardMaterial {
+                        base_color: team_color,
+                        ..Default::default()
+                    })),
+                    Transform::from_translation(Vec3::new(0.0, 0.0, 0.25)),
+                ));
+            })
+            .id();
+
+        commands
+            .entity(tank_body_entity)
+            .insert((
+                MyEntityMapping {
+                    server_entity: player.client_id,
+                    client_entity: tank_body_entity,
+                },
+                TankBodyMarker {
+                    turret: Some(turret),
+                },
+            ))
+            .add_child(turret);
     }
 }
