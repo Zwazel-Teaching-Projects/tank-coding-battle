@@ -30,6 +30,13 @@ pub fn update_client_states(
         .iter()
         .filter(|entity| **entity != client_entity)
         .collect::<Vec<_>>();
+    // Get all other players, filtering out myself and my teammates
+    let other_players = my_lobby
+        .players
+        .iter()
+        .filter(|(_, entity, _)| entity != &client_entity && !team_players.contains(&entity))
+        .map(|(_, entity, _)| *entity)
+        .collect::<Vec<_>>();
 
     let lobby_state = lobby_management
         .get_lobby_gamestate(lobby)
@@ -66,6 +73,20 @@ pub fn update_client_states(
     });
 
     // TODO: Add enemies' states to the state, as we might know them
+    // For now, we simply add all states to the state
+    other_players.iter().for_each(|entity| {
+        lobby_state
+            .client_states
+            .iter()
+            .for_each(|(state_entity, state)| {
+                if state_entity == entity {
+                    client_state
+                        .other_client_states
+                        .insert(*entity, Some(state.clone()));
+                    return;
+                }
+            });
+    });
 
     // Updating the tick
     client_state.tick = lobby_state.tick;
