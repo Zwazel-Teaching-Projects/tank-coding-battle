@@ -10,15 +10,6 @@ use shared::{
 
 use crate::game_handling::entity_mapping::MyEntityMapping;
 
-pub fn update_player_positions(
-    mut transforms: Query<(&mut Transform, &Transform), Changed<Transform>>,
-) {
-    for (mut transform, tank_transform) in transforms.iter_mut() {
-        transform.translation = tank_transform.translation;
-        transform.rotation = tank_transform.rotation;
-    }
-}
-
 pub fn create_player_visualisation(
     trigger: Trigger<GameStartsTrigger>,
     mut commands: Commands,

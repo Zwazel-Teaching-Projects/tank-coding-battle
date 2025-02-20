@@ -5,7 +5,6 @@ use shared::{
     networking::messages::message_data::game_starts::GameStarts,
 };
 use visualize_markers::{draw_markers, MyMarkerGizmos};
-use visualize_players::update_player_positions;
 use visualize_positions::{visualize_cells, MyPositionGizmos};
 use visulize_turret_ranges::{draw_turret_ranges, MyTurretRangeGizmos};
 
@@ -27,15 +26,12 @@ impl Plugin for MyMapVisualizationPlugin {
             .init_gizmo_group::<MyTurretRangeGizmos>()
             .add_systems(
                 Update,
-                (
-                    (
-                        (listen_for_map_changes,).run_if(any_with_component::<MapMeshMarker>),
-                        (draw_turret_ranges,).run_if(any_with_component::<TankTurretMarker>),
-                        (draw_markers, visualize_cells),
-                    )
-                        .run_if(resource_exists::<GameStarts>),
-                    (update_player_positions,),
+                ((
+                    (listen_for_map_changes,).run_if(any_with_component::<MapMeshMarker>),
+                    (draw_turret_ranges,).run_if(any_with_component::<TankTurretMarker>),
+                    (draw_markers, visualize_cells),
                 )
+                    .run_if(resource_exists::<GameStarts>),)
                     .run_if(in_state(MyMainState::Ready)),
             )
             .add_observer(add_observers_to_client);
