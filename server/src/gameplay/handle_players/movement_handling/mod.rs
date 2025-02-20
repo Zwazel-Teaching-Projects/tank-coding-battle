@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use shared::networking::lobby_management::MyLobby;
 
 use crate::networking::handle_clients::lib::MyNetworkClient;
 
@@ -10,7 +11,8 @@ pub struct MyMovementHandlingPlugin;
 
 impl Plugin for MyMovementHandlingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(add_observers_to_client);
+        app.add_observer(add_observers_to_client)
+            .add_observer(add_observers_to_lobby);
     }
 }
 
@@ -21,3 +23,5 @@ fn add_observers_to_client(trigger: Trigger<OnAdd, MyNetworkClient>, mut command
         .observe(handle_tank_rotation::handle_tank_body_rotation)
         .observe(handle_turret_rotation::handle_tank_turret_rotation);
 }
+
+fn add_observers_to_lobby(_trigger: Trigger<OnAdd, MyLobby>, mut _commands: Commands) {}

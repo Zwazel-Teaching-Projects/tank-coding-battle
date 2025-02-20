@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use shared::{
-    game::player_handling::{TankBodyMarker, TankTransform, TankTurretMarker},
+    game::player_handling::{TankBodyMarker, TankTurretMarker},
     networking::messages::message_container::GameStateTrigger,
 };
 
@@ -9,10 +9,10 @@ use super::entity_mapping::MyEntityMapping;
 pub fn game_state_updated(
     game_state: Trigger<GameStateTrigger>,
     mut tank_body: Query<
-        (&mut TankTransform, &MyEntityMapping, &TankBodyMarker),
+        (&mut Transform, &MyEntityMapping, &TankBodyMarker),
         Without<TankTurretMarker>,
     >,
-    mut tank_turret: Query<&mut TankTransform, With<TankTurretMarker>>,
+    mut tank_turret: Query<&mut Transform, With<TankTurretMarker>>,
 ) {
     let game_state = &(**game_state.event());
 
@@ -29,7 +29,7 @@ pub fn game_state_updated(
                             .transform_body
                             .clone()
                             .expect("Position is missing");
-                        current_body_transform.position = new_body_transform.position;
+                        current_body_transform.translation = new_body_transform.translation;
                         current_body_transform.rotation = new_body_transform.rotation;
 
                         let new_turret_transform = client_state
@@ -42,7 +42,7 @@ pub fn game_state_updated(
                             .get_mut(tank_body.turret.expect("Failed to get turret entity"))
                             .expect("Failed to get turret");
 
-                        current_turret_transform.position = new_turret_transform.position;
+                        current_turret_transform.translation = new_turret_transform.translation;
                         current_turret_transform.rotation = new_turret_transform.rotation;
 
                         return;

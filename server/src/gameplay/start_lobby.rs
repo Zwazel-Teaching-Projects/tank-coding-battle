@@ -1,10 +1,7 @@
 use bevy::{prelude::*, utils::HashMap};
 use shared::{
     asset_handling::config::{ServerConfigSystemParam, TankConfigSystemParam},
-    game::{
-        player_handling::{TankBodyMarker, TankTransform},
-        tank_types::TankType,
-    },
+    game::{player_handling::TankBodyMarker, tank_types::TankType},
     networking::{
         lobby_management::{
             lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
@@ -192,7 +189,7 @@ pub fn start_lobby(
     mut queues: Query<&mut ImmediateOutMessageQueue>,
     clients: Query<(&MyNetworkClient, &ClientType, Option<&TankType>)>,
     client_in_team: Query<&InTeam>,
-    mut tank_positions: Query<&mut TankTransform>,
+    mut tank_positions: Query<&mut Transform>,
     server_config: ServerConfigSystemParam,
     tank_config: TankConfigSystemParam,
 ) {
@@ -250,7 +247,7 @@ pub fn start_lobby(
                                 .tanks
                                 .get(tank_type.expect("Failed to get tank type"))
                                 .expect("Failed to get tank config");
-                            tank_transform.position =
+                            tank_transform.translation =
                                 spawn_point_position + Vec3::new(0.0, tank_config.size.y, 0.0);
                         } else {
                             error!(

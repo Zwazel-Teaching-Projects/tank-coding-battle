@@ -4,17 +4,17 @@ use bevy::{
 };
 use bevy_mod_billboard::BillboardText;
 use shared::{
-    game::player_handling::{TankBodyMarker, TankTransform, TankTurretMarker},
+    game::player_handling::{TankBodyMarker, TankTurretMarker},
     networking::messages::message_container::GameStartsTrigger,
 };
 
 use crate::game_handling::entity_mapping::MyEntityMapping;
 
 pub fn update_player_positions(
-    mut transforms: Query<(&mut Transform, &TankTransform), Changed<TankTransform>>,
+    mut transforms: Query<(&mut Transform, &Transform), Changed<Transform>>,
 ) {
     for (mut transform, tank_transform) in transforms.iter_mut() {
-        transform.translation = tank_transform.position;
+        transform.translation = tank_transform.translation;
         transform.rotation = tank_transform.rotation;
     }
 }
@@ -59,10 +59,6 @@ pub fn create_player_visualisation(
                 ))),
                 MeshMaterial3d(materials.add(team_color)),
                 Transform::from_translation(player_position),
-                TankTransform {
-                    position: player_position,
-                    rotation: Quat::IDENTITY,
-                },
                 tank_type.clone(),
             ))
             .with_children(|commands| {
@@ -94,10 +90,6 @@ pub fn create_player_visualisation(
             .spawn((
                 Name::new("Turret Root"),
                 Transform::from_translation(Vec3::new(0.0, tank_config.size.y, 0.0)),
-                TankTransform {
-                    position: Vec3::new(0.0, tank_config.size.y, 0.0),
-                    rotation: Quat::IDENTITY,
-                },
                 TankTurretMarker {
                     body: tank_body_entity,
                 },

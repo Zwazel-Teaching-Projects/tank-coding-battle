@@ -4,7 +4,7 @@ use shared::{
         config::{TankConfig, TankConfigSystemParam},
         maps::MapDefinition,
     },
-    game::{player_handling::TankTransform, tank_types::TankType},
+    game::tank_types::TankType,
     networking::{
         lobby_management::{InLobby, MyLobby},
         messages::message_container::MoveTankCommandTrigger,
@@ -13,12 +13,12 @@ use shared::{
 
 pub fn handle_tank_movement(
     trigger: Trigger<MoveTankCommandTrigger>,
-    mut client: Query<(&mut TankTransform, &TankType, &InLobby)>,
+    mut tank: Query<(&mut Transform, &TankType, &InLobby)>,
     tank_config: TankConfigSystemParam,
     lobby: Query<&MyLobby>,
 ) {
     let client_entity = trigger.entity();
-    let (mut tank_transform, tank_type, in_lobby) = client
+    let (mut tank_transform, tank_type, in_lobby) = tank
         .get_mut(client_entity)
         .expect("Failed to get tank transform");
     let tank_config = tank_config
@@ -28,11 +28,11 @@ pub fn handle_tank_movement(
     let speed = tank_config.move_speed.min(trigger.distance);
     let distance = direction * speed;
     let move_direction = tank_transform.rotation * Vec3::new(0.0, 0.0, distance);
-    let next_tank_position = tank_transform.position + move_direction;
+    let next_tank_position = tank_transform.translation + move_direction;
 
     let my_lobby = lobby.get(in_lobby.0).expect("Failed to get lobby");
 
-    tank_transform.position = check_collision_and_apply_movement(
+    tank_transform.translation = check_collision_and_apply_movement(
         &tank_transform,
         &next_tank_position,
         tank_config,
@@ -45,7 +45,7 @@ pub fn handle_tank_movement(
 }
 
 fn check_collision_and_apply_movement(
-    current_transform: &TankTransform,
+    current_transform: &Transform,
     target_position: &Vec3,
     tank_config: &TankConfig,
     map_definition: &MapDefinition,
@@ -59,8 +59,8 @@ fn check_collision_and_apply_movement(
     let vertical_offset = tank_config.size.y;
 
     // We'll start from the current position and step toward the target.
-    let mut safe_position = current_transform.position;
-    let total_distance = (*target_position - current_transform.position).length();
+    let mut safe_position = current_transform.translation;
+    let total_distance = (*target_position - current_transform.translation).length();
     // Define a small step size (adjust as needed).
     let step_size = 0.1;
     let steps = (total_distance / step_size).ceil() as i32;
@@ -71,7 +71,7 @@ fn check_collision_and_apply_movement(
         // Linear interpolation parameter.
         let t = i as f32 / steps as f32;
         // Candidate new position along the movement path.
-        let candidate_horizontal = current_transform.position.lerp(*target_position, t);
+        let candidate_horizontal = current_transform.translation.lerp(*target_position, t);
 
         // Compute the tank's rotated footprint.
         // We'll derive the right and forward vectors from the tank's rotation.

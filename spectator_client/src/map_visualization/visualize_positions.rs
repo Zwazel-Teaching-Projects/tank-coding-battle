@@ -3,8 +3,7 @@ use bevy::{
     prelude::*,
 };
 use shared::{
-    game::{player_handling::TankTransform, tank_types::TankType},
-    networking::messages::message_data::game_starts::GameStarts,
+    game::tank_types::TankType, networking::messages::message_data::game_starts::GameStarts,
 };
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
@@ -16,13 +15,13 @@ const NEIGHBOR_SIZE: f32 = 0.3;
 pub fn visualize_cells(
     mut my_gizmos: Gizmos<MyPositionGizmos>,
     game_config: Res<GameStarts>,
-    tanks: Query<(&TankTransform, &TankType)>,
+    tanks: Query<(&Transform, &TankType)>,
 ) {
     let map_definition = &game_config.map_definition;
     let rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
 
     for (tank_transform, tank_type) in tanks.iter() {
-        let position = tank_transform.position;
+        let position = tank_transform.translation;
         let tank_config = game_config
             .tank_configs
             .get(tank_type)

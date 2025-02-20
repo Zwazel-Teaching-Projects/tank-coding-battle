@@ -2,7 +2,7 @@ use std::net::TcpStream;
 
 use bevy::prelude::*;
 use shared::{
-    game::{game_state::PersonalizedClientGameState, player_handling::TankTransform},
+    game::game_state::PersonalizedClientGameState,
     networking::messages::message_queue::{ImmediateOutMessageQueue, OutMessageQueue},
 };
 
@@ -10,7 +10,7 @@ use shared::{
 #[require(
     OutMessageQueue,
     ImmediateOutMessageQueue,
-    TankTransform,
+    Transform,
     PersonalizedClientGameState
 )]
 pub struct MyNetworkClient {

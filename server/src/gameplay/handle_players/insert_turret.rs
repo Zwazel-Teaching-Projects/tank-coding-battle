@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
     game::{
-        player_handling::{TankBodyMarker, TankTransform, TankTurretMarker},
+        player_handling::{TankBodyMarker, TankTurretMarker},
         tank_types::TankType,
     },
 };
@@ -24,13 +24,10 @@ pub fn insert_turret(
         .spawn((
             Name::new("Turret"),
             TankTurretMarker { body: new_tank },
-            TankTransform::from(Transform::from_translation(Vec3::new(
-                0.0,
-                tank_config.size.y,
-                0.0,
-            ))),
+            Transform::from_translation(Vec3::new(0.0, tank_config.size.y, 0.0)),
         ))
         .id();
-
     tank_body.turret = Some(turret);
+
+    commands.entity(new_tank).add_child(turret);
 }
