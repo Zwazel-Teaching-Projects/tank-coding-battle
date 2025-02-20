@@ -10,24 +10,20 @@ use shared::{
 
 pub fn handle_tank_turret_rotation(
     trigger: Trigger<RotateTankTurretCommandTrigger>,
-    body_transform: Query<(&TankType, &TankBodyMarker), Without<TankTurretMarker>>,
+    body: Query<(&TankType, &TankBodyMarker), Without<TankTurretMarker>>,
     mut turret_transform: Query<&mut Transform, With<TankTurretMarker>>,
     tank_config: TankConfigSystemParam,
 ) {
     let client_entity = trigger.entity();
-    let (tank_type, tank_body) = body_transform
+    let (tank_type, tank_body) = body
         .get(client_entity)
         .expect("Failed to get tank transform");
     let tank_config = tank_config
         .get_tank_type_config(tank_type)
         .expect("Failed to get tank config");
 
-    // Convert rotation direction to radians.
-    let rotation_direction = trigger.direction.to_radians();
-
     // Calculate the delta rotations for yaw and pitch.
-    let yaw_delta =
-        tank_config.turret_yaw_rotation_speed.min(trigger.yaw_angle) * rotation_direction;
+    let yaw_delta = tank_config.turret_yaw_rotation_speed.min(trigger.yaw_angle);
     let pitch_delta = tank_config
         .turret_pitch_rotation_speed
         .min(trigger.pitch_angle);

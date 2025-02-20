@@ -7,8 +7,7 @@ use shared::{
         messages::{
             message_container::{MoveTankCommandTrigger, RotateTankBodyCommandTrigger},
             message_data::tank_messages::{
-                move_tank::MoveTankCommand, rotate_tank_body::RotateTankBodyCommand, MoveDirection,
-                RotationDirection,
+                move_tank::MoveTankCommand, rotate_tank_body::RotateTankBodyCommand,
             },
         },
     },
@@ -62,17 +61,12 @@ pub fn simulate_movement(
 
             // Simulate movement (randomly)
             if rand::random::<bool>() {
-                let direction = if rand::random() {
-                    MoveDirection::Forward
-                } else {
-                    MoveDirection::Backward
-                };
+                let direction = if rand::random() { 1.0 } else { -1.0 };
                 commands.trigger_targets(
                     MoveTankCommandTrigger {
                         sender: None,
                         message: MoveTankCommand {
-                            direction,
-                            distance: tank_config.move_speed,
+                            distance: tank_config.move_speed * direction,
                         },
                     },
                     *player,
@@ -81,17 +75,12 @@ pub fn simulate_movement(
 
             // Simulate rotation (randomly)
             if rand::random::<bool>() {
-                let direction = if rand::random() {
-                    RotationDirection::Clockwise
-                } else {
-                    RotationDirection::CounterClockwise
-                };
+                let direction = if rand::random() { 1.0 } else { -1.0 };
                 commands.trigger_targets(
                     RotateTankBodyCommandTrigger {
                         sender: None,
                         message: RotateTankBodyCommand {
-                            direction,
-                            angle: tank_config.body_rotation_speed,
+                            angle: tank_config.body_rotation_speed * direction,
                         },
                     },
                     *player,
