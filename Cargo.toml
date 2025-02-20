@@ -14,7 +14,7 @@ bevy_asset_loader = { version = "0.22.0", features = [
 ] }
 bevy_common_assets = { version = "0.12.0", features = ["ron"] }
 serde = "1"
-serde_json = "1.0.138"
+serde_json = "1"
 
 server = { path = "server" }
 spectator_client = { path = "spectator_client" }
@@ -32,11 +32,8 @@ rand = "0.9.0"
 default = ["bevy_debug"]
 bevy_debug = ["bevy/bevy_dev_tools", "bevy/file_watcher"]
 
-server = ["server/server", "shared/server"]
-spectator_client = [
-    "spectator_client/spectator_client",
-    "shared/spectator_client",
-]
+server = ["server/default"]
+spectator_client = ["spectator_client/default"]
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
