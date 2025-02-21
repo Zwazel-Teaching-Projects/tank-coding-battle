@@ -24,7 +24,9 @@ pub fn handle_tank_movement(
     let tank_config = tank_config
         .get_tank_type_config(tank_type)
         .expect("Failed to get tank config");
-    let distance = tank_config.move_speed.min(trigger.distance);
+    let distance = trigger
+        .distance
+        .clamp(-tank_config.move_speed, tank_config.move_speed);
     let move_direction = tank_transform.rotation * Vec3::new(0.0, 0.0, distance);
     let next_tank_position = tank_transform.translation + move_direction;
 

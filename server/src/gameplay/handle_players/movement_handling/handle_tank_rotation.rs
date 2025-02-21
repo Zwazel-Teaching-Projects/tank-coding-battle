@@ -18,6 +18,9 @@ pub fn handle_tank_body_rotation(
         .get_tank_type_config(tank_type)
         .expect("Failed to get tank config");
 
-    let rotation = tank_config.body_rotation_speed.min(trigger.angle);
+    let rotation = trigger.angle.clamp(
+        -tank_config.body_rotation_speed,
+        tank_config.body_rotation_speed,
+    );
     tank_transform.rotation *= Quat::from_rotation_y(rotation);
 }

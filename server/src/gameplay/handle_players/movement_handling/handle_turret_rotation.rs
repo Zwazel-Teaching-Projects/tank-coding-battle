@@ -23,10 +23,14 @@ pub fn handle_tank_turret_rotation(
         .expect("Failed to get tank config");
 
     // Calculate the delta rotations for yaw and pitch.
-    let yaw_delta = tank_config.turret_yaw_rotation_speed.min(trigger.yaw_angle);
-    let pitch_delta = tank_config
-        .turret_pitch_rotation_speed
-        .min(trigger.pitch_angle);
+    let yaw_delta = trigger.yaw_angle.clamp(
+        -tank_config.turret_yaw_rotation_speed,
+        tank_config.turret_yaw_rotation_speed,
+    );
+    let pitch_delta = trigger.pitch_angle.clamp(
+        -tank_config.turret_pitch_rotation_speed,
+        tank_config.turret_pitch_rotation_speed,
+    );
 
     // Retrieve the turret entity and its transform.
     let turret_entity = tank_body.turret.expect("Failed to get turret entity");
