@@ -5,7 +5,8 @@ use crate::networking::MyNetworkStream;
 
 pub mod entity_mapping;
 pub mod game_starts;
-pub mod game_state_update;
+pub mod player_handling;
+pub mod projectile_handling;
 
 pub struct MyGameHandlingPlugin;
 
@@ -20,5 +21,6 @@ fn add_observers(trigger: Trigger<OnAdd, MyNetworkStream>, mut commands: Command
     commands
         .entity(trigger.entity())
         .observe(game_starts::game_starts)
-        .observe(game_state_update::game_state_updated);
+        .observe(player_handling::move_players_on_game_state_update)
+        .observe(projectile_handling::handle_projectile_on_game_state_update);
 }

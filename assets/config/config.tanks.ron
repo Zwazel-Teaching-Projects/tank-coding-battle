@@ -12,7 +12,8 @@
                 0.25,
                 0.25,
                 0.25,
-            )
+            ),
+            shootCooldown: 5,
         ),
         HEAVY_TANK: (
             moveSpeed: 0.5,
@@ -26,7 +27,8 @@
                 0.5,
                 0.5,
                 0.5,
-            )
+            ),
+            shootCooldown: 5,
         ),
         SELF_PROPELLED_GUN_TANK: (
             moveSpeed: 0.25,
@@ -40,7 +42,8 @@
                 0.5,
                 0.5,
                 0.5,
-            )
+            ),
+            shootCooldown: 5,
         ),
     },
 )

@@ -11,6 +11,7 @@ use crate::networking::messages::message_data::game_state::GameState;
 pub struct LobbyGameState {
     pub tick: u64,
     pub client_states: HashMap<Entity, ClientState>,
+    pub projectiles: HashMap<Entity, ProjectileState>,
 }
 
 impl From<LobbyGameState> for GameState {
@@ -22,6 +23,7 @@ impl From<LobbyGameState> for GameState {
                 .into_iter()
                 .map(|(entity, client_state)| (entity, Some(client_state)))
                 .collect(),
+            projectile_states: lobby_game_state.projectiles,
         }
     }
 }
@@ -35,16 +37,18 @@ pub struct PersonalizedClientGameState {
     pub tick: u64,
     pub personal_state: ClientState,
     pub other_client_states: HashMap<Entity, Option<ClientState>>,
+    pub projectiles: HashMap<Entity, ProjectileState>,
 }
 
 impl PersonalizedClientGameState {
-    pub fn clear_states(&mut self) {
+    pub fn clear_non_persistent_data(&mut self) {
         self.personal_state.transform_body = None;
         for (_, state) in self.other_client_states.iter_mut() {
             state
                 .as_mut()
                 .map(|state| state.clear_non_persistent_information());
         }
+        self.projectiles.clear();
     }
 }
 
@@ -64,6 +68,7 @@ impl From<PersonalizedClientGameState> for GameState {
         GameState {
             tick: personalized_client_game_state.tick,
             client_states,
+            projectile_states: personalized_client_game_state.projectiles,
         }
     }
 }
@@ -84,7 +89,6 @@ pub struct ClientState {
     /// None if the client that receives this state does not know the position of the client.
     /// e.g. because the client has not spotted the other client yet.
     pub transform_turret: Option<Transform>,
-    pub global_transform_turret: Option<Transform>,
 }
 
 impl ClientState {
@@ -93,7 +97,6 @@ impl ClientState {
             id,
             transform_body: None,
             transform_turret: None,
-            global_transform_turret: None,
         }
     }
 
@@ -103,7 +106,6 @@ impl ClientState {
     pub fn clear_non_persistent_information(&mut self) {
         self.transform_body = None;
         self.transform_turret = None;
-        self.global_transform_turret = None;
     }
 }
 
@@ -113,7 +115,24 @@ impl Default for ClientState {
             id: Entity::PLACEHOLDER,
             transform_body: None,
             transform_turret: None,
-            global_transform_turret: None,
+        }
+    }
+}
+
+#[derive(Debug, Reflect, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectileState {
+    pub projectile_id: Entity,
+    pub owner_id: Entity,
+    pub transform: Transform,
+}
+
+impl ProjectileState {
+    pub fn new(projectile_id: Entity, owner_id: Entity, transform: Transform) -> Self {
+        ProjectileState {
+            projectile_id,
+            owner_id,
+            transform,
         }
     }
 }

@@ -83,6 +83,8 @@ pub struct TankConfig {
     /// The size of the tank (Vec3, x = width, y = height, z = depth)
     /// half-extents for x (width), z (depth) and y (height)
     pub size: Vec3,
+    /// Shooting cooldown in ticks. The tank can only shoot again after this many ticks.
+    pub shoot_cooldown: u32,
 }
 
 #[derive(SystemParam)]

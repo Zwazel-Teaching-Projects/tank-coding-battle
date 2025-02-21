@@ -6,7 +6,7 @@ use shared::{
 
 use super::entity_mapping::MyEntityMapping;
 
-pub fn game_state_updated(
+pub fn move_players_on_game_state_update(
     game_state: Trigger<GameStateTrigger>,
     mut tank_body: Query<
         (&mut Transform, &MyEntityMapping, &TankBodyMarker),

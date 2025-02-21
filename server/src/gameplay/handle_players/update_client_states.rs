@@ -44,7 +44,7 @@ pub fn update_client_states(
 
     // Clearing all states, as we might not know what we knew before
     // Only clears the non-persistent information (like transform)
-    client_state.clear_states();
+    client_state.clear_non_persistent_data();
 
     // Adding our own transform to the state, as we definitely know it
     lobby_state

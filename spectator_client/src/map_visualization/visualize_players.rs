@@ -50,6 +50,9 @@ pub fn create_player_visualisation(
                 ))),
                 MeshMaterial3d(materials.add(team_color)),
                 Transform::from_translation(player_position),
+                MyEntityMapping {
+                    server_entity: player.client_id,
+                },
                 tank_type.clone(),
             ))
             .with_children(|commands| {
@@ -102,15 +105,9 @@ pub fn create_player_visualisation(
 
         commands
             .entity(tank_body_entity)
-            .insert((
-                MyEntityMapping {
-                    server_entity: player.client_id,
-                    client_entity: tank_body_entity,
-                },
-                TankBodyMarker {
-                    turret: Some(turret),
-                },
-            ))
+            .insert((TankBodyMarker {
+                turret: Some(turret),
+            },))
             .add_child(turret);
     }
 }
