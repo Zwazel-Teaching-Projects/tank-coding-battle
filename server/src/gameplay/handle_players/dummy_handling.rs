@@ -5,9 +5,13 @@ use shared::{
     networking::{
         lobby_management::MyLobby,
         messages::{
-            message_container::{MoveTankCommandTrigger, RotateTankBodyCommandTrigger},
+            message_container::{
+                MoveTankCommandTrigger, RotateTankBodyCommandTrigger,
+                RotateTankTurretCommandTrigger,
+            },
             message_data::tank_messages::{
                 move_tank::MoveTankCommand, rotate_tank_body::RotateTankBodyCommand,
+                rotate_tank_turret::RotateTankTurretCommand,
             },
         },
     },
@@ -47,20 +51,42 @@ pub fn simulate_movement(
                 .get_tank_type_config(tank_type)
                 .expect("Failed to get tank config");
 
-            /* // Simulate movement (always forward)
+            // Simulate movement (always forward)
             commands.trigger_targets(
                 MoveTankCommandTrigger {
                     sender: None,
                     message: MoveTankCommand {
-                        direction: MoveDirection::Forward,
                         distance: tank_config.move_speed,
                     },
                 },
                 *player,
-            ); */
+            );
+
+            // Simulate movement (Rotate body clockwise)
+            commands.trigger_targets(
+                RotateTankBodyCommandTrigger {
+                    sender: None,
+                    message: RotateTankBodyCommand {
+                        angle: -tank_config.body_rotation_speed,
+                    },
+                },
+                *player,
+            );
+
+            // Simulate movement (Rotate turret counter-clockwise)
+            commands.trigger_targets(
+                RotateTankTurretCommandTrigger {
+                    sender: None,
+                    message: RotateTankTurretCommand {
+                        yaw_angle: tank_config.turret_yaw_rotation_speed,
+                        pitch_angle: 0.0,
+                    },
+                },
+                *player,
+            );
 
             // Simulate movement (randomly)
-            if rand::random::<bool>() {
+            /* if rand::random::<bool>() {
                 let direction = if rand::random() { 1.0 } else { -1.0 };
                 commands.trigger_targets(
                     MoveTankCommandTrigger {
@@ -85,7 +111,7 @@ pub fn simulate_movement(
                     },
                     *player,
                 );
-            }
+            } */
         }
     }
 }
