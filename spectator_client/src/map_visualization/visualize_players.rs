@@ -5,7 +5,7 @@ use bevy::{
 use bevy_mod_billboard::BillboardText;
 use shared::{
     game::player_handling::{TankBodyMarker, TankTurretMarker},
-    networking::messages::message_container::GameStartsTrigger,
+    networking::{lobby_management::InTeam, messages::message_container::GameStartsTrigger},
 };
 
 use crate::game_handling::entity_mapping::MyEntityMapping;
@@ -54,6 +54,7 @@ pub fn create_player_visualisation(
                     server_entity: player.client_id,
                 },
                 tank_type.clone(),
+                InTeam(player.client_team.clone()),
             ))
             .with_children(|commands| {
                 // Name tag
