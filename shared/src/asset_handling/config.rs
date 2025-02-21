@@ -76,6 +76,8 @@ pub struct TankConfig {
     pub turret_yaw_rotation_speed: f32,
     /// Pitch rotation speed of the turret in radians per tick
     pub turret_pitch_rotation_speed: f32,
+    pub turret_max_pitch: f32,
+    pub turret_min_pitch: f32,
     /// The maximum height this tank can "climb"
     pub max_slope: f32,
     /// The size of the tank (Vec3, x = width, y = height, z = depth)
