@@ -44,11 +44,13 @@ pub fn handle_tank_turret_rotation(
     let new_yaw = current_yaw + yaw_delta;
     let new_pitch = current_pitch + pitch_delta;
 
+    // Wrap yaw for continuous rotation.
+    // std::f32::consts::TAU equals 2π, ensuring new_yaw remains in [0, 2π).
+    let new_yaw = new_yaw.rem_euclid(std::f32::consts::TAU);
+
     // Clamp pitch to prevent the turret from rotating upside down.
     let max_pitch = tank_config.turret_max_pitch;
     let min_pitch = tank_config.turret_min_pitch;
-
-    // Clamp the pitch to the maximum and minimum pitch angles.
     let new_pitch = new_pitch.clamp(min_pitch, max_pitch);
 
     // Construct a new rotation with roll forcibly set to zero.

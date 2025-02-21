@@ -22,5 +22,6 @@ pub fn handle_tank_body_rotation(
         -tank_config.body_rotation_speed,
         tank_config.body_rotation_speed,
     );
+
     tank_transform.rotation *= Quat::from_rotation_y(rotation);
 }

@@ -2,7 +2,7 @@
     tanks: {
         LIGHT_TANK: (
             moveSpeed: 0.25,
-            bodyRotationSpeed: 0.4,
+            bodyRotationSpeed: 0.3,
             turretYawRotationSpeed: 0.3,
             turretPitchRotationSpeed: 0.3,
             turretMaxPitch: 0.5,
