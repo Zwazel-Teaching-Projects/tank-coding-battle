@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
-    game::tank_types::TankType,
+    game::{
+        player_handling::{PlayerState, TankBodyMarker, TankTurretMarker},
+        tank_types::TankType,
+    },
     networking::lobby_management::{lobby_management::LobbyManagementSystemParam, InLobby, InTeam},
 };
 
@@ -13,20 +16,32 @@ pub struct RespawnPlayerTrigger;
 pub fn respawn_player(
     trigger: Trigger<RespawnPlayerTrigger>,
     lobby_management: LobbyManagementSystemParam,
-    mut query: Query<(
+    mut body_query: Query<(
         &mut Transform,
+        &mut PlayerState,
         &MyNetworkClient,
         &InTeam,
         &InLobby,
         &TankType,
+        &TankBodyMarker,
     )>,
+    mut turret_query: Query<&mut Transform, (With<TankTurretMarker>, Without<TankBodyMarker>)>,
     tank_configs: TankConfigSystemParam,
 ) {
     let client_entity = trigger.entity();
 
-    if let Ok((mut tank_transform, client, client_team, client_in_lobby, tank_type)) =
-        query.get_mut(client_entity)
+    if let Ok((
+        mut tank_transform,
+        mut player_state,
+        client,
+        client_team,
+        client_in_lobby,
+        tank_type,
+        tank_body_marker,
+    )) = body_query.get_mut(client_entity)
     {
+        *player_state = PlayerState::Alive;
+
         let lobby = lobby_management
             .get_lobby(client_in_lobby.0)
             .expect("Failed to get lobby");
@@ -38,6 +53,16 @@ pub fn respawn_player(
         let spawn_point = client
             .assigned_spawn_point
             .expect(format!("Failed to get assigned spawn point for client {:?}", client).as_str());
+
+        let mut turret_transform = turret_query
+            .get_mut(
+                tank_body_marker
+                    .turret
+                    .expect("Failed to get turret entity"),
+            )
+            .expect("Failed to get turret transform");
+        turret_transform.rotation = Quat::IDENTITY;
+
         let spawn_point_position = map.get_spawn_point_position(client_team, spawn_point);
         let spawn_point_rotation = map.get_spawn_point_rotation(client_team, spawn_point);
 
