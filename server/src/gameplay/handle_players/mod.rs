@@ -1,11 +1,8 @@
 use bevy::prelude::*;
 use dummy_handling::DummyClientMarker;
-use handle_spawning::RespawnPlayerTrigger;
 use shared::{game::player_handling::TankBodyMarker, networking::lobby_management::MyLobby};
 
 use crate::networking::handle_clients::lib::MyNetworkClient;
-
-use super::triggers::StartNextSimulationStepTrigger;
 
 pub mod dummy_handling;
 pub mod handle_projectiles;
