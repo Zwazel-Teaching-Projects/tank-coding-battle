@@ -18,7 +18,7 @@ pub fn handle_tank_shooting_command(
     trigger: Trigger<ShootCommandTrigger>,
     mut lobby: Query<&mut MyLobby>,
     mut body: Query<(&TankType, &mut ShootCooldown, &TankBodyMarker, &InLobby)>,
-    turret_transform: Query<&Transform, With<TankTurretMarker>>,
+    turret_transform: Query<&GlobalTransform, With<TankTurretMarker>>,
     mut commands: Commands,
 ) {
     let client_entity = trigger.entity();
@@ -34,8 +34,8 @@ pub fn handle_tank_shooting_command(
             .get(turret_entity)
             .expect("Failed to get turret transform");
 
-        let bullet_spawn_position = turret_transform.translation;
-        let bullet_spawn_rotation = turret_transform.rotation;
+        let bullet_spawn_position = turret_transform.translation();
+        let bullet_spawn_rotation = turret_transform.rotation();
 
         let bullet = commands
             .spawn((
@@ -52,8 +52,6 @@ pub fn handle_tank_shooting_command(
             .id();
 
         lobby.projectiles.push(bullet);
-
-        info!("Player {:?} shot a bullet", client_entity);
 
         cooldown.ticks_left = cooldown.ticks_cooldown;
     }

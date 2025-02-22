@@ -63,7 +63,7 @@ pub fn handle_projectile_on_game_state_update(
                             speed: 0.0,  // Placeholder
                             owner: projectile_state.owner_id,
                         },
-                        Mesh3d(meshes.add(Cuboid::new(0.2, 0.2, 0.5))),
+                        Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.3))),
                         MeshMaterial3d(materials.add(team_color)),
                     ));
                 }

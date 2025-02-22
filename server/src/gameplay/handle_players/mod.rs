@@ -5,6 +5,7 @@ use shared::networking::lobby_management::MyLobby;
 use crate::networking::handle_clients::lib::MyNetworkClient;
 
 pub mod dummy_handling;
+pub mod handle_projectiles;
 pub mod handle_shooting;
 pub mod insert_turret;
 pub mod movement_handling;
@@ -35,5 +36,7 @@ fn add_observers_to_client(trigger: Trigger<OnAdd, MyNetworkClient>, mut command
 fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
     commands
         .entity(trigger.entity())
-        .observe(handle_shooting::tick_shoot_cooldowns);
+        .observe(handle_shooting::tick_shoot_cooldowns)
+        .observe(handle_projectiles::move_projectiles)
+        .observe(handle_projectiles::handle_despawn_timer);
 }

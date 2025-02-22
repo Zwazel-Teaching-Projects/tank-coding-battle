@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::hashbrown::HashSet};
 use shared::{
     game::{
         game_state::{ClientState, PersonalizedClientGameState, ProjectileState},
@@ -44,7 +44,7 @@ pub fn update_lobby_state(
         .projectiles
         .iter()
         .map(|entity| *entity)
-        .collect::<Vec<_>>();
+        .collect::<HashSet<_>>();
     let mut lobby_game_state = lobby_management
         .get_lobby_gamestate_mut(lobby_entity)
         .expect("Failed to get lobby game state");
@@ -66,7 +66,10 @@ pub fn update_lobby_state(
         client_state.transform_turret = Some(relative_turret_transform.clone());
     }
 
-    // Updating states of all projectiles
+    // Updating states of all projectiles and removing those that are not in the game state anymore
+    lobby_game_state
+        .projectiles
+        .retain(|entity, _| projectile_entities.contains(entity));
     for projectile_entity in projectile_entities.iter() {
         let (projectile_transform, projectile_data) = projectiles
             .get(*projectile_entity)
