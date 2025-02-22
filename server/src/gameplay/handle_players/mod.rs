@@ -48,27 +48,5 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .entity(trigger.entity())
         .observe(handle_shooting::tick_shoot_cooldowns)
         .observe(handle_projectiles::move_projectiles)
-        .observe(handle_projectiles::handle_despawn_timer)
-        .observe(test_respawn_player);
-}
-
-fn test_respawn_player(
-    trigger: Trigger<StartNextSimulationStepTrigger>,
-    mut commands: Commands,
-    lobby: Query<&MyLobby>,
-    mut local_ticker: Local<u32>,
-) {
-    let lobby = lobby.get(trigger.entity()).expect("Failed to get lobby");
-    if *local_ticker < 10 {
-        *local_ticker += 1;
-        return;
-    }
-    *local_ticker = 0;
-
-    let players = lobby
-        .players
-        .iter()
-        .map(|(_, player, _)| *player)
-        .collect::<Vec<_>>();
-    commands.trigger_targets(RespawnPlayerTrigger, players);
+        .observe(handle_projectiles::handle_despawn_timer);
 }
