@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_flycam::PlayerPlugin;
 use bevy_mod_billboard::plugin::BillboardPlugin;
-use game_handling::MyGameHandlingPlugin;
+use game_handling::{entity_mapping::MyEntityMapping, MyGameHandlingPlugin};
 use game_state::MyGameState;
 use map_visualization::MyMapVisualizationPlugin;
 use networking::MyNetworkingPlugin;
@@ -33,7 +33,9 @@ impl Plugin for MySpectatorClientPlugin {
             change_camera_transform.run_if(resource_added::<GameStarts>),
         )
         .add_sub_state::<MyGameState>()
-        .enable_state_scoped_entities::<MyGameState>();
+        .enable_state_scoped_entities::<MyGameState>()
+        .register_type::<MyEntityMapping>()
+        .init_resource::<MyEntityMapping>();
 
         #[cfg(debug_assertions)]
         app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());

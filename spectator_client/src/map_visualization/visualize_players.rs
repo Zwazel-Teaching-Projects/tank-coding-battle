@@ -16,33 +16,37 @@ pub fn create_player_visualisation(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
+    mut entity_mapping: ResMut<MyEntityMapping>,
 ) {
     let game_start = trigger.event();
     let map_definition = &game_start.map_definition;
     let tank_configs = &game_start.tank_configs;
     let font = asset_server.load("fonts/FiraSans-Regular.ttf");
 
-    for player in game_start.connected_clients.iter() {
+    for server_side_client_config in game_start.connected_clients.iter() {
         let team_color = game_start
             .team_configs
-            .get(&player.client_team)
+            .get(&server_side_client_config.client_team)
             .map(|config| Color::from(config.color.clone()))
             .unwrap_or(WHITE.into());
 
-        let tank_type = &player.client_tank_type;
+        let tank_type = &server_side_client_config.client_tank_type;
         let tank_config = tank_configs
             .get(tank_type)
             .expect("Failed to get tank config");
 
         let player_position = map_definition
-            .get_spawn_point_position(&player.client_team, player.assigned_spawn_point)
+            .get_spawn_point_position(
+                &server_side_client_config.client_team,
+                server_side_client_config.assigned_spawn_point,
+            )
             .expect("Failed to get spawn point position")
             + Vec3::new(0.0, tank_config.size.y, 0.0);
 
         // Tank Body
-        let tank_body_entity = commands
+        let client_side_tank_body_entity = commands
             .spawn((
-                Name::new(player.client_name.clone()),
+                Name::new(server_side_client_config.client_name.clone()),
                 Mesh3d(meshes.add(Cuboid::new(
                     tank_config.size.x * 2.0,
                     tank_config.size.y * 2.0,
@@ -50,16 +54,13 @@ pub fn create_player_visualisation(
                 ))),
                 MeshMaterial3d(materials.add(team_color)),
                 Transform::from_translation(player_position),
-                MyEntityMapping {
-                    server_entity: player.client_id,
-                },
                 tank_type.clone(),
-                InTeam(player.client_team.clone()),
+                InTeam(server_side_client_config.client_team.clone()),
             ))
             .with_children(|commands| {
                 // Name tag
                 commands.spawn((
-                    BillboardText::new(&player.client_name),
+                    BillboardText::new(&server_side_client_config.client_name),
                     TextFont::from_font(font.clone()).with_font_size(60.0),
                     TextColor(Color::WHITE),
                     TextLayout::new_with_justify(JustifyText::Center),
@@ -81,12 +82,12 @@ pub fn create_player_visualisation(
             .id();
 
         // Turret
-        let turret = commands
+        let client_side_turret_entity = commands
             .spawn((
                 Name::new("Turret Root"),
                 Transform::from_translation(Vec3::new(0.0, tank_config.size.y, 0.0)),
                 TankTurretMarker {
-                    body: tank_body_entity,
+                    body: client_side_tank_body_entity,
                 },
             ))
             .with_children(|commands| {
@@ -105,10 +106,15 @@ pub fn create_player_visualisation(
             .id();
 
         commands
-            .entity(tank_body_entity)
+            .entity(client_side_tank_body_entity)
             .insert((TankBodyMarker {
-                turret: Some(turret),
+                turret: Some(client_side_turret_entity),
             },))
-            .add_child(turret);
+            .add_child(client_side_turret_entity);
+
+        entity_mapping.mapping.insert(
+            server_side_client_config.client_id,
+            client_side_tank_body_entity,
+        );
     }
 }
