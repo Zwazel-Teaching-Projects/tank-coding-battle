@@ -1,8 +1,18 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Reflect, Component, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[reflect(Component)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PlayerState {
+    #[default]
+    Alive,
+    Dead,
+}
 
 #[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
 #[reflect(Component)]
-#[require(ShootCooldown)]
+#[require(ShootCooldown, Transform, PlayerState)]
 pub struct TankBodyMarker {
     pub turret: Option<Entity>,
 }

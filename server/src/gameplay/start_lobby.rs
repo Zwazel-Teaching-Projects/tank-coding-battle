@@ -23,7 +23,9 @@ use shared::{
 
 use crate::networking::handle_clients::lib::MyNetworkClient;
 
-use super::handle_players::dummy_handling::DummyClientMarker;
+use super::handle_players::{
+    dummy_handling::DummyClientMarker, handle_spawning::RespawnPlayerTrigger,
+};
 
 #[derive(Debug, Event)]
 pub struct StartLobbyTrigger;
@@ -135,11 +137,6 @@ pub fn check_if_lobby_should_start(
                 dummy_client.assigned_spawn_point = Some(*spawn_point);
                 taken_spawn_points_team.insert(team_name.clone(), *spawn_point);
 
-                info!(
-                    "Assigned spawn point {:?} to dummy {:?}",
-                    *spawn_point, dummy_name
-                );
-
                 let dummy = commands
                     .spawn((
                         Name::new(dummy_name.clone()),
@@ -188,10 +185,9 @@ pub fn start_lobby(
     mut lobby_management: LobbyManagementSystemParam,
     mut queues: Query<&mut ImmediateOutMessageQueue>,
     clients: Query<(&MyNetworkClient, &ClientType, Option<&TankType>)>,
-    client_in_team: Query<&InTeam>,
-    mut tank_positions: Query<&mut Transform>,
     server_config: ServerConfigSystemParam,
     tank_config: TankConfigSystemParam,
+    mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
     let lobby = lobby_management
@@ -221,49 +217,12 @@ pub fn start_lobby(
             // Send to all clients and spectators
             for client_entity in clients_in_lobby {
                 let mut queue = queues.get_mut(client_entity).expect("Failed to get queue");
-                let mut tank_transform = tank_positions
-                    .get_mut(client_entity)
-                    .expect("Failed to get tank transform");
-                let (client, client_type, tank_type) =
-                    clients.get(client_entity).expect("Failed to get client");
+                let (_, client_type, _) = clients.get(client_entity).expect("Failed to get client");
 
                 match client_type {
                     ClientType::Spectator => {}
                     _ => {
-                        let spawn_point = client.assigned_spawn_point.expect(
-                            format!("Failed to get assigned spawn point for client {:?}", client)
-                                .as_str(),
-                        );
-                        let client_team = &**client_in_team
-                            .get(client_entity)
-                            .expect("Failed to get client team");
-                        let spawn_point_position =
-                            map.get_spawn_point_position(client_team, spawn_point);
-                        let spawn_point_rotation =
-                            map.get_spawn_point_rotation(client_team, spawn_point);
-
-                        if let Some(spawn_point_position) = spawn_point_position {
-                            let tank_config = tank_configs
-                                .tanks
-                                .get(tank_type.expect("Failed to get tank type"))
-                                .expect("Failed to get tank config");
-                            tank_transform.translation =
-                                spawn_point_position + Vec3::new(0.0, tank_config.size.y, 0.0);
-                        } else {
-                            error!(
-                                "Failed to get spawn point position for team {} and spawn point {}",
-                                client_team, spawn_point
-                            );
-                        }
-
-                        if let Some(spawn_point_rotation) = spawn_point_rotation {
-                            tank_transform.rotation = spawn_point_rotation;
-                        } else {
-                            error!(
-                                "Failed to get spawn point rotation for team {} and spawn point {}",
-                                client_team, spawn_point
-                            );
-                        }
+                        commands.trigger_targets(RespawnPlayerTrigger, client_entity);
                     }
                 }
 

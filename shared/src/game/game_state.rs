@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::networking::messages::message_data::game_state::GameState;
 
+use super::player_handling::PlayerState;
+
 /// The full game state stored in the lobby
 /// This is the state that is sent to the spectators
 #[derive(Debug, Reflect, Serialize, Deserialize, Clone, PartialEq, Component, Default)]
@@ -89,6 +91,7 @@ pub struct ClientState {
     /// None if the client that receives this state does not know the position of the client.
     /// e.g. because the client has not spotted the other client yet.
     pub transform_turret: Option<Transform>,
+    pub state: Option<PlayerState>,
 }
 
 impl ClientState {
@@ -97,6 +100,7 @@ impl ClientState {
             id,
             transform_body: None,
             transform_turret: None,
+            state: None,
         }
     }
 
@@ -106,6 +110,7 @@ impl ClientState {
     pub fn clear_non_persistent_information(&mut self) {
         self.transform_body = None;
         self.transform_turret = None;
+        self.state = None;
     }
 }
 
@@ -115,6 +120,7 @@ impl Default for ClientState {
             id: Entity::PLACEHOLDER,
             transform_body: None,
             transform_turret: None,
+            state: None,
         }
     }
 }

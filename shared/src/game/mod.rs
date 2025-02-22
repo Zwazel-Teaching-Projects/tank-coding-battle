@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use game_state::{ClientState, LobbyGameState, PersonalizedClientGameState, ProjectileState};
-use player_handling::{ShootCooldown, TankBodyMarker, TankTurretMarker};
+use player_handling::{PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker};
 use projectile_handling::ProjectileMarker;
 use tank_types::TankType;
 
@@ -23,6 +23,7 @@ impl Plugin for MySharedGamePlugin {
             .register_type::<TankTurretMarker>()
             .register_type::<ShootCooldown>()
             .register_type::<TankType>()
+            .register_type::<PlayerState>()
             .register_type::<ProjectileMarker>()
             .register_type::<common_components::DespawnTimer>()
             .register_type::<common_components::TickBasedDespawnTimer>()
