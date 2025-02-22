@@ -21,6 +21,7 @@ use super::messages::{
     message_queue::{ImmediateOutMessageQueue, MessageQueue},
 };
 
+pub mod despawn_on_lobby_removal;
 pub mod lobby_management;
 
 pub struct MyLobbyManagementPlugin;
@@ -34,7 +35,9 @@ impl Plugin for MyLobbyManagementPlugin {
             .register_type::<LobbyState>()
             .register_type::<AwaitingFirstContact>()
             .add_observer(finish_setting_up_lobby)
-            .add_observer(adding_player_to_lobby);
+            .add_observer(adding_player_to_lobby)
+            .add_observer(despawn_on_lobby_removal::add_observers_on_lobby_join)
+            .add_observer(despawn_on_lobby_removal::update_my_lobbies_on_lobby_despawn);
     }
 }
 
@@ -55,7 +58,7 @@ impl AwaitingFirstContact {
 #[reflect(Component)]
 pub struct InTeam(pub String);
 
-#[derive(Debug, Reflect, Component, Deref, DerefMut)]
+#[derive(Debug, Reflect, Component, Deref, DerefMut, Clone)]
 #[reflect(Component)]
 pub struct InLobby(pub Entity);
 
@@ -77,6 +80,20 @@ pub struct MyLobbies {
     pub lobbies: HashMap<String, Entity>,
 }
 
+impl MyLobbies {
+    pub fn remove_lobby(&mut self, lobby: Entity) {
+        if let Some(lobby_name) = self.lobbies.iter().find_map(|(k, &entity)| {
+            if entity == lobby {
+                Some(k.clone())
+            } else {
+                None
+            }
+        }) {
+            self.lobbies.remove(&lobby_name);
+        }
+    }
+}
+
 #[derive(Debug, Reflect, Default, Component, PartialEq)]
 #[reflect(Component)]
 #[require(OutMessageQueue, LobbyGameState)]
@@ -86,6 +103,7 @@ pub struct MyLobby {
 
     pub players: Vec<(String, Entity, ClientType)>,
     pub spectators: Vec<Entity>,
+    pub projectiles: Vec<Entity>,
 
     pub map_name: String,
     pub map_config: Option<MapConfig>,
@@ -108,6 +126,7 @@ impl MyLobby {
 
             players: Vec::new(),
             spectators: Vec::new(),
+            projectiles: Vec::new(),
 
             map_name,
             map_config: None,
@@ -133,6 +152,10 @@ impl MyLobby {
         self.map_config
             .as_ref()
             .and_then(|map_config| map_config.get_team(team_name).map(|team| &team.players))
+    }
+
+    pub fn remove_projectile(&mut self, projectile: Entity) {
+        self.projectiles.retain(|&p| p != projectile);
     }
 }
 

@@ -1,29 +1,30 @@
 use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Component, Reflect, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
 #[reflect(Component)]
-#[serde(rename_all = "camelCase")]
-pub struct TankTransform {
-    pub position: Vec3,
-    pub rotation: Quat,
+#[require(ShootCooldown)]
+pub struct TankBodyMarker {
+    pub turret: Option<Entity>,
 }
 
-impl From<Transform> for TankTransform {
-    fn from(transform: Transform) -> Self {
-        TankTransform {
-            position: transform.translation,
-            rotation: transform.rotation,
-        }
-    }
+#[derive(Debug, Component, Reflect, Clone, PartialEq)]
+#[reflect(Component)]
+pub struct TankTurretMarker {
+    pub body: Entity,
 }
 
-impl From<TankTransform> for Transform {
-    fn from(tank_transform: TankTransform) -> Self {
-        Transform {
-            translation: tank_transform.position,
-            rotation: tank_transform.rotation,
-            ..Default::default()
+#[derive(Debug, Component, Reflect, Clone, PartialEq)]
+#[reflect(Component)]
+pub struct ShootCooldown {
+    pub ticks_left: u32,
+    pub ticks_cooldown: u32,
+}
+
+impl Default for ShootCooldown {
+    fn default() -> Self {
+        Self {
+            ticks_left: 0,
+            ticks_cooldown: 0,
         }
     }
 }

@@ -15,5 +15,4 @@ bevy_flycam = "0.15"
 bevy_mod_billboard = { git = "https://github.com/voximity/bevy_mod_billboard.git", branch = "migrate-0.15" }
 
 [features]
-default = ["spectator_client"]
-spectator_client = ["bevy/default"]
+default = ["bevy/default", "bevy/serialize"]

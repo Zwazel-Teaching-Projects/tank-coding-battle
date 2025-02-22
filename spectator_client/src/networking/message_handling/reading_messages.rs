@@ -43,16 +43,12 @@ pub fn reading_messages(
             }
         };
 
-        info!("Received message (JSON): {}", message);
-
         // Deserialize the message into a MessageContainer
         match serde_json::from_str::<Vec<MessageContainer>>(&message) {
             Ok(message_containers) => {
                 for message_container in message_containers {
                     match message_container.trigger_message_received_client(&mut commands, entity) {
-                        Ok(_) => {
-                            info!("Received message (Deserialized): {:?}", message_container);
-                        }
+                        Ok(_) => {}
                         Err(e) => {
                             error!("Failed to handle message: {:?}", e);
                         }

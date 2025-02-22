@@ -1,20 +1,14 @@
-use bevy::{color::palettes::css::WHITE, prelude::*};
+use bevy::{
+    color::palettes::css::{GREEN, WHITE},
+    prelude::*,
+};
 use bevy_mod_billboard::BillboardText;
 use shared::{
-    game::player_handling::TankTransform,
-    networking::messages::message_container::GameStartsTrigger,
+    game::player_handling::{TankBodyMarker, TankTurretMarker},
+    networking::{lobby_management::InTeam, messages::message_container::GameStartsTrigger},
 };
 
 use crate::game_handling::entity_mapping::MyEntityMapping;
-
-pub fn update_player_positions(
-    mut transforms: Query<(&mut Transform, &TankTransform), Changed<TankTransform>>,
-) {
-    for (mut transform, tank_transform) in transforms.iter_mut() {
-        transform.translation = tank_transform.position;
-        transform.rotation = tank_transform.rotation;
-    }
-}
 
 pub fn create_player_visualisation(
     trigger: Trigger<GameStartsTrigger>,
@@ -45,7 +39,8 @@ pub fn create_player_visualisation(
             .expect("Failed to get spawn point position")
             + Vec3::new(0.0, tank_config.size.y, 0.0);
 
-        let entity = commands
+        // Tank Body
+        let tank_body_entity = commands
             .spawn((
                 Name::new(player.client_name.clone()),
                 Mesh3d(meshes.add(Cuboid::new(
@@ -55,13 +50,14 @@ pub fn create_player_visualisation(
                 ))),
                 MeshMaterial3d(materials.add(team_color)),
                 Transform::from_translation(player_position),
-                TankTransform {
-                    position: player_position,
-                    rotation: Quat::IDENTITY,
+                MyEntityMapping {
+                    server_entity: player.client_id,
                 },
                 tank_type.clone(),
+                InTeam(player.client_team.clone()),
             ))
             .with_children(|commands| {
+                // Name tag
                 commands.spawn((
                     BillboardText::new(&player.client_name),
                     TextFont::from_font(font.clone()).with_font_size(60.0),
@@ -70,12 +66,49 @@ pub fn create_player_visualisation(
                     Transform::from_translation(Vec3::new(0.0, 1.0, 0.0))
                         .with_scale(Vec3::splat(0.0085)),
                 ));
+
+                // Forward marker
+                commands.spawn((
+                    Name::new("Forward marker"),
+                    Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.1))),
+                    MeshMaterial3d(materials.add(StandardMaterial {
+                        base_color: GREEN.into(),
+                        ..Default::default()
+                    })),
+                    Transform::from_translation(Vec3::new(0.0, 0.0, tank_config.size.z + 0.2)),
+                ));
             })
             .id();
 
-        commands.entity(entity).insert(MyEntityMapping {
-            server_entity: player.client_id,
-            client_entity: entity,
-        });
+        // Turret
+        let turret = commands
+            .spawn((
+                Name::new("Turret Root"),
+                Transform::from_translation(Vec3::new(0.0, tank_config.size.y, 0.0)),
+                TankTurretMarker {
+                    body: tank_body_entity,
+                },
+            ))
+            .with_children(|commands| {
+                // Turret, placed a bit in front of the turret root. This is just for visualization.
+                // more rectangle, long not wide or tall
+                commands.spawn((
+                    Name::new("Turret"),
+                    Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.5))),
+                    MeshMaterial3d(materials.add(StandardMaterial {
+                        base_color: team_color,
+                        ..Default::default()
+                    })),
+                    Transform::from_translation(Vec3::new(0.0, 0.0, 0.25)),
+                ));
+            })
+            .id();
+
+        commands
+            .entity(tank_body_entity)
+            .insert((TankBodyMarker {
+                turret: Some(turret),
+            },))
+            .add_child(turret);
     }
 }

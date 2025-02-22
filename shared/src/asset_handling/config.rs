@@ -72,13 +72,19 @@ pub struct TankConfig {
     pub move_speed: f32,
     /// The speed at which the body of the tank at maximum rotates per tick in radians
     pub body_rotation_speed: f32,
-    /// The speed at which the turret of the tank at maximum rotates per tick in radians
-    pub turret_rotation_speed: f32,
+    /// Yaw rotation speed of the turret in radians per tick
+    pub turret_yaw_rotation_speed: f32,
+    /// Pitch rotation speed of the turret in radians per tick
+    pub turret_pitch_rotation_speed: f32,
+    pub turret_max_pitch: f32,
+    pub turret_min_pitch: f32,
     /// The maximum height this tank can "climb"
     pub max_slope: f32,
     /// The size of the tank (Vec3, x = width, y = height, z = depth)
     /// half-extents for x (width), z (depth) and y (height)
     pub size: Vec3,
+    /// Shooting cooldown in ticks. The tank can only shoot again after this many ticks.
+    pub shoot_cooldown: u32,
 }
 
 #[derive(SystemParam)]

@@ -21,7 +21,7 @@ pub fn draw_markers(mut my_gizmos: Gizmos<MyMarkerGizmos>, game_config: Res<Game
 
         let tile = &marker.tile;
         let position = map_definition
-            .get_real_world_position_of_tile(tile.x, tile.y)
+            .get_real_world_position_of_tile((tile.x, tile.y))
             .expect("Failed to get real world position of tile");
         let rotation = Quat::from_rotation_x(-FRAC_PI_2);
 

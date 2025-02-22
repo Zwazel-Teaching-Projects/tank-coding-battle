@@ -15,7 +15,7 @@ use super::message_data::{
     start_game_config::StartGameConfig,
     tank_messages::{
         move_tank::MoveTankCommand, rotate_tank_body::RotateTankBodyCommand,
-        rotate_tank_turret::RotateTankTurretCommand,
+        rotate_tank_turret::RotateTankTurretCommand, shoot::ShootCommand,
     },
     text_data::TextDataWrapper,
 };
@@ -95,6 +95,8 @@ use super::message_data::{
             RotateTankBodyCommand(RotateTankBodyCommand),
             #[target(ToSelf)]
             RotateTankTurretCommand(RotateTankTurretCommand),
+            #[target(ToSelf)]
+            ShootCommand(ShootCommand),
         }
     }
 )]

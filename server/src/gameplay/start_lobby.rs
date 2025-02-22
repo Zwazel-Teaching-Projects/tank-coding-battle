@@ -1,7 +1,7 @@
 use bevy::{prelude::*, utils::HashMap};
 use shared::{
     asset_handling::config::{ServerConfigSystemParam, TankConfigSystemParam},
-    game::{player_handling::TankTransform, tank_types::TankType},
+    game::{player_handling::TankBodyMarker, tank_types::TankType},
     networking::{
         lobby_management::{
             lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
@@ -149,6 +149,7 @@ pub fn check_if_lobby_should_start(
                         dummy_client,
                         ClientType::Dummy,
                         TankType::LightTank,
+                        TankBodyMarker::default(),
                     ))
                     .id();
                 team.players.push(dummy);
@@ -188,7 +189,7 @@ pub fn start_lobby(
     mut queues: Query<&mut ImmediateOutMessageQueue>,
     clients: Query<(&MyNetworkClient, &ClientType, Option<&TankType>)>,
     client_in_team: Query<&InTeam>,
-    mut tank_positions: Query<&mut TankTransform>,
+    mut tank_positions: Query<&mut Transform>,
     server_config: ServerConfigSystemParam,
     tank_config: TankConfigSystemParam,
 ) {
@@ -238,17 +239,28 @@ pub fn start_lobby(
                             .expect("Failed to get client team");
                         let spawn_point_position =
                             map.get_spawn_point_position(client_team, spawn_point);
+                        let spawn_point_rotation =
+                            map.get_spawn_point_rotation(client_team, spawn_point);
 
                         if let Some(spawn_point_position) = spawn_point_position {
                             let tank_config = tank_configs
                                 .tanks
                                 .get(tank_type.expect("Failed to get tank type"))
                                 .expect("Failed to get tank config");
-                            tank_transform.position =
+                            tank_transform.translation =
                                 spawn_point_position + Vec3::new(0.0, tank_config.size.y, 0.0);
                         } else {
                             error!(
                                 "Failed to get spawn point position for team {} and spawn point {}",
+                                client_team, spawn_point
+                            );
+                        }
+
+                        if let Some(spawn_point_rotation) = spawn_point_rotation {
+                            tank_transform.rotation = spawn_point_rotation;
+                        } else {
+                            error!(
+                                "Failed to get spawn point rotation for team {} and spawn point {}",
                                 client_team, spawn_point
                             );
                         }

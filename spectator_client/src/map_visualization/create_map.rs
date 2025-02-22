@@ -23,7 +23,7 @@ pub fn create_map(
     let game_starts = (**trigger.event()).clone();
     let map_config = &game_starts.map_definition;
 
-    let mesh = generate_mesh_from_grid(map_config.width, map_config.height, &map_config.tiles);
+    let mesh = generate_mesh_from_grid(map_config.width, map_config.depth, &map_config.tiles);
     let mesh_handle = meshes.add(mesh);
     let material_handle = materials.add(StandardMaterial {
         base_color: Color::from(map_config.floor_color.clone()),
@@ -65,7 +65,7 @@ pub fn listen_for_map_changes(
                     .map;
 
                 let mesh =
-                    generate_mesh_from_grid(map_config.width, map_config.height, &map_config.tiles);
+                    generate_mesh_from_grid(map_config.width, map_config.depth, &map_config.tiles);
                 let mesh_handle = meshes.add(mesh);
 
                 map_mesh.0 = mesh_handle;
