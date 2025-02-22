@@ -4,10 +4,9 @@
 
 The project is split into multiple members.
 
-- server: Responsible for handling the communication between the clients and the game simulation. Manages lobbies in which the games are played. For each lobby a new sub-app is created, in which the game simulation is run. All relevant code for the game sim is in the member game_sim.
+- server: Responsible for handling the communication between the clients and the game simulation. Manages lobbies in which the games are played. handles game sim.
 - spectator_client: A simple client that can connect to the server and watch the games being played.
 - shared: Contains all the shared code between the server and the clients. This includes the game state, the game logic and the communication protocol.
-- game_sim: Contains the game simulation. The game simulation is run in a separate sub-app for each lobby.
 
 ## Tank Ideas
 
