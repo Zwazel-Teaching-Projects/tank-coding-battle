@@ -91,7 +91,10 @@ pub struct ClientState {
     /// None if the client that receives this state does not know the position of the client.
     /// e.g. because the client has not spotted the other client yet.
     pub transform_turret: Option<Transform>,
+    /// The state of the player (e.g. alive, dead)
     pub state: Option<PlayerState>,
+    /// The time in ticks until the client can shoot again
+    pub shoot_cooldown: u32,
 }
 
 impl ClientState {
@@ -101,6 +104,7 @@ impl ClientState {
             transform_body: None,
             transform_turret: None,
             state: None,
+            shoot_cooldown: 0,
         }
     }
 
@@ -121,6 +125,7 @@ impl Default for ClientState {
             transform_body: None,
             transform_turret: None,
             state: None,
+            shoot_cooldown: 0,
         }
     }
 }

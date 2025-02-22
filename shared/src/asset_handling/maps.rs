@@ -217,6 +217,10 @@ impl MapDefinition {
     }
 
     pub fn get_closest_tile(&self, position: Vec3) -> Option<TileDefinition> {
+        if position.y < 0.0 {
+            return None;
+        }
+
         const CELL_SIZE: f32 = 1.0;
         let (x, y) = (position.x, position.z);
 
@@ -289,6 +293,10 @@ impl MapDefinition {
         }
 
         None
+    }
+
+    pub fn is_inside_bounds(&self, position: Vec3) -> bool {
+        self.get_closest_tile(position).is_some()
     }
 }
 

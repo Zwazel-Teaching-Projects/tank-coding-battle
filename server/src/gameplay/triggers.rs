@@ -10,12 +10,13 @@ pub struct CollectAndTriggerMessagesTrigger;
 pub struct StartNextSimulationStepTrigger;
 
 #[derive(Debug, Reflect, Event)]
+pub struct FinishedNextSimulationStepTrigger;
+
+#[derive(Debug, Reflect, Event)]
 pub struct UpdateLobbyGameStateTrigger;
 
 #[derive(Debug, Reflect, Event)]
-pub struct UpdateClientGameStatesTrigger {
-    pub lobby: Entity,
-}
+pub struct UpdateClientGameStatesTrigger;
 
 #[derive(Debug, Reflect, Event)]
 pub struct AddStateUpdateToQueue;

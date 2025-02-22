@@ -85,6 +85,8 @@ pub struct TankConfig {
     pub size: Vec3,
     /// Shooting cooldown in ticks. The tank can only shoot again after this many ticks.
     pub shoot_cooldown: u32,
+    pub projectile_damage: f32,
+    pub projectile_speed: f32,
 }
 
 #[derive(SystemParam)]

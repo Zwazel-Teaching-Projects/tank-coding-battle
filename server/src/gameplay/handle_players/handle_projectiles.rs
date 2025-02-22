@@ -4,7 +4,10 @@ use shared::{
     networking::lobby_management::MyLobby,
 };
 
-use crate::gameplay::triggers::{StartNextSimulationStepTrigger, StartNextTickProcessingTrigger};
+use crate::gameplay::triggers::{
+    FinishedNextSimulationStepTrigger, StartNextSimulationStepTrigger,
+    StartNextTickProcessingTrigger,
+};
 
 pub fn handle_despawn_timer(
     trigger: Trigger<StartNextTickProcessingTrigger>,
@@ -47,5 +50,31 @@ pub fn move_projectiles(
 
         let rotation = transform.rotation;
         transform.translation += rotation * Vec3::new(0.0, 0.0, projectile.speed);
+    }
+}
+
+pub fn despawn_out_of_bounds(
+    trigger: Trigger<FinishedNextSimulationStepTrigger>,
+    lobby: Query<&MyLobby>,
+    projectiles: Query<&Transform, With<ProjectileMarker>>,
+    mut commands: Commands,
+) {
+    let lobby_entity = trigger.entity();
+
+    let lobby = lobby.get(lobby_entity).expect("Failed to get lobby");
+    let map = &lobby
+        .map_config
+        .as_ref()
+        .expect("Failed to get map config")
+        .map;
+
+    for projectile_entity in lobby.projectiles.iter() {
+        let transform = projectiles
+            .get(*projectile_entity)
+            .expect("Failed to get projectile");
+
+        if !map.is_inside_bounds(transform.translation) {
+            commands.entity(*projectile_entity).despawn_recursive();
+        }
     }
 }

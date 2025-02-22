@@ -45,5 +45,6 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .entity(trigger.entity())
         .observe(handle_shooting::tick_shoot_cooldowns)
         .observe(handle_projectiles::move_projectiles)
-        .observe(handle_projectiles::handle_despawn_timer);
+        .observe(handle_projectiles::handle_despawn_timer)
+        .observe(handle_projectiles::despawn_out_of_bounds);
 }

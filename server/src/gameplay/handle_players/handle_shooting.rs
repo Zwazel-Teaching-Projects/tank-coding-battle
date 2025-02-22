@@ -19,12 +19,16 @@ pub fn handle_tank_shooting_command(
     mut lobby: Query<&mut MyLobby>,
     mut body: Query<(&TankType, &mut ShootCooldown, &TankBodyMarker, &InLobby)>,
     turret_transform: Query<&GlobalTransform, With<TankTurretMarker>>,
+    tank_config: TankConfigSystemParam,
     mut commands: Commands,
 ) {
     let client_entity = trigger.entity();
-    let (_tank_type, mut cooldown, tank_body, in_lobby) = body
+    let (tank_type, mut cooldown, tank_body, in_lobby) = body
         .get_mut(client_entity)
         .expect("Failed to get tank transform");
+    let tank_config = tank_config
+        .get_tank_type_config(tank_type)
+        .expect("Failed to get tank config");
 
     if cooldown.ticks_left <= 0 {
         let mut lobby = lobby.get_mut(in_lobby.0).expect("Failed to get lobby");
@@ -44,8 +48,8 @@ pub fn handle_tank_shooting_command(
                     .with_rotation(bullet_spawn_rotation),
                 ProjectileMarker {
                     owner: client_entity,
-                    damage: 1.0,
-                    speed: 0.5,
+                    damage: tank_config.projectile_damage,
+                    speed: tank_config.projectile_speed,
                 },
                 in_lobby.clone(),
             ))
