@@ -10,7 +10,25 @@ use std::sync::Mutex;
 
 use crate::gameplay::triggers::FinishedNextSimulationStepTrigger;
 
-pub fn check_collision_and_apply_movement(
+/// Warlock Engineer Ikit Claw’s masterful collision and movement enactor!
+///
+/// This function governs the motion of our pitiful minions, checking for collisions as they move
+/// from their current location to a desired destination. For each entity with a changed WantedTransform,
+/// it simulates movement in small, precise increments (STEP_SIZE), computing a rotated “footprint” at each step
+/// to determine its axis-aligned bounding box (AABB) over the game map’s tiles.
+///
+/// The function first gathers the floor heights of all tiles under the footprint, ensuring that each tile exists
+/// within the map’s bounds. It then verifies that the slope between the highest tile and its neighbors does not
+/// exceed the collider’s maximum allowed slope.
+///
+/// A special case is observed when the collider’s max_slope is 0.0—this denotes a flying entity, not meant to climb.
+/// In such cases, the vertical component of the candidate translation is not adjusted to match the floor height.
+/// Instead, if the candidate translation would dip below the calculated floor (plus the collider’s half height),
+/// a collision is triggered, ensuring that our aerial minions remain unburdened by the ground’s wretched grasp.
+///
+/// Upon detecting any collision, the entity is marked, and its transform is updated accordingly. Finally, the function
+/// dispatches collision triggers to deal with the unfortunate souls that encountered obstacles.
+pub fn check_world_collision_and_apply_movement(
     trigger: Trigger<FinishedNextSimulationStepTrigger>,
     lobby: Query<&MyLobby>,
     mut colliders: Query<
@@ -134,22 +152,31 @@ pub fn check_collision_and_apply_movement(
                 // Determine the highest floor among the tiles.
                 let candidate_floor = tile_heights.iter().cloned().fold(f32::MIN, f32::max);
 
-                // Second pass: verify that no tile deviates too steeply from the highest floor.
-                if tile_heights
-                    .iter()
-                    .any(|&h| (candidate_floor - h).abs() > collider.max_slope)
-                {
-                    collision_happened = true;
-                    break;
+                if collider.max_slope == 0.0 {
+                    // For flying colliders, shun the ground's embrace entirely!
+                    // Should our intended path dip below the floor, we declare collision.
+                    if candidate_translation.y < candidate_floor + collider.half_size.y {
+                        collision_happened = true;
+                        break;
+                    }
+                    safe_translation = candidate_translation;
+                    safe_rotation = candidate_rotation;
+                } else {
+                    // For grounded colliders, ensure slopes are within tolerable bounds.
+                    if tile_heights
+                        .iter()
+                        .any(|&h| (candidate_floor - h).abs() > collider.max_slope)
+                    {
+                        collision_happened = true;
+                        break;
+                    }
+                    safe_translation = Vec3::new(
+                        candidate_translation.x,
+                        candidate_floor + collider.half_size.y,
+                        candidate_translation.z,
+                    );
+                    safe_rotation = candidate_rotation;
                 }
-
-                // This step is safe—record its blessed state.
-                safe_translation = Vec3::new(
-                    candidate_translation.x,
-                    candidate_floor + collider.half_size.y,
-                    candidate_translation.z,
-                );
-                safe_rotation = candidate_rotation;
             }
 
             // If our progress was thwarted by obstacles, mark this entity.
