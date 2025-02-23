@@ -1,6 +1,9 @@
 use bevy::{color::palettes::css::WHITE, ecs::entity::EntityHashSet, prelude::*};
 use shared::{
-    game::{projectile_handling::ProjectileMarker, tank_types::TankType},
+    game::{
+        collision_handling::components::WantedTransform, projectile_handling::ProjectileMarker,
+        tank_types::TankType,
+    },
     networking::{
         lobby_management::InTeam,
         messages::{message_container::GameStateTrigger, message_data::game_starts::GameStarts},
@@ -15,7 +18,7 @@ pub fn handle_projectile_on_game_state_update(
     mut commands: Commands,
     mut entity_mapping: ResMut<MyEntityMapping>,
     players: Query<(&InTeam, &TankType)>,
-    mut existing_projectiles: Query<(Entity, &mut Transform), With<ProjectileMarker>>,
+    mut existing_projectiles: Query<(Entity, &mut WantedTransform), With<ProjectileMarker>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -64,6 +67,12 @@ pub fn handle_projectile_on_game_state_update(
                             },
                             Mesh3d(meshes.add(Cuboid::from_size(tank_config.projectile_size))),
                             MeshMaterial3d(materials.add(team_color)),
+                            WantedTransform(
+                                Transform::from_translation(
+                                    server_side_projectile_state.transform.translation,
+                                )
+                                .with_rotation(server_side_projectile_state.transform.rotation),
+                            ),
                         ))
                         .id();
                     entity_mapping.mapping.insert(
