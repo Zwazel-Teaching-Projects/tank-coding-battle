@@ -1,14 +1,32 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
+
+use crate::asset_handling::config::TankConfigSystemParam;
+
+use super::{
+    collision_handling::components::{Collider, CollisionLayer, WantedTransform},
+    tank_types::TankType,
+};
+
+#[derive(Debug, Reflect, Component, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[reflect(Component)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PlayerState {
+    #[default]
+    Alive,
+    Dead,
+}
 
 #[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
 #[reflect(Component)]
-#[require(ShootCooldown)]
+#[require(ShootCooldown, PlayerState, WantedTransform)]
 pub struct TankBodyMarker {
     pub turret: Option<Entity>,
 }
 
 #[derive(Debug, Component, Reflect, Clone, PartialEq)]
 #[reflect(Component)]
+#[require(Transform)]
 pub struct TankTurretMarker {
     pub body: Entity,
 }
@@ -27,4 +45,31 @@ impl Default for ShootCooldown {
             ticks_cooldown: 0,
         }
     }
+}
+
+pub fn setup_tank_body(
+    trigger: Trigger<OnAdd, TankBodyMarker>,
+    mut commands: Commands,
+    tank_configs: TankConfigSystemParam,
+    tank_type: Query<&TankType>,
+) {
+    let tank_body_entity = trigger.entity();
+    let tank_type = tank_type
+        .get(tank_body_entity)
+        .expect("TankType should exist");
+    let tank_config = tank_configs
+        .get_tank_type_config(tank_type)
+        .expect("TankConfig should exist");
+
+    commands.entity(tank_body_entity).insert((
+        Collider {
+            half_size: tank_config.size / 2.0,
+            max_slope: tank_config.max_slope,
+        },
+        CollisionLayer::new(&[0]),
+        ShootCooldown {
+            ticks_left: 0,
+            ticks_cooldown: tank_config.shoot_cooldown,
+        },
+    ));
 }

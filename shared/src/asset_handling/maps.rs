@@ -165,6 +165,18 @@ impl MapDefinition {
         self.get_center_of_tile(tile.into())
     }
 
+    pub fn grid_in_real_world(&self) -> Vec<Vec3> {
+        let mut grid = Vec::new();
+        for y in 0..self.depth {
+            for x in 0..self.width {
+                if let Some(pos) = self.get_real_world_position_of_tile((x, y)) {
+                    grid.push(pos);
+                }
+            }
+        }
+        grid
+    }
+
     pub fn get_all_spawn_points_of_group(&self, group: &str) -> Vec<(Vec3, usize)> {
         self.markers
             .iter()
@@ -217,23 +229,38 @@ impl MapDefinition {
     }
 
     pub fn get_closest_tile(&self, position: Vec3) -> Option<TileDefinition> {
-        const CELL_SIZE: f32 = 1.0;
-        let (x, y) = (position.x, position.z);
-
-        // Compute the indices by shifting by half a cell, dividing, and rounding.
-        let col = ((x - CELL_SIZE / 2.0) / CELL_SIZE).round() as isize;
-        let row = ((y - CELL_SIZE / 2.0) / CELL_SIZE).round() as isize;
-
-        // Ensure the indices are within bounds of the grid.
-        if row < 0
-            || row >= self.tiles.len() as isize
-            || col < 0
-            || col >= self.tiles[0].len() as isize
-        {
+        if position.y < 0.0 {
             return None;
         }
 
-        Some((col as usize, row as usize).into())
+        const CELL_SIZE: f32 = 1.0;
+        let (x, y) = (position.x, position.z);
+
+        let real_world_grid = self.grid_in_real_world();
+        let mut closest_tile = None;
+
+        for (i, pos) in real_world_grid.iter().enumerate() {
+            let distance = (pos.x - x).abs() + (pos.z - y).abs();
+            if distance < CELL_SIZE / 2.0 {
+                return Some(TileDefinition {
+                    x: i % self.width,
+                    y: i / self.width,
+                });
+            }
+
+            if let Some((_, closest_distance)) = closest_tile {
+                if distance < closest_distance {
+                    closest_tile = Some((i, distance));
+                }
+            } else {
+                closest_tile = Some((i, distance));
+            }
+        }
+
+        closest_tile.map(|(i, _)| TileDefinition {
+            x: i % self.width,
+            y: i / self.width,
+        })
     }
 
     pub fn get_neighbours(&self, tile: impl Into<TileDefinition>) -> TileNeighbours {
@@ -289,6 +316,10 @@ impl MapDefinition {
         }
 
         None
+    }
+
+    pub fn is_inside_bounds(&self, position: Vec3) -> bool {
+        self.get_closest_tile(position).is_some()
     }
 }
 

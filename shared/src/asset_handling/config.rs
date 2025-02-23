@@ -81,10 +81,19 @@ pub struct TankConfig {
     /// The maximum height this tank can "climb"
     pub max_slope: f32,
     /// The size of the tank (Vec3, x = width, y = height, z = depth)
-    /// half-extents for x (width), z (depth) and y (height)
+    /// full-extents for x (width), z (depth) and y (height)
     pub size: Vec3,
     /// Shooting cooldown in ticks. The tank can only shoot again after this many ticks.
     pub shoot_cooldown: u32,
+    pub projectile_damage: f32,
+    pub projectile_speed: f32,
+    /// The lifetime of the projectile in ticks
+    pub projectile_lifetime: u32,
+    /// The size of the projectile (Vec3, x = width, y = height, z = depth)
+    /// full-extents for x (width), z (depth) and y (height)
+    pub projectile_size: Vec3,
+    /// The maximum amount of health this tank can have
+    pub max_health: f32,
 }
 
 #[derive(SystemParam)]

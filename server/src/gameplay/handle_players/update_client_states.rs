@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use shared::{
     game::game_state::PersonalizedClientGameState,
-    networking::lobby_management::{lobby_management::LobbyManagementSystemParam, InTeam},
+    networking::lobby_management::{lobby_management::LobbyManagementSystemParam, InLobby, InTeam},
 };
 
 use crate::gameplay::triggers::UpdateClientGameStatesTrigger;
@@ -11,17 +11,16 @@ use crate::gameplay::triggers::UpdateClientGameStatesTrigger;
 pub fn update_client_states(
     trigger: Trigger<UpdateClientGameStatesTrigger>,
     lobby_management: LobbyManagementSystemParam,
-    clients: Query<&InTeam>,
+    clients: Query<(&InTeam, &InLobby)>,
     mut states: Query<&mut PersonalizedClientGameState>,
 ) {
     let client_entity = trigger.entity();
-    let in_team = clients.get(client_entity).expect("Failed to get in team");
-    let lobby = trigger.lobby;
+    let (in_team, in_lobby) = clients.get(client_entity).expect("Failed to get in team");
     let mut client_state = states
         .get_mut(client_entity)
         .expect("Failed to get client state");
     let my_lobby = lobby_management
-        .get_lobby(lobby)
+        .get_lobby(**in_lobby)
         .expect("Failed to get lobby");
     // Get all teammates, filtering out myself
     let team_players = my_lobby
@@ -39,7 +38,7 @@ pub fn update_client_states(
         .collect::<Vec<_>>();
 
     let lobby_state = lobby_management
-        .get_lobby_gamestate(lobby)
+        .get_lobby_gamestate(**in_lobby)
         .expect("Failed to get lobby state");
 
     // Clearing all states, as we might not know what we knew before

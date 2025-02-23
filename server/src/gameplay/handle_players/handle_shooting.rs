@@ -1,7 +1,8 @@
-use bevy::prelude::*;
+use bevy::{ecs::entity::EntityHashSet, prelude::*};
 use shared::{
     asset_handling::config::TankConfigSystemParam,
     game::{
+        collision_handling::components::{CollisionLayer, WantedTransform},
         player_handling::{ShootCooldown, TankBodyMarker, TankTurretMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
@@ -19,14 +20,19 @@ pub fn handle_tank_shooting_command(
     mut lobby: Query<&mut MyLobby>,
     mut body: Query<(&TankType, &mut ShootCooldown, &TankBodyMarker, &InLobby)>,
     turret_transform: Query<&GlobalTransform, With<TankTurretMarker>>,
+    tank_config: TankConfigSystemParam,
     mut commands: Commands,
 ) {
     let client_entity = trigger.entity();
-    let (_tank_type, mut cooldown, tank_body, in_lobby) = body
+    let (tank_type, mut cooldown, tank_body, in_lobby) = body
         .get_mut(client_entity)
         .expect("Failed to get tank transform");
 
     if cooldown.ticks_left <= 0 {
+        let tank_config = tank_config
+            .get_tank_type_config(tank_type)
+            .expect("Failed to get tank config");
+
         let mut lobby = lobby.get_mut(in_lobby.0).expect("Failed to get lobby");
 
         let turret_entity = tank_body.turret.expect("Failed to get turret entity");
@@ -37,16 +43,20 @@ pub fn handle_tank_shooting_command(
         let bullet_spawn_position = turret_transform.translation();
         let bullet_spawn_rotation = turret_transform.rotation();
 
+        let transform =
+            Transform::from_translation(bullet_spawn_position).with_rotation(bullet_spawn_rotation);
         let bullet = commands
             .spawn((
-                Name::new("Bullet"),
-                Transform::from_translation(bullet_spawn_position)
-                    .with_rotation(bullet_spawn_rotation),
+                Name::new("Projectile"),
+                WantedTransform(transform),
+                transform,
                 ProjectileMarker {
                     owner: client_entity,
-                    damage: 1.0,
-                    speed: 0.5,
+                    damage: tank_config.projectile_damage,
+                    speed: tank_config.projectile_speed,
                 },
+                CollisionLayer::new(&[0])
+                    .with_ignore(EntityHashSet::from_iter(vec![client_entity, turret_entity])),
                 in_lobby.clone(),
             ))
             .id();
@@ -72,19 +82,4 @@ pub fn tick_shoot_cooldowns(
             }
         }
     }
-}
-
-pub fn set_timer_for_shooting(
-    trigger: Trigger<OnAdd, ShootCooldown>,
-    tank_config: TankConfigSystemParam,
-    mut tank: Query<(&mut ShootCooldown, &TankType)>,
-) {
-    let entity = trigger.entity();
-    let (mut cooldown, tank_type) = tank.get_mut(entity).expect("Failed to get tank type");
-    let tank_config = tank_config
-        .get_tank_type_config(tank_type)
-        .expect("Failed to get tank config");
-
-    cooldown.ticks_left = tank_config.shoot_cooldown;
-    cooldown.ticks_cooldown = tank_config.shoot_cooldown;
 }

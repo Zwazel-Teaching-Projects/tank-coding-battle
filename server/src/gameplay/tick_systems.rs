@@ -41,16 +41,11 @@ fn add_trigger_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands
 fn increment_tick(
     trigger: Trigger<StartNextTickProcessingTrigger>,
     mut commands: Commands,
-    mut lobbies: Query<(&MyLobby, &mut LobbyGameState)>,
+    mut lobbies: Query<&mut LobbyGameState>,
 ) {
     let lobby_entity = trigger.entity();
-    let (lobby, mut game_state) = lobbies.get_mut(lobby_entity).unwrap();
+    let mut game_state = lobbies.get_mut(lobby_entity).unwrap();
     game_state.tick += 1;
-
-    info!(
-        "Start collecting and processing messages of tick {} for lobby: {}",
-        game_state.tick, lobby.lobby_name
-    );
 
     commands.trigger_targets(CollectAndTriggerMessagesTrigger, lobby_entity);
 }

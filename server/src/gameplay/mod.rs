@@ -1,10 +1,12 @@
 use bevy::prelude::*;
+use handle_collisions::MyCollisionHandlingPlugin;
 use handle_players::HandlePlayersPlugin;
 use shared::networking::lobby_management::MyLobby;
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
 
 pub mod game_state_handling;
+pub mod handle_collisions;
 pub mod handle_players;
 pub mod process_messages;
 pub mod process_messages_when_lobby_not_ready;
@@ -36,7 +38,11 @@ impl Plugin for MyGameplayPlugin {
             )
                 .chain(),
         )
-        .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
+        .add_plugins((
+            TickSystemsPlugin,
+            HandlePlayersPlugin,
+            MyCollisionHandlingPlugin,
+        ))
         .add_systems(
             Update,
             (
@@ -56,6 +62,7 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .observe(game_state_handling::add_current_game_state_to_message_queue)
         .observe(game_state_handling::update_lobby_state)
         .observe(simulation::process_tick_sim)
+        .observe(simulation::process_tick_sim_finished)
         .observe(start_lobby::check_if_lobby_should_start)
         .observe(start_lobby::start_lobby)
         .observe(process_messages::process_lobby_messages);

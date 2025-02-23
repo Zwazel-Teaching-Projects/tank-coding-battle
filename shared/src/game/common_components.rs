@@ -9,5 +9,4 @@ pub struct DespawnTimer(pub Timer);
 pub struct TickBasedDespawnTimer {
     #[deref]
     pub ticks_left: u32,
-    pub ticks_total: u32,
 }

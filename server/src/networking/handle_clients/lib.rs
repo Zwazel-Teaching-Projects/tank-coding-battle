@@ -7,12 +7,7 @@ use shared::{
 };
 
 #[derive(Debug, Component)]
-#[require(
-    OutMessageQueue,
-    ImmediateOutMessageQueue,
-    Transform,
-    PersonalizedClientGameState
-)]
+#[require(OutMessageQueue, ImmediateOutMessageQueue, PersonalizedClientGameState)]
 pub struct MyNetworkClient {
     pub name: Option<String>,
     pub assigned_spawn_point: Option<usize>,
