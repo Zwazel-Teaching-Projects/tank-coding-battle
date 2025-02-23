@@ -4,7 +4,7 @@ use shared::{
         config::{TankConfig, TankConfigSystemParam},
         maps::MapDefinition,
     },
-    game::tank_types::TankType,
+    game::{collision_handling::components::WantedTransform, tank_types::TankType},
     networking::{
         lobby_management::{InLobby, MyLobby},
         messages::message_container::MoveTankCommandTrigger,
@@ -13,7 +13,7 @@ use shared::{
 
 pub fn handle_tank_movement(
     trigger: Trigger<MoveTankCommandTrigger>,
-    mut tank: Query<(&mut Transform, &TankType, &InLobby)>,
+    mut tank: Query<(&mut WantedTransform, &TankType, &InLobby)>,
     tank_config: TankConfigSystemParam,
     lobby: Query<&MyLobby>,
 ) {

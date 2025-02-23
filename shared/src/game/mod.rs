@@ -34,6 +34,7 @@ impl Plugin for MySharedGamePlugin {
                 common_systems::handle_despawn_timer
                     .run_if(any_with_component::<common_components::DespawnTimer>),
             )
-            .add_observer(projectile_handling::setup_projectile);
+            .add_observer(projectile_handling::setup_projectile)
+            .add_observer(player_handling::setup_tank_body);
     }
 }

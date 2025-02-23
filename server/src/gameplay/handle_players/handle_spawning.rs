@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
     game::{
+        collision_handling::components::WantedTransform,
         player_handling::{PlayerState, TankBodyMarker, TankTurretMarker},
         tank_types::TankType,
     },
@@ -18,6 +19,7 @@ pub fn respawn_player(
     lobby_management: LobbyManagementSystemParam,
     mut body_query: Query<(
         &mut Transform,
+        &mut WantedTransform,
         &mut PlayerState,
         &MyNetworkClient,
         &InTeam,
@@ -25,13 +27,17 @@ pub fn respawn_player(
         &TankType,
         &TankBodyMarker,
     )>,
-    mut turret_query: Query<&mut Transform, (With<TankTurretMarker>, Without<TankBodyMarker>)>,
+    mut turret_query: Query<
+        (&mut Transform, &mut WantedTransform),
+        (With<TankTurretMarker>, Without<TankBodyMarker>),
+    >,
     tank_configs: TankConfigSystemParam,
 ) {
     let client_entity = trigger.entity();
 
     if let Ok((
         mut tank_transform,
+        mut wanted_transform,
         mut player_state,
         client,
         client_team,
@@ -54,7 +60,7 @@ pub fn respawn_player(
             .assigned_spawn_point
             .expect(format!("Failed to get assigned spawn point for client {:?}", client).as_str());
 
-        let mut turret_transform = turret_query
+        let (mut turret_transform, mut wanted_turret_transform) = turret_query
             .get_mut(
                 tank_body_marker
                     .turret
@@ -62,6 +68,7 @@ pub fn respawn_player(
             )
             .expect("Failed to get turret transform");
         turret_transform.rotation = Quat::IDENTITY;
+        wanted_turret_transform.rotation = Quat::IDENTITY;
 
         let spawn_point_position = map.get_spawn_point_position(client_team, spawn_point);
         let spawn_point_rotation = map.get_spawn_point_rotation(client_team, spawn_point);
@@ -72,6 +79,7 @@ pub fn respawn_player(
                 .expect("Failed to get tank config");
             tank_transform.translation =
                 spawn_point_position + Vec3::new(0.0, tank_config.size.y, 0.0);
+            wanted_transform.translation = tank_transform.translation;
         } else {
             error!(
                 "Failed to get spawn point position for team {} and spawn point {}",
@@ -81,6 +89,7 @@ pub fn respawn_player(
 
         if let Some(spawn_point_rotation) = spawn_point_rotation {
             tank_transform.rotation = spawn_point_rotation;
+            wanted_transform.rotation = spawn_point_rotation;
         } else {
             error!(
                 "Failed to get spawn point rotation for team {} and spawn point {}",

@@ -77,18 +77,3 @@ pub fn tick_shoot_cooldowns(
         }
     }
 }
-
-pub fn set_timer_for_shooting(
-    trigger: Trigger<OnAdd, ShootCooldown>,
-    tank_config: TankConfigSystemParam,
-    mut tank: Query<(&mut ShootCooldown, &TankType)>,
-) {
-    let entity = trigger.entity();
-    let (mut cooldown, tank_type) = tank.get_mut(entity).expect("Failed to get tank type");
-    let tank_config = tank_config
-        .get_tank_type_config(tank_type)
-        .expect("Failed to get tank config");
-
-    cooldown.ticks_left = tank_config.shoot_cooldown;
-    cooldown.ticks_cooldown = tank_config.shoot_cooldown;
-}

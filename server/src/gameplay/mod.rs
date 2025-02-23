@@ -13,6 +13,7 @@ pub mod start_lobby;
 pub mod system_sets;
 mod tick_systems;
 pub mod triggers;
+pub mod handle_collisions;
 
 pub struct MyGameplayPlugin;
 

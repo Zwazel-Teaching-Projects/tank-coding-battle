@@ -23,8 +23,7 @@ impl Plugin for HandlePlayersPlugin {
             .add_observer(add_observers_to_client)
             .add_observer(insert_turret::insert_turret)
             .add_observer(dummy_handling::add_observers_to_dummies)
-            .add_observer(dummy_handling::add_dummy_simulation_observers_to_lobby)
-            .add_observer(handle_shooting::set_timer_for_shooting);
+            .add_observer(dummy_handling::add_dummy_simulation_observers_to_lobby);
     }
 }
 
