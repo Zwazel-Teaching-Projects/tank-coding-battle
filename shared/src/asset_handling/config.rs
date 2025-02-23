@@ -87,6 +87,13 @@ pub struct TankConfig {
     pub shoot_cooldown: u32,
     pub projectile_damage: f32,
     pub projectile_speed: f32,
+    /// The lifetime of the projectile in ticks
+    pub projectile_lifetime: u32,
+    /// The size of the projectile (Vec3, x = width, y = height, z = depth)
+    /// half-extents for x (width), z (depth) and y (height)
+    pub projectile_size: Vec3,
+    /// The maximum amount of health this tank can have
+    pub max_health: f32,
 }
 
 #[derive(SystemParam)]

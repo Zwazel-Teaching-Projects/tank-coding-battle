@@ -16,6 +16,13 @@
             shootCooldown: 5,
             projectileDamage: 1.0,
             projectileSpeed: 0.5,
+            projectileLifetime: 100,
+            projectileSize: (
+                0.15,
+                0.15,
+                0.3,
+            ),
+            maxHealth: 100,
         ),
         HEAVY_TANK: (
             moveSpeed: 0.5,
@@ -33,6 +40,13 @@
             shootCooldown: 5,
             projectileDamage: 1.0,
             projectileSpeed: 0.5,
+            projectileLifetime: 100,
+            projectileSize: (
+                0.15,
+                0.15,
+                0.3,
+            ),
+            maxHealth: 100,
         ),
         SELF_PROPELLED_GUN_TANK: (
             moveSpeed: 0.25,
@@ -50,6 +64,13 @@
             shootCooldown: 5,
             projectileDamage: 1.0,
             projectileSpeed: 0.5,
+            projectileLifetime: 100,
+            projectileSize: (
+                0.15,
+                0.15,
+                0.3,
+            ),
+            maxHealth: 100,
         ),
     },
 )

@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use collision_handling::MyCollisionHandlingPlugin;
 use game_state::{ClientState, LobbyGameState, PersonalizedClientGameState, ProjectileState};
 use player_handling::{PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker};
-use projectile_handling::ProjectileMarker;
 use tank_types::TankType;
 
 pub mod collision_handling;
@@ -26,7 +25,7 @@ impl Plugin for MySharedGamePlugin {
             .register_type::<ShootCooldown>()
             .register_type::<TankType>()
             .register_type::<PlayerState>()
-            .register_type::<ProjectileMarker>()
+            .register_type::<projectile_handling::ProjectileMarker>()
             .register_type::<common_components::DespawnTimer>()
             .register_type::<common_components::TickBasedDespawnTimer>()
             .add_plugins((MyCollisionHandlingPlugin,))
@@ -34,6 +33,7 @@ impl Plugin for MySharedGamePlugin {
                 Update,
                 common_systems::handle_despawn_timer
                     .run_if(any_with_component::<common_components::DespawnTimer>),
-            );
+            )
+            .add_observer(projectile_handling::setup_projectile);
     }
 }
