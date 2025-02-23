@@ -52,7 +52,7 @@ pub fn simulate_movement(
                 .expect("Failed to get tank config");
 
             // Simulate movement (always forward)
-            commands.trigger_targets(
+            /* commands.trigger_targets(
                 MoveTankCommandTrigger {
                     sender: None,
                     message: MoveTankCommand {
@@ -60,7 +60,7 @@ pub fn simulate_movement(
                     },
                 },
                 *player,
-            );
+            ); */
 
             // Simulate movement (Rotate body clockwise)
             commands.trigger_targets(

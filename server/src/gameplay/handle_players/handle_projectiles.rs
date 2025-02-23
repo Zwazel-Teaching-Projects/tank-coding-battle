@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     game::{
         collision_handling::{
-            components::WantedTransform,
+            components::{Collider, WantedTransform},
             triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
         },
         common_components::TickBasedDespawnTimer,
@@ -19,19 +19,53 @@ use crate::gameplay::triggers::{
 
 pub fn colliding_with_entity(
     trigger: Trigger<CollidedWithTrigger>,
-    projectile: Query<&ProjectileMarker>,
-    players: Query<&TankBodyMarker>,
+    projectile: Query<(&ProjectileMarker, &Transform)>,
+    players: Query<(&TankBodyMarker, &Transform, &Collider)>,
     mut commands: Commands,
 ) {
     // TODO: Apply damage to player
     let projectile_entity = trigger.entity();
-    let projectile = projectile
+    let (projectile, projectile_transform) = projectile
         .get(projectile_entity)
         .expect("Failed to get projectile");
     let collided_with = trigger.event().entity;
 
-    if let Ok(body) = players.get(collided_with) {
+    if let Ok((body, body_transform, body_collider)) = players.get(collided_with) {
+        let body_half_size = body_collider.half_size;
         println!("Projectile hit player: {:?}", body);
+
+        // Get the relative vector from the body to the projectile in world space.
+        let relative = projectile_transform.translation - body_transform.translation;
+
+        // Transform the relative vector into the body's local space.
+        let local_pos = body_transform.rotation.inverse() * relative;
+
+        let face_dx = body_half_size.x - local_pos.x.abs();
+        let face_dy = body_half_size.y - local_pos.y.abs();
+        let face_dz = body_half_size.z - local_pos.z.abs();
+
+        if face_dx < face_dy && face_dx < face_dz {
+            // Collision on x-axis (left or right)
+            if local_pos.x > 0.0 {
+                println!("Collided with the left face."); // Swapped condition
+            } else {
+                println!("Collided with the right face.");
+            }
+        } else if face_dy < face_dx && face_dy < face_dz {
+            // Collision on y-axis (top or bottom)
+            if local_pos.y > 0.0 {
+                println!("Collided with the top face.");
+            } else {
+                println!("Collided with the bottom face.");
+            }
+        } else {
+            // Collision on z-axis (front or back)
+            if local_pos.z > 0.0 {
+                println!("Collided with the front face.");
+            } else {
+                println!("Collided with the back face.");
+            }
+        }
 
         commands.entity(projectile_entity).despawn_recursive();
     }
