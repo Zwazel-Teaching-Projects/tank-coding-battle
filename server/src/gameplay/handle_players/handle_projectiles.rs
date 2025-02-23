@@ -23,6 +23,7 @@ pub fn colliding_with_entity(
     players: Query<&TankBodyMarker>,
     mut commands: Commands,
 ) {
+    // TODO: Apply damage to player
     let projectile_entity = trigger.entity();
     let projectile = projectile
         .get(projectile_entity)
