@@ -31,19 +31,9 @@ pub fn process_lobby_messages(
         .drain(..)
         .collect::<Vec<_>>();
 
-    let lobby = lobby_management
-        .get_lobby(lobby_entity)
-        .expect("Lobby not found");
     let current_lobby_state = lobby_management
         .get_lobby_gamestate(lobby_entity)
         .expect("Lobby Gamestate not found");
-
-    info!(
-        "Processing {} messages for lobby: {} at tick {}",
-        messages_to_process.len(),
-        lobby.lobby_name,
-        current_lobby_state.tick
-    );
 
     for message_container in messages_to_process {
         if message_container.tick_to_be_processed_at > current_lobby_state.tick {

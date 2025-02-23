@@ -55,10 +55,8 @@ pub fn handle_tank_shooting_command(
                     damage: tank_config.projectile_damage,
                     speed: tank_config.projectile_speed,
                 },
-                CollisionLayer {
-                    ignore: EntityHashSet::from_iter(vec![client_entity, turret_entity]),
-                    ..default()
-                },
+                CollisionLayer::new(&[0])
+                    .with_ignore(EntityHashSet::from_iter(vec![client_entity, turret_entity])),
                 in_lobby.clone(),
             ))
             .id();

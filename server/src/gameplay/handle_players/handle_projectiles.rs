@@ -1,8 +1,12 @@
 use bevy::prelude::*;
 use shared::{
     game::{
-        collision_handling::{components::WantedTransform, triggers::CollidedWithWorldTrigger},
+        collision_handling::{
+            components::WantedTransform,
+            triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
+        },
         common_components::TickBasedDespawnTimer,
+        player_handling::TankBodyMarker,
         projectile_handling::ProjectileMarker,
     },
     networking::lobby_management::MyLobby,
@@ -12,6 +16,25 @@ use crate::gameplay::triggers::{
     FinishedNextSimulationStepTrigger, StartNextSimulationStepTrigger,
     StartNextTickProcessingTrigger,
 };
+
+pub fn colliding_with_entity(
+    trigger: Trigger<CollidedWithTrigger>,
+    projectile: Query<&ProjectileMarker>,
+    players: Query<&TankBodyMarker>,
+    mut commands: Commands,
+) {
+    let projectile_entity = trigger.entity();
+    let projectile = projectile
+        .get(projectile_entity)
+        .expect("Failed to get projectile");
+    let collided_with = trigger.event().entity;
+
+    if let Ok(body) = players.get(collided_with) {
+        println!("Projectile hit player: {:?}", body);
+
+        commands.entity(projectile_entity).despawn_recursive();
+    }
+}
 
 pub fn handle_despawn_timer(
     trigger: Trigger<StartNextTickProcessingTrigger>,

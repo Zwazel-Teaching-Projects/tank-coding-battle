@@ -119,10 +119,6 @@ pub fn check_if_client_states_are_all_up_to_date(
             }
         }
         if all_up_to_date {
-            info!(
-                "All client states for lobby '{}' are up to date at tick {}.",
-                lobby.lobby_name, game_state.tick
-            );
             lobby.tick_processed = game_state.tick;
             commands.trigger_targets(AddStateUpdateToQueue, entity);
         }

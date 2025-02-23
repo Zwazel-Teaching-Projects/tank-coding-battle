@@ -2,13 +2,13 @@ use bevy::prelude::*;
 use shared::{
     game::collision_handling::{
         components::{Collider, CollisionLayer, WantedTransform},
-        triggers::CollidedWithWorldTrigger,
+        triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
     },
     networking::lobby_management::{InLobby, MyLobby},
 };
 use std::sync::Mutex;
 
-use crate::gameplay::triggers::FinishedNextSimulationStepTrigger;
+use crate::gameplay::triggers::{CalculateCollisionsTrigger, FinishedNextSimulationStepTrigger};
 
 /// Warlock Engineer Ikit Claw’s masterful collision and movement enactor!
 ///
@@ -28,6 +28,7 @@ use crate::gameplay::triggers::FinishedNextSimulationStepTrigger;
 ///
 /// Upon detecting any collision, the entity is marked, and its transform is updated accordingly. Finally, the function
 /// dispatches collision triggers to deal with the unfortunate souls that encountered obstacles.
+/// Warlock Engineer Ikit Claw’s masterful collision and movement enactor!
 pub fn check_world_collision_and_apply_movement(
     trigger: Trigger<FinishedNextSimulationStepTrigger>,
     lobby: Query<&MyLobby>,
@@ -60,7 +61,7 @@ pub fn check_world_collision_and_apply_movement(
     // A thread-safe hoard for entities that encounter collision misfortune.
     let collided_entities = Mutex::new(Vec::new());
 
-    // Process each colliding minion in parallel—swift as a plague!
+    // --- World Collision Check ---
     colliders.par_iter_mut().for_each(
         |(entity, mut transform, mut wanted, collider, _layer, in_lobby)| {
             if in_lobby.0 != my_lobby_entity {
@@ -81,13 +82,12 @@ pub fn check_world_collision_and_apply_movement(
             let mut safe_rotation = current.rotation;
             let mut collision_happened = false;
 
-            // Advance in meticulous steps, checking for collisions at each infernal increment.
+            // Advance in meticulous steps, checking for collisions with the world.
             for step in 1..=steps {
                 let t = step as f32 / steps as f32;
                 let candidate_translation = current.translation.lerp(target.translation, t);
                 let candidate_rotation = current.rotation.slerp(target.rotation, t);
 
-                // Compute the rotated footprint via the right and forward vectors.
                 let right = candidate_rotation * Vec3::X;
                 let forward = candidate_rotation * Vec3::Z;
                 let corners = [
@@ -103,7 +103,6 @@ pub fn check_world_collision_and_apply_movement(
                         - forward * collider.half_size.z,
                 ];
 
-                // Determine the axis-aligned bounding box (AABB) of the unholy footprint.
                 let (min_x, max_x) = corners
                     .iter()
                     .fold((f32::MAX, f32::MIN), |(min, max), corner| {
@@ -120,7 +119,6 @@ pub fn check_world_collision_and_apply_movement(
                 let tile_min_z = min_z.floor() as isize;
                 let tile_max_z = max_z.ceil() as isize;
 
-                // First pass: collect all tile heights and ensure tiles exist within bounds.
                 let mut tile_heights = Vec::new();
                 let mut local_collision = false;
                 for tx in tile_min_x..tile_max_x {
@@ -149,12 +147,9 @@ pub fn check_world_collision_and_apply_movement(
                     collision_happened = true;
                     break;
                 }
-                // Determine the highest floor among the tiles.
                 let candidate_floor = tile_heights.iter().cloned().fold(f32::MIN, f32::max);
 
                 if collider.max_slope == 0.0 {
-                    // For flying colliders, shun the ground's embrace entirely!
-                    // Should our intended path dip below the floor, we declare collision.
                     if candidate_translation.y < candidate_floor + collider.half_size.y {
                         collision_happened = true;
                         break;
@@ -162,7 +157,6 @@ pub fn check_world_collision_and_apply_movement(
                     safe_translation = candidate_translation;
                     safe_rotation = candidate_rotation;
                 } else {
-                    // For grounded colliders, ensure slopes are within tolerable bounds.
                     if tile_heights
                         .iter()
                         .any(|&h| (candidate_floor - h).abs() > collider.max_slope)
@@ -179,12 +173,10 @@ pub fn check_world_collision_and_apply_movement(
                 }
             }
 
-            // If our progress was thwarted by obstacles, mark this entity.
             if collision_happened {
                 collided_entities.lock().unwrap().push(entity);
             }
 
-            // Update the entity’s transform to its newly secured state.
             transform.translation = safe_translation;
             transform.rotation = safe_rotation;
             transform.scale = Vec3::ONE;
@@ -196,9 +188,74 @@ pub fn check_world_collision_and_apply_movement(
         },
     );
 
-    // Unleash the wrath of collision triggers upon all doomed entities.
     commands.trigger_targets(
         CollidedWithWorldTrigger,
         collided_entities.into_inner().unwrap(),
     );
+    commands.trigger_targets(CalculateCollisionsTrigger, my_lobby_entity);
+}
+
+pub fn detect_pairwise_collisions(
+    trigger: Trigger<CalculateCollisionsTrigger>,
+    mut all_colliders: Query<(Entity, &Transform, &Collider, &CollisionLayer, &InLobby)>,
+    mut commands: Commands,
+) {
+    let my_lobby_entity = trigger.entity();
+
+    // --- Pairwise Collider Collision Check ---
+    // Define helper closures for AABB computation and intersection test.
+    let compute_aabb = |transform: &Transform, collider: &Collider| -> (f32, f32, f32, f32) {
+        let translation = transform.translation;
+        let rotation = transform.rotation;
+        let right = rotation * Vec3::X;
+        let forward = rotation * Vec3::Z;
+        let half = collider.half_size;
+        let corners = [
+            translation + right * half.x + forward * half.z,
+            translation - right * half.x + forward * half.z,
+            translation + right * half.x - forward * half.z,
+            translation - right * half.x - forward * half.z,
+        ];
+        let (min_x, max_x) = corners
+            .iter()
+            .fold((f32::MAX, f32::MIN), |(min, max), corner| {
+                (min.min(corner.x), max.max(corner.x))
+            });
+        let (min_z, max_z) = corners
+            .iter()
+            .fold((f32::MAX, f32::MIN), |(min, max), corner| {
+                (min.min(corner.z), max.max(corner.z))
+            });
+        (min_x, max_x, min_z, max_z)
+    };
+
+    let aabb_overlap = |a: (f32, f32, f32, f32), b: (f32, f32, f32, f32)| -> bool {
+        a.0 <= b.1 && a.1 >= b.0 && a.2 <= b.3 && a.3 >= b.2
+    };
+
+    // Iterate through all combinations of colliders in the lobby.
+    let mut combinations = all_colliders.iter_combinations_mut::<2>();
+    while let Some(
+        [(entity_a, transform_a, collider_a, layer_a, in_lobby_a), (entity_b, transform_b, collider_b, layer_b, in_lobby_b)],
+    ) = combinations.fetch_next()
+    {
+        if in_lobby_a.0 != my_lobby_entity || in_lobby_b.0 != my_lobby_entity {
+            continue;
+        }
+        // Check collision layer intersections and ignore lists.
+        if !layer_a.intersects(layer_b) {
+            continue;
+        }
+        if layer_a.ignore.contains(&entity_b) || layer_b.ignore.contains(&entity_a) {
+            continue;
+        }
+        // Compute AABBs.
+        let aabb_a = compute_aabb(transform_a, collider_a);
+        let aabb_b = compute_aabb(transform_b, collider_b);
+        if aabb_overlap(aabb_a, aabb_b) {
+            // Dispatch collision triggers for each entity.
+            commands.trigger_targets(CollidedWithTrigger { entity: entity_b }, entity_a);
+            commands.trigger_targets(CollidedWithTrigger { entity: entity_a }, entity_b);
+        }
+    }
 }

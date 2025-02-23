@@ -36,6 +36,11 @@ impl CollisionLayer {
         }
     }
 
+    pub fn with_ignore(mut self, ignore: EntityHashSet) -> Self {
+        self.ignore = ignore;
+        self
+    }
+
     /// Check if the collision layer contains the given layer index.
     pub fn contains(&self, layer: u32) -> bool {
         (self.mask & (1 << layer)) != 0

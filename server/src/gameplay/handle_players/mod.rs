@@ -55,5 +55,6 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
 fn add_observers_to_projectile(trigger: Trigger<OnAdd, ProjectileMarker>, mut commands: Commands) {
     commands
         .entity(trigger.entity())
-        .observe(handle_projectiles::despawn_on_collision_with_world);
+        .observe(handle_projectiles::despawn_on_collision_with_world)
+        .observe(handle_projectiles::colliding_with_entity);
 }
