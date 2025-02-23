@@ -41,7 +41,8 @@ pub fn setup_projectile(
             ticks_left: tank_config.projectile_lifetime,
         },
         Collider {
-            half_size: tank_config.projectile_size,
+            half_size: tank_config.projectile_size / 2.0,
+            max_slope: 0.0,
         },
     ));
 }

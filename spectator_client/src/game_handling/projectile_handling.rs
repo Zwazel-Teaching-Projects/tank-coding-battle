@@ -1,6 +1,6 @@
-use bevy::{color::palettes::css::WHITE, prelude::*};
+use bevy::{color::palettes::css::WHITE, ecs::entity::EntityHashSet, prelude::*};
 use shared::{
-    game::projectile_handling::ProjectileMarker,
+    game::{projectile_handling::ProjectileMarker, tank_types::TankType},
     networking::{
         lobby_management::InTeam,
         messages::{message_container::GameStateTrigger, message_data::game_starts::GameStarts},
@@ -8,14 +8,13 @@ use shared::{
 };
 
 use super::entity_mapping::MyEntityMapping;
-use std::collections::HashSet;
 
 pub fn handle_projectile_on_game_state_update(
     trigger: Trigger<GameStateTrigger>,
     game_config: Res<GameStarts>,
     mut commands: Commands,
     mut entity_mapping: ResMut<MyEntityMapping>,
-    players: Query<&InTeam>,
+    players: Query<(&InTeam, &TankType)>,
     mut existing_projectiles: Query<(Entity, &mut Transform), With<ProjectileMarker>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -23,7 +22,7 @@ pub fn handle_projectile_on_game_state_update(
     let game_state = &(**trigger.event());
 
     // Collect all server projectile IDs from the game state.
-    let mut server_projectile_ids = HashSet::new();
+    let mut server_projectile_ids = EntityHashSet::default();
 
     game_state.projectile_states.iter().for_each(
         |(server_side_projectile_entity, server_side_projectile_state)| {
@@ -41,23 +40,29 @@ pub fn handle_projectile_on_game_state_update(
                 // Create a new projectile if it doesn't exist yet on the client.
                 let client_side_projectile_owner_id =
                     entity_mapping.map_entity(server_side_projectile_state.owner_id);
-                if let Ok(player_in_team) = players.get(client_side_projectile_owner_id) {
+                if let Ok((player_in_team, tank_type)) =
+                    players.get(client_side_projectile_owner_id)
+                {
                     let team_color = game_config
                         .team_configs
                         .get(&player_in_team.0)
                         .map(|config| Color::from(config.color.clone()))
                         .unwrap_or(WHITE.into());
+                    let tank_config = game_config
+                        .tank_configs
+                        .get(tank_type)
+                        .expect("Failed to get tank config");
 
                     let new_client_side_projectile_entity = commands
                         .spawn((
                             Name::new("Projectile"),
                             server_side_projectile_state.transform.clone(),
                             ProjectileMarker {
-                                damage: 0.0, // Placeholder
-                                speed: 0.0,  // Placeholder
-                                owner: server_side_projectile_state.owner_id,
+                                damage: tank_config.projectile_damage,
+                                speed: tank_config.projectile_speed,
+                                owner: client_side_projectile_owner_id,
                             },
-                            Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.3))),
+                            Mesh3d(meshes.add(Cuboid::from_size(tank_config.projectile_size))),
                             MeshMaterial3d(materials.add(team_color)),
                         ))
                         .id();

@@ -19,7 +19,6 @@ pub fn create_player_visualisation(
     mut entity_mapping: ResMut<MyEntityMapping>,
 ) {
     let game_start = trigger.event();
-    let map_definition = &game_start.map_definition;
     let tank_configs = &game_start.tank_configs;
     let font = asset_server.load("fonts/FiraSans-Regular.ttf");
 
@@ -35,25 +34,12 @@ pub fn create_player_visualisation(
             .get(tank_type)
             .expect("Failed to get tank config");
 
-        let player_position = map_definition
-            .get_spawn_point_position(
-                &server_side_client_config.client_team,
-                server_side_client_config.assigned_spawn_point,
-            )
-            .expect("Failed to get spawn point position")
-            + Vec3::new(0.0, tank_config.size.y, 0.0);
-
         // Tank Body
         let client_side_tank_body_entity = commands
             .spawn((
                 Name::new(server_side_client_config.client_name.clone()),
-                Mesh3d(meshes.add(Cuboid::new(
-                    tank_config.size.x * 2.0,
-                    tank_config.size.y * 2.0,
-                    tank_config.size.z * 2.0,
-                ))),
+                Mesh3d(meshes.add(Cuboid::from_size(tank_config.size))),
                 MeshMaterial3d(materials.add(team_color)),
-                Transform::from_translation(player_position),
                 tank_type.clone(),
                 InTeam(server_side_client_config.client_team.clone()),
             ))
@@ -85,10 +71,10 @@ pub fn create_player_visualisation(
         let client_side_turret_entity = commands
             .spawn((
                 Name::new("Turret Root"),
-                Transform::from_translation(Vec3::new(0.0, tank_config.size.y, 0.0)),
                 TankTurretMarker {
                     body: client_side_tank_body_entity,
                 },
+                Visibility::Inherited,
             ))
             .with_children(|commands| {
                 // Turret, placed a bit in front of the turret root. This is just for visualization.

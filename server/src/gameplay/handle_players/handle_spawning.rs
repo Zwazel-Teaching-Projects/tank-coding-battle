@@ -27,10 +27,7 @@ pub fn respawn_player(
         &TankType,
         &TankBodyMarker,
     )>,
-    mut turret_query: Query<
-        (&mut Transform, &mut WantedTransform),
-        (With<TankTurretMarker>, Without<TankBodyMarker>),
-    >,
+    mut turret_query: Query<&mut Transform, (With<TankTurretMarker>, Without<TankBodyMarker>)>,
     tank_configs: TankConfigSystemParam,
 ) {
     let client_entity = trigger.entity();
@@ -60,7 +57,7 @@ pub fn respawn_player(
             .assigned_spawn_point
             .expect(format!("Failed to get assigned spawn point for client {:?}", client).as_str());
 
-        let (mut turret_transform, mut wanted_turret_transform) = turret_query
+        let mut turret_transform = turret_query
             .get_mut(
                 tank_body_marker
                     .turret
@@ -68,7 +65,6 @@ pub fn respawn_player(
             )
             .expect("Failed to get turret transform");
         turret_transform.rotation = Quat::IDENTITY;
-        wanted_turret_transform.rotation = Quat::IDENTITY;
 
         let spawn_point_position = map.get_spawn_point_position(client_team, spawn_point);
         let spawn_point_rotation = map.get_spawn_point_rotation(client_team, spawn_point);
@@ -78,7 +74,7 @@ pub fn respawn_player(
                 .get_tank_type_config(tank_type)
                 .expect("Failed to get tank config");
             tank_transform.translation =
-                spawn_point_position + Vec3::new(0.0, tank_config.size.y, 0.0);
+                spawn_point_position + Vec3::new(0.0, tank_config.size.y / 2.0, 0.0);
             wanted_transform.translation = tank_transform.translation;
         } else {
             error!(

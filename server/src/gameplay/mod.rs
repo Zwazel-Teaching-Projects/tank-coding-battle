@@ -1,10 +1,12 @@
 use bevy::prelude::*;
+use handle_collisions::MyCollisionHandlingPlugin;
 use handle_players::HandlePlayersPlugin;
 use shared::networking::lobby_management::MyLobby;
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
 
 pub mod game_state_handling;
+pub mod handle_collisions;
 pub mod handle_players;
 pub mod process_messages;
 pub mod process_messages_when_lobby_not_ready;
@@ -13,7 +15,6 @@ pub mod start_lobby;
 pub mod system_sets;
 mod tick_systems;
 pub mod triggers;
-pub mod handle_collisions;
 
 pub struct MyGameplayPlugin;
 
@@ -37,7 +38,11 @@ impl Plugin for MyGameplayPlugin {
             )
                 .chain(),
         )
-        .add_plugins((TickSystemsPlugin, HandlePlayersPlugin))
+        .add_plugins((
+            TickSystemsPlugin,
+            HandlePlayersPlugin,
+            MyCollisionHandlingPlugin,
+        ))
         .add_systems(
             Update,
             (

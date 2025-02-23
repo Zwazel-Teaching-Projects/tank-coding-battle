@@ -19,19 +19,14 @@ pub enum PlayerState {
 
 #[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
 #[reflect(Component)]
-#[require(
-    ShootCooldown,
-    PlayerState,
-    WantedTransform,
-    Collider(default_collider)
-)]
+#[require(ShootCooldown, PlayerState, WantedTransform)]
 pub struct TankBodyMarker {
     pub turret: Option<Entity>,
 }
 
 #[derive(Debug, Component, Reflect, Clone, PartialEq)]
 #[reflect(Component)]
-#[require(WantedTransform)]
+#[require(Transform)]
 pub struct TankTurretMarker {
     pub body: Entity,
 }
@@ -52,12 +47,6 @@ impl Default for ShootCooldown {
     }
 }
 
-fn default_collider() -> Collider {
-    Collider {
-        half_size: Vec3::new(0.5, 0.5, 0.5),
-    }
-}
-
 pub fn setup_tank_body(
     trigger: Trigger<OnAdd, TankBodyMarker>,
     mut commands: Commands,
@@ -74,7 +63,8 @@ pub fn setup_tank_body(
 
     commands.entity(tank_body_entity).insert((
         Collider {
-            half_size: tank_config.size,
+            half_size: tank_config.size / 2.0,
+            max_slope: tank_config.max_slope,
         },
         ShootCooldown {
             ticks_left: 0,

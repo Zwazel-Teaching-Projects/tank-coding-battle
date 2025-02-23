@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
     game::{
-        collision_handling::components::WantedTransform,
         player_handling::{TankBodyMarker, TankTurretMarker},
         tank_types::TankType,
     },
@@ -12,7 +11,7 @@ use shared::{
 pub fn handle_tank_turret_rotation(
     trigger: Trigger<RotateTankTurretCommandTrigger>,
     body: Query<(&TankType, &TankBodyMarker), Without<TankTurretMarker>>,
-    mut turret_transform: Query<&mut WantedTransform, With<TankTurretMarker>>,
+    mut turret_transform: Query<&mut Transform, With<TankTurretMarker>>,
     tank_config: TankConfigSystemParam,
 ) {
     let client_entity = trigger.entity();

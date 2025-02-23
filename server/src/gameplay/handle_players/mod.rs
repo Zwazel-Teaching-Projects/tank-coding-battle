@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use dummy_handling::DummyClientMarker;
-use shared::{game::player_handling::TankBodyMarker, networking::lobby_management::MyLobby};
+use shared::{
+    game::{player_handling::TankBodyMarker, projectile_handling::ProjectileMarker},
+    networking::lobby_management::MyLobby,
+};
 
 use crate::networking::handle_clients::lib::MyNetworkClient;
 
@@ -21,6 +24,7 @@ impl Plugin for HandlePlayersPlugin {
             .add_observer(add_observers_to_player)
             .add_observer(add_observers_to_lobby)
             .add_observer(add_observers_to_client)
+            .add_observer(add_observers_to_projectile)
             .add_observer(insert_turret::insert_turret)
             .add_observer(dummy_handling::add_observers_to_dummies)
             .add_observer(dummy_handling::add_dummy_simulation_observers_to_lobby);
@@ -46,4 +50,10 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .observe(handle_projectiles::move_projectiles)
         .observe(handle_projectiles::handle_despawn_timer)
         .observe(handle_projectiles::despawn_out_of_bounds);
+}
+
+fn add_observers_to_projectile(trigger: Trigger<OnAdd, ProjectileMarker>, mut commands: Commands) {
+    commands
+        .entity(trigger.entity())
+        .observe(handle_projectiles::despawn_on_collision_with_world);
 }

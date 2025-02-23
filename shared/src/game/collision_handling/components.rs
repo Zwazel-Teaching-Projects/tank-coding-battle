@@ -1,16 +1,28 @@
-use bevy::prelude::*;
+use bevy::{ecs::entity::EntityHashSet, prelude::*};
 
 #[derive(Debug, Component, Reflect)]
 #[reflect(Component)]
 #[require(CollisionLayer)]
 pub struct Collider {
     pub half_size: Vec3,
+    pub max_slope: f32,
 }
 
-#[derive(Debug, Component, Reflect, Clone, PartialEq, Eq, Default, Deref, DerefMut)]
+impl Collider {
+    pub fn new(half_size: Vec3, max_slope: f32) -> Self {
+        Self {
+            half_size,
+            max_slope,
+        }
+    }
+}
+
+#[derive(Debug, Component, Reflect, Clone, PartialEq, Eq, Default)]
 #[reflect(Component)]
 pub struct CollisionLayer {
     pub mask: u32,
+    // Collection of entities that this entity should ignore collisions with.
+    pub ignore: EntityHashSet,
 }
 
 impl CollisionLayer {
@@ -18,7 +30,10 @@ impl CollisionLayer {
     /// Each index in the list will be set as a bit in the mask.
     pub fn new(layers: &[u32]) -> Self {
         let mask = layers.iter().fold(0, |acc, &layer| acc | (1 << layer));
-        Self { mask }
+        Self {
+            mask,
+            ignore: EntityHashSet::default(),
+        }
     }
 
     /// Check if the collision layer contains the given layer index.
@@ -44,5 +59,17 @@ impl CollisionLayer {
 
 #[derive(Debug, Component, Reflect, Default, Deref, DerefMut)]
 #[reflect(Component)]
-#[require(Transform)]
 pub struct WantedTransform(pub Transform);
+
+pub fn insert_transform_for_wanted_transform(
+    trigger: Trigger<OnAdd, WantedTransform>,
+    wanted_transform: Query<&WantedTransform>,
+    mut commands: Commands,
+) {
+    let entity = trigger.entity();
+    let wanted_transform = wanted_transform
+        .get(entity)
+        .expect("WantedTransform should exist");
+
+    commands.entity(entity).insert(**wanted_transform);
+}

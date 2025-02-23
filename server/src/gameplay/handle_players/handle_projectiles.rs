@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 use shared::{
-    game::{common_components::TickBasedDespawnTimer, projectile_handling::ProjectileMarker},
+    game::{
+        collision_handling::{components::WantedTransform, triggers::CollidedWithWorldTrigger},
+        common_components::TickBasedDespawnTimer,
+        projectile_handling::ProjectileMarker,
+    },
     networking::lobby_management::MyLobby,
 };
 
@@ -33,11 +37,10 @@ pub fn handle_despawn_timer(
     });
 }
 
-// TODO: Check for collisions and out of bounds of world!!!
 pub fn move_projectiles(
     trigger: Trigger<StartNextSimulationStepTrigger>,
     lobby: Query<&MyLobby>,
-    mut projectiles: Query<(&mut Transform, &ProjectileMarker)>,
+    mut projectiles: Query<(&mut WantedTransform, &ProjectileMarker)>,
 ) {
     let lobby_entity = trigger.entity();
 
@@ -77,4 +80,11 @@ pub fn despawn_out_of_bounds(
             commands.entity(*projectile_entity).despawn_recursive();
         }
     }
+}
+
+pub fn despawn_on_collision_with_world(
+    trigger: Trigger<CollidedWithWorldTrigger>,
+    mut commands: Commands,
+) {
+    commands.entity(trigger.entity()).despawn_recursive();
 }
