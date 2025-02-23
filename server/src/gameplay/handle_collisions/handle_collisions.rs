@@ -148,6 +148,8 @@ pub fn check_collision_and_apply_movement(
                             if (candidate_floor - tile_height).abs() > collider.max_slope {
                                 collision = true;
                                 break;
+                            } else {
+                                candidate_floor = candidate_floor.max(tile_height);
                             }
                         }
                     }
@@ -161,15 +163,12 @@ pub fn check_collision_and_apply_movement(
                     break;
                 }
 
-                // Instead of forcing our minion to the floor, check if they are trying to fly.
-                // If they dip below the floor, that's a collision—otherwise, let them soar!
-                if candidate_translation.y < candidate_floor + collider.half_size.y {
-                    collision_happened = true;
-                    break;
-                }
-
                 // Record this step as safe—preserve their chosen altitude!
-                safe_translation = candidate_translation;
+                safe_translation = Vec3::new(
+                    candidate_translation.x,
+                    candidate_floor + collider.half_size.y,
+                    candidate_translation.z,
+                );
                 safe_rotation = candidate_rotation;
             }
 
