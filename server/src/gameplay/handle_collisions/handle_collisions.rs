@@ -35,7 +35,7 @@ pub fn check_world_collision_and_apply_movement(
     mut colliders: Query<
         (
             Entity,
-            &mut Transform,
+            &Transform,
             &mut WantedTransform,
             &Collider,
             &CollisionLayer,
@@ -63,13 +63,13 @@ pub fn check_world_collision_and_apply_movement(
 
     // --- World Collision Check ---
     colliders.par_iter_mut().for_each(
-        |(entity, mut transform, mut wanted, collider, _layer, in_lobby)| {
+        |(entity, current_transform, mut wanted_transform, collider, _layer, in_lobby)| {
             if in_lobby.0 != my_lobby_entity {
                 return;
             }
 
-            let current = *transform;
-            let target = **wanted;
+            let current = *current_transform;
+            let target = **wanted_transform;
             let delta = target.translation - current.translation;
             let total_distance = delta.length();
             let steps = if total_distance == 0.0 {
@@ -177,14 +177,8 @@ pub fn check_world_collision_and_apply_movement(
                 collided_entities.lock().unwrap().push(entity);
             }
 
-            transform.translation = safe_translation;
-            transform.rotation = safe_rotation;
-            transform.scale = Vec3::ONE;
-            **wanted = Transform {
-                translation: safe_translation,
-                rotation: safe_rotation,
-                scale: Vec3::ONE,
-            };
+            wanted_transform.translation = safe_translation;
+            wanted_transform.rotation = safe_rotation;
         },
     );
 
@@ -197,63 +191,143 @@ pub fn check_world_collision_and_apply_movement(
 
 pub fn detect_pairwise_collisions(
     trigger: Trigger<CalculateCollisionsTrigger>,
-    mut all_colliders: Query<(Entity, &Transform, &Collider, &CollisionLayer, &InLobby)>,
+    mut all_colliders: Query<(
+        Entity,
+        &mut Transform,
+        &mut WantedTransform,
+        &Collider,
+        &CollisionLayer,
+        &InLobby,
+    )>,
     mut commands: Commands,
 ) {
     let my_lobby_entity = trigger.entity();
+    const STEP_SIZE: f32 = 0.01;
 
-    // --- Pairwise Collider Collision Check ---
-    // Define helper closures for AABB computation and intersection test.
-    let compute_aabb = |transform: &Transform, collider: &Collider| -> (f32, f32, f32, f32) {
-        let translation = transform.translation;
-        let rotation = transform.rotation;
-        let right = rotation * Vec3::X;
-        let forward = rotation * Vec3::Z;
-        let half = collider.half_size;
-        let corners = [
-            translation + right * half.x + forward * half.z,
-            translation - right * half.x + forward * half.z,
-            translation + right * half.x - forward * half.z,
-            translation - right * half.x - forward * half.z,
-        ];
-        let (min_x, max_x) = corners
-            .iter()
-            .fold((f32::MAX, f32::MIN), |(min, max), corner| {
-                (min.min(corner.x), max.max(corner.x))
-            });
-        let (min_z, max_z) = corners
-            .iter()
-            .fold((f32::MAX, f32::MIN), |(min, max), corner| {
-                (min.min(corner.z), max.max(corner.z))
-            });
-        (min_x, max_x, min_z, max_z)
-    };
+    // Helper: compute the axis-aligned bounding box for a candidate position.
+    let compute_aabb =
+        |translation: Vec3, rotation: Quat, collider: &Collider| -> (f32, f32, f32, f32) {
+            let right = rotation * Vec3::X;
+            let forward = rotation * Vec3::Z;
+            let half = collider.half_size;
+            let corners = [
+                translation + right * half.x + forward * half.z,
+                translation - right * half.x + forward * half.z,
+                translation + right * half.x - forward * half.z,
+                translation - right * half.x - forward * half.z,
+            ];
+            let (min_x, max_x) = corners
+                .iter()
+                .fold((f32::MAX, f32::MIN), |(min, max), corner| {
+                    (min.min(corner.x), max.max(corner.x))
+                });
+            let (min_z, max_z) = corners
+                .iter()
+                .fold((f32::MAX, f32::MIN), |(min, max), corner| {
+                    (min.min(corner.z), max.max(corner.z))
+                });
+            (min_x, max_x, min_z, max_z)
+        };
 
+    // Helper: determine if two AABBs overlap.
     let aabb_overlap = |a: (f32, f32, f32, f32), b: (f32, f32, f32, f32)| -> bool {
         a.0 <= b.1 && a.1 >= b.0 && a.2 <= b.3 && a.3 >= b.2
     };
 
-    // Iterate through all combinations of colliders in the lobby.
+    // Iterate over every unique pair of colliders in our wretched lobby.
     let mut combinations = all_colliders.iter_combinations_mut::<2>();
     while let Some(
-        [(entity_a, transform_a, collider_a, layer_a, in_lobby_a), (entity_b, transform_b, collider_b, layer_b, in_lobby_b)],
+        [(
+            entity_a,
+            mut current_transform_a,
+            mut wanted_transform_a,
+            collider_a,
+            layer_a,
+            in_lobby_a,
+        ), (
+            entity_b,
+            mut current_transform_b,
+            mut wanted_transform_b,
+            collider_b,
+            layer_b,
+            in_lobby_b,
+        )],
     ) = combinations.fetch_next()
     {
         if in_lobby_a.0 != my_lobby_entity || in_lobby_b.0 != my_lobby_entity {
             continue;
         }
-        // Check collision layer intersections and ignore lists.
         if !layer_a.intersects(layer_b) {
             continue;
         }
         if layer_a.ignore.contains(&entity_b) || layer_b.ignore.contains(&entity_a) {
             continue;
         }
-        // Compute AABBs.
-        let aabb_a = compute_aabb(transform_a, collider_a);
-        let aabb_b = compute_aabb(transform_b, collider_b);
-        if aabb_overlap(aabb_a, aabb_b) {
-            // Dispatch collision triggers for each entity.
+
+        // Determine the number of simulation steps required for each entity.
+        let distance_a =
+            (wanted_transform_a.translation - current_transform_a.translation).length();
+        let steps_a = if distance_a == 0.0 {
+            1
+        } else {
+            (distance_a / STEP_SIZE).ceil() as i32
+        };
+        let distance_b =
+            (wanted_transform_b.translation - current_transform_b.translation).length();
+        let steps_b = if distance_b == 0.0 {
+            1
+        } else {
+            (distance_b / STEP_SIZE).ceil() as i32
+        };
+        let steps = steps_a.max(steps_b);
+
+        let mut safe_translation_a = current_transform_a.translation;
+        let mut safe_rotation_a = current_transform_a.rotation;
+        let mut safe_translation_b = current_transform_b.translation;
+        let mut safe_rotation_b = current_transform_b.rotation;
+        let mut collision_detected = false;
+
+        // Advance both colliders in lockstep, checking at each incremental step.
+        for step in 1..=steps {
+            let t = step as f32 / steps as f32;
+            let candidate_translation_a = current_transform_a
+                .translation
+                .lerp(wanted_transform_a.translation, t);
+            let candidate_rotation_a = current_transform_a
+                .rotation
+                .slerp(wanted_transform_a.rotation, t);
+            let candidate_translation_b = current_transform_b
+                .translation
+                .lerp(wanted_transform_b.translation, t);
+            let candidate_rotation_b = current_transform_b
+                .rotation
+                .slerp(wanted_transform_b.rotation, t);
+
+            let aabb_a = compute_aabb(candidate_translation_a, candidate_rotation_a, collider_a);
+            let aabb_b = compute_aabb(candidate_translation_b, candidate_rotation_b, collider_b);
+
+            safe_translation_a = candidate_translation_a;
+            safe_rotation_a = candidate_rotation_a;
+            safe_translation_b = candidate_translation_b;
+            safe_rotation_b = candidate_rotation_b;
+
+            if aabb_overlap(aabb_a, aabb_b) {
+                collision_detected = true;
+                break;
+            }
+        }
+
+        // Upon collision, update the wanted transforms to the last safe state and dispatch our cruel collision triggers.
+        wanted_transform_a.translation = safe_translation_a;
+        wanted_transform_a.rotation = safe_rotation_a;
+        current_transform_a.translation = safe_translation_a;
+        current_transform_a.rotation = safe_rotation_a;
+
+        wanted_transform_b.translation = safe_translation_b;
+        wanted_transform_b.rotation = safe_rotation_b;
+        current_transform_b.translation = safe_translation_b;
+        current_transform_b.rotation = safe_rotation_b;
+        if collision_detected {
             commands.trigger_targets(CollidedWithTrigger { entity: entity_b }, entity_a);
             commands.trigger_targets(CollidedWithTrigger { entity: entity_a }, entity_b);
         }

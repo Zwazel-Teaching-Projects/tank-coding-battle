@@ -11,7 +11,7 @@ pub fn despawn_delayed_entites(
     let current_tick = trigger.event().tick;
     for (entity, delayed_despawn) in query.iter() {
         if **delayed_despawn <= current_tick {
-            commands.entity(entity).despawn_recursive();
+            //commands.entity(entity).despawn_recursive();
         }
     }
 }
