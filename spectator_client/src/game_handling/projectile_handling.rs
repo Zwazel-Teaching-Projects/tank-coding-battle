@@ -105,7 +105,7 @@ pub fn handle_projectile_on_game_state_update(
                 if !server_projectile_ids.contains(server_side_projectile_entity) {
                     commands
                         .entity(*client_side_projectile_entity)
-                        .insert(DelayedDespawn(current_tick + 2)); // Despawn after x ticks.
+                        .insert(DelayedDespawn(current_tick + 1)); // Despawn after x ticks.
                     return false;
                 }
             }

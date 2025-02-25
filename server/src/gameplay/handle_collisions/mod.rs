@@ -7,7 +7,9 @@ pub struct MyCollisionHandlingPlugin;
 
 impl Plugin for MyCollisionHandlingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(add_observers_to_lobby);
+        app.add_observer(add_observers_to_lobby)
+            .init_resource::<handle_collisions::DebugObbGizmosResource>()
+            .add_systems(Update, handle_collisions::visualize_obb3ds);
     }
 }
 

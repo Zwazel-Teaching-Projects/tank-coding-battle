@@ -1,4 +1,4 @@
-use bevy::{ecs::entity::EntityHashSet, prelude::*};
+use bevy::{ecs::entity::EntityHashMap, math::Vec3A, prelude::*};
 use shared::{
     game::collision_handling::{
         components::{Collider, CollisionLayer, WantedTransform},
@@ -206,12 +206,13 @@ pub fn collision_system(
         &CollisionLayer,
         &InLobby,
     )>,
+    mut debug_obb_gizmos: ResMut<DebugObbGizmosResource>,
 ) {
     let my_lobby_entity = trigger.entity();
-    let step_size = 0.1;
+    let step_size = 0.01;
     let steps = (1.0 / step_size) as usize;
-    let mut moved_entities = EntityHashSet::default();
 
+    debug_obb_gizmos.0.clear();
     let mut combinations_iter = combinations.iter_combinations_mut();
     while let Some(
         [(a_entity, mut a_transform, mut a_wanted, a_collider, a_collision_layer, a_in_lobby), (b_entity, mut b_transform, mut b_wanted, b_collider, b_collision_layer, b_in_lobby)],
@@ -232,56 +233,41 @@ pub fn collision_system(
 
         // Calculate movement trajectories
         let mut t_collision = None;
+        let mut a_safe_transform = *a_transform;
+        let mut b_safe_transform = *b_transform;
         for step in 1..=steps {
             let t = step as f32 * step_size;
-            let a_t = interpolate_transform(&*a_transform, &a_wanted.0, t);
-            let b_t = interpolate_transform(&*b_transform, &b_wanted.0, t);
+            let a_safe = interpolate_transform(&*a_transform, &a_wanted.0, t);
+            let b_safe = interpolate_transform(&*b_transform, &b_wanted.0, t);
 
-            let a_obb = Obb3d::from_transform(&a_t, a_collider);
-            let b_obb = Obb3d::from_transform(&b_t, b_collider);
+            let a_obb = Obb3d::from_transform(&a_safe, a_collider);
+            let b_obb = Obb3d::from_transform(&b_safe, b_collider);
 
-            if a_obb.collides_with(&b_obb) {
+            // Get or insert
+            let a_gizmos = debug_obb_gizmos.0.entry(a_entity).or_insert_with(Vec::new);
+            a_gizmos.push((t, a_obb));
+            let b_gizmos = debug_obb_gizmos.0.entry(b_entity).or_insert_with(Vec::new);
+            b_gizmos.push((t, b_obb));
+
+            if a_obb.intersects_obb(&b_obb) {
                 t_collision = Some(t);
                 break;
+            } else {
+                a_safe_transform = a_safe;
+                b_safe_transform = b_safe;
             }
         }
 
-        if let Some(t) = t_collision {
-            // Calculate safe position just before collision
-            let safe_t = (t - step_size).max(0.0);
+        *a_transform = a_safe_transform;
+        a_wanted.0 = a_safe_transform;
 
-            // Update ACTUAL TRANSFORM and wanted transform for both entities
-            let a_safe = interpolate_transform(&*a_transform, &a_wanted.0, safe_t);
-            let b_safe = interpolate_transform(&*b_transform, &b_wanted.0, safe_t);
+        *b_transform = b_safe_transform;
+        b_wanted.0 = b_safe_transform;
 
-            *a_transform = a_safe;
-            a_wanted.0 = a_safe;
-
-            *b_transform = b_safe;
-            b_wanted.0 = b_safe;
-
-            // Mark entities as moved
-            moved_entities.insert(a_entity);
-            moved_entities.insert(b_entity);
-
+        if let Some(_t) = t_collision {
             // Trigger events...
             commands.trigger_targets(CollidedWithTrigger { entity: b_entity }, a_entity);
             commands.trigger_targets(CollidedWithTrigger { entity: a_entity }, b_entity);
-        }
-    }
-
-    // After processing all pairs, move non-colliding entities to their target
-    for (entity, mut transform, wanted_transform, _, _, in_lobby) in combinations.iter_mut() {
-        if in_lobby.0 != my_lobby_entity || moved_entities.contains(&entity) {
-            continue;
-        }
-
-        // Only update if not already at target
-        if transform.translation != wanted_transform.0.translation
-            || transform.rotation != wanted_transform.0.rotation
-            || transform.scale != wanted_transform.0.scale
-        {
-            *transform = wanted_transform.0.clone();
         }
     }
 }
@@ -291,5 +277,42 @@ fn interpolate_transform(start: &Transform, end: &Transform, t: f32) -> Transfor
         translation: start.translation.lerp(end.translation, t),
         rotation: start.rotation.slerp(end.rotation, t),
         scale: start.scale.lerp(end.scale, t),
+    }
+}
+
+#[derive(Default, Resource)]
+pub struct DebugObbGizmosResource(EntityHashMap<Vec<(f32, Obb3d)>>);
+
+pub fn visualize_obb3ds(mut gizmos: Gizmos, obb_gizmos: Res<DebugObbGizmosResource>) {
+    // Iterate through all entities, get the obb with lowest step and the one with highest step, draw them with gradient colors.
+    for (_, obb_gizmos) in obb_gizmos.0.iter() {
+        let (min_step, _) = obb_gizmos
+            .iter()
+            .min_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
+            .unwrap();
+        let (max_step, _) = obb_gizmos
+            .iter()
+            .max_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
+            .unwrap();
+
+        let step_range = max_step - min_step;
+
+        for (step, obb) in obb_gizmos {
+            let t = (step - min_step) / step_range;
+            let color = Color::srgba(1.0 - t, t, 0.0, 1.0);
+
+            let obb = Obb3d {
+                half_size: obb.half_size + Vec3A::splat(0.01),
+                ..*obb
+            };
+
+            gizmos.primitive_3d(
+                &Cuboid {
+                    half_size: obb.half_size.into(),
+                },
+                Isometry3d::new(obb.center, Quat::from_mat3a(&obb.basis)),
+                color,
+            );
+        }
     }
 }

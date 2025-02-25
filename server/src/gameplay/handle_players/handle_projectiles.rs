@@ -12,9 +12,12 @@ use shared::{
     networking::lobby_management::MyLobby,
 };
 
-use crate::gameplay::triggers::{
-    FinishedNextSimulationStepTrigger, StartNextSimulationStepTrigger,
-    StartNextTickProcessingTrigger,
+use crate::gameplay::{
+    lobby_cleanup::CleanupMarker,
+    triggers::{
+        FinishedNextSimulationStepTrigger, StartNextSimulationStepTrigger,
+        StartNextTickProcessingTrigger,
+    },
 };
 
 pub fn colliding_with_entity(
@@ -67,7 +70,7 @@ pub fn colliding_with_entity(
             }
         }
 
-        commands.entity(projectile_entity).despawn_recursive();
+        commands.entity(projectile_entity).insert(CleanupMarker);
     }
 }
 

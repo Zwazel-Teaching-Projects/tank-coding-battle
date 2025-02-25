@@ -13,9 +13,9 @@ pub fn visualize_colliders(
 
         my_gizmos.primitive_3d(
             &Cuboid {
-                half_size: obb.half_extents,
+                half_size: obb.half_size.into(),
             },
-            Isometry3d::new(obb.center, Quat::from_mat3(&obb.axes)),
+            Isometry3d::new(obb.center, Quat::from_mat3a(&obb.basis)),
             WHITE,
         );
     }
