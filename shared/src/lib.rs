@@ -20,7 +20,7 @@ impl Plugin for MySharedPlugin {
         ))
         .init_state::<MyMainState>();
 
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "debug")]
         app.add_systems(
             Update,
             bevy::dev_tools::states::log_transitions::<MyMainState>,

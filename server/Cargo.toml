@@ -9,13 +9,16 @@ shared = { workspace = true }
 bevy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+bevy-inspector-egui = { workspace = true, optional = true }
 
 rand = "0.9.0"
 
 [features]
-default = [
+default = ["server"]
+server = [
     "bevy/bevy_state",
     "bevy/bevy_color",
     "bevy/serialize",
     "bevy/multi_threaded",
 ]
+debug = ["bevy/default", "bevy-inspector-egui"]

@@ -37,8 +37,10 @@ impl Plugin for MySpectatorClientPlugin {
         .register_type::<MyEntityMapping>()
         .init_resource::<MyEntityMapping>();
 
-        #[cfg(debug_assertions)]
-        app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
+        #[cfg(feature = "debug")]
+        {
+            app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
+        }
     }
 }
 
