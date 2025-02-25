@@ -9,13 +9,13 @@ pub fn visualize_colliders(
     query: Query<(&Transform, &Collider)>,
 ) {
     for (transform, collider) in query.iter() {
-        let obb = Obb3d::new(*transform, collider);
+        let obb = Obb3d::from_transform(transform, collider);
 
         my_gizmos.primitive_3d(
             &Cuboid {
-                half_size: obb.half_size.into(),
+                half_size: obb.half_extents,
             },
-            Isometry3d::new(obb.center, Quat::from_mat3(&obb.orientation)),
+            Isometry3d::new(obb.center, Quat::from_mat3(&obb.axes)),
             WHITE,
         );
     }

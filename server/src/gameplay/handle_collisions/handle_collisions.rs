@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{ecs::entity::EntityHashSet, prelude::*};
 use shared::{
     game::collision_handling::{
         components::{Collider, CollisionLayer, WantedTransform},
@@ -195,9 +195,10 @@ pub fn check_world_collision_and_apply_movement(
     commands.trigger_targets(CalculateCollisionsTrigger, my_lobby_entity);
 }
 
-pub fn detect_pairwise_collisions(
+pub fn collision_system(
     trigger: Trigger<CalculateCollisionsTrigger>,
-    mut all_colliders: Query<(
+    mut commands: Commands,
+    mut combinations: Query<(
         Entity,
         &mut Transform,
         &mut WantedTransform,
@@ -205,121 +206,90 @@ pub fn detect_pairwise_collisions(
         &CollisionLayer,
         &InLobby,
     )>,
-    mut commands: Commands,
 ) {
     let my_lobby_entity = trigger.entity();
-    const STEP_SIZE: f32 = 0.01;
+    let step_size = 0.1;
+    let steps = (1.0 / step_size) as usize;
+    let mut moved_entities = EntityHashSet::default();
 
-    // Iterate over every unique pair of colliders in our wretched lobby.
-    let mut combinations = all_colliders.iter_combinations_mut();
+    let mut combinations_iter = combinations.iter_combinations_mut();
     while let Some(
-        [(
-            entity_a,
-            mut current_transform_a,
-            mut wanted_transform_a,
-            collider_a,
-            layer_a,
-            in_lobby_a,
-        ), (
-            entity_b,
-            mut current_transform_b,
-            mut wanted_transform_b,
-            collider_b,
-            layer_b,
-            in_lobby_b,
-        )],
-    ) = combinations.fetch_next()
+        [(a_entity, mut a_transform, mut a_wanted, a_collider, a_collision_layer, a_in_lobby), (b_entity, mut b_transform, mut b_wanted, b_collider, b_collision_layer, b_in_lobby)],
+    ) = combinations_iter.fetch_next()
     {
-        if in_lobby_a.0 != my_lobby_entity || in_lobby_b.0 != my_lobby_entity {
+        // Existing lobby and collision layer checks...
+        if a_in_lobby.0 != my_lobby_entity || b_in_lobby.0 != my_lobby_entity {
             continue;
         }
-        if !layer_a.intersects(layer_b) {
+        if !a_collision_layer.intersects(b_collision_layer) {
             continue;
         }
-        if layer_a.ignore.contains(&entity_b) || layer_b.ignore.contains(&entity_a) {
+        if a_collision_layer.ignore.contains(&b_entity)
+            || b_collision_layer.ignore.contains(&a_entity)
+        {
             continue;
         }
 
-        // Determine the number of simulation steps required for each entity.
-        let distance_a =
-            (wanted_transform_a.translation - current_transform_a.translation).length();
-        let steps_a = if distance_a == 0.0 {
-            1
-        } else {
-            (distance_a / STEP_SIZE).ceil() as i32
-        };
-        let distance_b =
-            (wanted_transform_b.translation - current_transform_b.translation).length();
-        let steps_b = if distance_b == 0.0 {
-            1
-        } else {
-            (distance_b / STEP_SIZE).ceil() as i32
-        };
-        let steps = steps_a.max(steps_b);
-
-        let mut safe_translation_a = current_transform_a.translation;
-        let mut safe_rotation_a = current_transform_a.rotation;
-        let mut safe_translation_b = current_transform_b.translation;
-        let mut safe_rotation_b = current_transform_b.rotation;
-        let mut collision_detected = false;
-
-        // Advance both colliders in lockstep, checking at each incremental step.
+        // Calculate movement trajectories
+        let mut t_collision = None;
         for step in 1..=steps {
-            let t = step as f32 / steps as f32;
-            let candidate_translation_a = current_transform_a
-                .translation
-                .lerp(wanted_transform_a.translation, t);
-            let candidate_rotation_a = current_transform_a
-                .rotation
-                .slerp(wanted_transform_a.rotation, t);
-            let candidate_transform_a = Transform {
-                translation: candidate_translation_a,
-                rotation: candidate_rotation_a,
-                ..default()
-            };
-            let candidate_translation_b = current_transform_b
-                .translation
-                .lerp(wanted_transform_b.translation, t);
-            let candidate_rotation_b = current_transform_b
-                .rotation
-                .slerp(wanted_transform_b.rotation, t);
-            let candidate_transform_b = Transform {
-                translation: candidate_translation_b,
-                rotation: candidate_rotation_b,
-                ..default()
-            };
+            let t = step as f32 * step_size;
+            let a_t = interpolate_transform(&*a_transform, &a_wanted.0, t);
+            let b_t = interpolate_transform(&*b_transform, &b_wanted.0, t);
 
-            let obb_a = Obb3d::new(candidate_transform_a, collider_a);
-            let obb_b = Obb3d::new(candidate_transform_b, collider_b);
+            let a_obb = Obb3d::from_transform(&a_t, a_collider);
+            let b_obb = Obb3d::from_transform(&b_t, b_collider);
 
-            if obb_a.intersects(&obb_b) {
-                collision_detected = true;
-                break;
-            }
-
-            safe_translation_a = candidate_translation_a;
-            safe_rotation_a = candidate_rotation_a;
-            safe_translation_b = candidate_translation_b;
-            safe_rotation_b = candidate_rotation_b;
-
-            if collision_detected {
+            if a_obb.collides_with(&b_obb) {
+                t_collision = Some(t);
                 break;
             }
         }
 
-        // Upon collision, update the wanted transforms to the last safe state and dispatch our cruel collision triggers.
-        wanted_transform_a.translation = safe_translation_a;
-        wanted_transform_a.rotation = safe_rotation_a;
-        current_transform_a.translation = safe_translation_a;
-        current_transform_a.rotation = safe_rotation_a;
+        if let Some(t) = t_collision {
+            // Calculate safe position just before collision
+            let safe_t = (t - step_size).max(0.0);
 
-        wanted_transform_b.translation = safe_translation_b;
-        wanted_transform_b.rotation = safe_rotation_b;
-        current_transform_b.translation = safe_translation_b;
-        current_transform_b.rotation = safe_rotation_b;
-        if collision_detected {
-            commands.trigger_targets(CollidedWithTrigger { entity: entity_b }, entity_a);
-            commands.trigger_targets(CollidedWithTrigger { entity: entity_a }, entity_b);
+            // Update ACTUAL TRANSFORM and wanted transform for both entities
+            let a_safe = interpolate_transform(&*a_transform, &a_wanted.0, safe_t);
+            let b_safe = interpolate_transform(&*b_transform, &b_wanted.0, safe_t);
+
+            *a_transform = a_safe;
+            a_wanted.0 = a_safe;
+
+            *b_transform = b_safe;
+            b_wanted.0 = b_safe;
+
+            // Mark entities as moved
+            moved_entities.insert(a_entity);
+            moved_entities.insert(b_entity);
+
+            // Trigger events...
+            commands.trigger_targets(CollidedWithTrigger { entity: b_entity }, a_entity);
+            commands.trigger_targets(CollidedWithTrigger { entity: a_entity }, b_entity);
         }
+    }
+
+    // After processing all pairs, move non-colliding entities to their target
+    for (entity, mut transform, wanted_transform, _, _, in_lobby) in combinations.iter_mut() {
+        if in_lobby.0 != my_lobby_entity || moved_entities.contains(&entity) {
+            continue;
+        }
+
+        // Only update if not already at target
+        if transform.translation != wanted_transform.0.translation
+            || transform.rotation != wanted_transform.0.rotation
+            || transform.scale != wanted_transform.0.scale
+        {
+            *transform = wanted_transform.0.clone();
+        }
+    }
+}
+
+fn interpolate_transform(start: &Transform, end: &Transform, t: f32) -> Transform {
+    Transform {
+        translation: start.translation.lerp(end.translation, t),
+        rotation: start.rotation.slerp(end.rotation, t),
+        scale: start.scale.lerp(end.scale, t),
     }
 }
