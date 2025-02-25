@@ -13,7 +13,7 @@ use shared::{
 };
 
 use crate::gameplay::{
-    lobby_cleanup::CleanupMarker,
+    lobby_cleanup::CleanupNextTick,
     triggers::{
         FinishedNextSimulationStepTrigger, StartNextSimulationStepTrigger,
         StartNextTickProcessingTrigger,
@@ -70,7 +70,7 @@ pub fn colliding_with_entity(
             }
         }
 
-        commands.entity(projectile_entity).insert(CleanupMarker);
+        commands.entity(projectile_entity).insert(CleanupNextTick);
     }
 }
 

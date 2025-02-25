@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use handle_collisions::MyCollisionHandlingPlugin;
 use handle_players::HandlePlayersPlugin;
-use lobby_cleanup::CleanupMarker;
+use lobby_cleanup::CleanupNextTick;
 use shared::networking::lobby_management::MyLobby;
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
@@ -22,7 +22,7 @@ pub struct MyGameplayPlugin;
 
 impl Plugin for MyGameplayPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<CleanupMarker>()
+        app.register_type::<CleanupNextTick>()
             .configure_sets(
                 Update,
                 (

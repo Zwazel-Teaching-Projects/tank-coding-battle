@@ -1,4 +1,4 @@
-use bevy::{ecs::entity::EntityHashMap, math::Vec3A, prelude::*};
+use bevy::prelude::*;
 use shared::{
     game::collision_handling::{
         components::{Collider, CollisionLayer, WantedTransform},
@@ -206,13 +206,14 @@ pub fn collision_system(
         &CollisionLayer,
         &InLobby,
     )>,
-    mut debug_obb_gizmos: ResMut<DebugObbGizmosResource>,
+    #[cfg(feature = "debug")] mut debug_obb_gizmos: ResMut<debug::DebugObbGizmosResource>,
 ) {
     let my_lobby_entity = trigger.entity();
     let step_size = 0.01;
     let steps = (1.0 / step_size) as usize;
 
-    debug_obb_gizmos.0.clear();
+    #[cfg(feature = "debug")]
+    debug_obb_gizmos.0.remove(&my_lobby_entity);
     let mut combinations_iter = combinations.iter_combinations_mut();
     while let Some(
         [(a_entity, mut a_transform, mut a_wanted, a_collider, a_collision_layer, a_in_lobby), (b_entity, mut b_transform, mut b_wanted, b_collider, b_collision_layer, b_in_lobby)],
@@ -243,11 +244,24 @@ pub fn collision_system(
             let a_obb = Obb3d::from_transform(&a_safe, a_collider);
             let b_obb = Obb3d::from_transform(&b_safe, b_collider);
 
-            // Get or insert
-            let a_gizmos = debug_obb_gizmos.0.entry(a_entity).or_insert_with(Vec::new);
-            a_gizmos.push((t, a_obb));
-            let b_gizmos = debug_obb_gizmos.0.entry(b_entity).or_insert_with(Vec::new);
-            b_gizmos.push((t, b_obb));
+            #[cfg(feature = "debug")]
+            {
+                // Get or insert
+                let a_gizmos = debug_obb_gizmos
+                    .0
+                    .entry(my_lobby_entity)
+                    .or_insert_with(bevy::ecs::entity::EntityHashMap::default)
+                    .entry(a_entity)
+                    .or_insert_with(Vec::new);
+                a_gizmos.push((t, a_obb));
+                let b_gizmos = debug_obb_gizmos
+                    .0
+                    .entry(my_lobby_entity)
+                    .or_insert_with(bevy::ecs::entity::EntityHashMap::default)
+                    .entry(b_entity)
+                    .or_insert_with(Vec::new);
+                b_gizmos.push((t, b_obb));
+            }
 
             if a_obb.intersects_obb(&b_obb) {
                 t_collision = Some(t);
@@ -280,39 +294,48 @@ fn interpolate_transform(start: &Transform, end: &Transform, t: f32) -> Transfor
     }
 }
 
-#[derive(Default, Resource)]
-pub struct DebugObbGizmosResource(EntityHashMap<Vec<(f32, Obb3d)>>);
+#[cfg(feature = "debug")]
+pub mod debug {
+    use bevy::{ecs::entity::EntityHashMap, math::Vec3A, prelude::*};
+    use shared::game::collision_handling::structs::Obb3d;
 
-pub fn visualize_obb3ds(mut gizmos: Gizmos, obb_gizmos: Res<DebugObbGizmosResource>) {
-    // Iterate through all entities, get the obb with lowest step and the one with highest step, draw them with gradient colors.
-    for (_, obb_gizmos) in obb_gizmos.0.iter() {
-        let (min_step, _) = obb_gizmos
-            .iter()
-            .min_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
-            .unwrap();
-        let (max_step, _) = obb_gizmos
-            .iter()
-            .max_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
-            .unwrap();
+    #[derive(Default, Resource, Reflect, Debug)]
+    #[reflect(Resource)]
+    pub struct DebugObbGizmosResource(pub EntityHashMap<EntityHashMap<Vec<(f32, Obb3d)>>>);
 
-        let step_range = max_step - min_step;
+    pub fn visualize_obb3ds(mut gizmos: Gizmos, obb_gizmos: Res<DebugObbGizmosResource>) {
+        // Iterate through all entities, get the obb with lowest step and the one with highest step, draw them with gradient colors.
+        for (_lobby_entity, lobby_gizmos) in obb_gizmos.0.iter() {
+            for (_collider_entity, obb_gizmos) in lobby_gizmos.iter() {
+                let (min_step, _) = obb_gizmos
+                    .iter()
+                    .min_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
+                    .unwrap();
+                let (max_step, _) = obb_gizmos
+                    .iter()
+                    .max_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
+                    .unwrap();
 
-        for (step, obb) in obb_gizmos {
-            let t = (step - min_step) / step_range;
-            let color = Color::srgba(1.0 - t, t, 0.0, 1.0);
+                let step_range = max_step - min_step;
 
-            let obb = Obb3d {
-                half_size: obb.half_size + Vec3A::splat(0.01),
-                ..*obb
-            };
+                for (step, obb) in obb_gizmos {
+                    let t = (step - min_step) / step_range;
+                    let color = Color::srgba(1.0 - t, t, 0.0, 1.0);
 
-            gizmos.primitive_3d(
-                &Cuboid {
-                    half_size: obb.half_size.into(),
-                },
-                Isometry3d::new(obb.center, Quat::from_mat3a(&obb.basis)),
-                color,
-            );
+                    let obb = Obb3d {
+                        half_size: obb.half_size + Vec3A::splat(0.01),
+                        ..*obb
+                    };
+
+                    gizmos.primitive_3d(
+                        &Cuboid {
+                            half_size: obb.half_size.into(),
+                        },
+                        Isometry3d::new(obb.center, Quat::from_mat3a(&obb.basis)),
+                        color,
+                    );
+                }
+            }
         }
     }
 }

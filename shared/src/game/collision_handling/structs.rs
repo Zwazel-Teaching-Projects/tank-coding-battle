@@ -5,7 +5,7 @@ use bevy::{
 
 use super::components::Collider;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Reflect)]
 pub struct Obb3d {
     pub center: Vec3A,
     pub basis: Mat3A,

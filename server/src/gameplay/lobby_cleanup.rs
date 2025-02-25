@@ -3,9 +3,10 @@ use shared::networking::lobby_management::{InLobby, MyLobby};
 
 use super::triggers::StartNextTickProcessingTrigger;
 
+/// Entities marked with this get cleaned up on the next tick (Only if they are in a lobby)
 #[derive(Debug, Reflect, Default, Component)]
 #[reflect(Component)]
-pub struct CleanupMarker;
+pub struct CleanupNextTick;
 
 pub fn cleanup_lobby(
     trigger: Trigger<OnRemove, MyLobby>,
@@ -22,7 +23,7 @@ pub fn cleanup_lobby(
 
 pub fn cleanup_entities(
     trigger: Trigger<StartNextTickProcessingTrigger>,
-    query: Query<(Entity, &InLobby), With<CleanupMarker>>,
+    query: Query<(Entity, &InLobby), With<CleanupNextTick>>,
     mut commands: Commands,
 ) {
     let lobby = trigger.entity();
