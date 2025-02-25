@@ -71,4 +71,9 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .observe(start_lobby::start_lobby)
         .observe(process_messages::process_lobby_messages)
         .observe(lobby_cleanup::cleanup_entities);
+
+    #[cfg(feature = "debug")]
+    commands
+        .entity(trigger.entity())
+        .observe(lobby_cleanup::debug::cleanup_debug_obbs);
 }
