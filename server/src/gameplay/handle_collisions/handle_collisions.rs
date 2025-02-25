@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use shared::{
     game::collision_handling::{
         components::{Collider, CollisionLayer, WantedTransform},
+        structs::Obb3d,
         triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
     },
     networking::lobby_management::{InLobby, MyLobby},
@@ -87,9 +88,14 @@ pub fn check_world_collision_and_apply_movement(
                 let t = step as f32 / steps as f32;
                 let candidate_translation = current.translation.lerp(target.translation, t);
                 let candidate_rotation = current.rotation.slerp(target.rotation, t);
+                let candidate_transform = Transform {
+                    translation: candidate_translation,
+                    rotation: candidate_rotation,
+                    ..default()
+                };
 
-                let right = candidate_rotation * Vec3::X;
-                let forward = candidate_rotation * Vec3::Z;
+                let right = candidate_transform.right();
+                let forward = candidate_transform.forward();
                 let corners = [
                     candidate_translation
                         + right * collider.half_size.x
@@ -204,38 +210,8 @@ pub fn detect_pairwise_collisions(
     let my_lobby_entity = trigger.entity();
     const STEP_SIZE: f32 = 0.01;
 
-    // Helper: compute the axis-aligned bounding box for a candidate position.
-    let compute_aabb =
-        |translation: Vec3, rotation: Quat, collider: &Collider| -> (f32, f32, f32, f32) {
-            let right = rotation * Vec3::X;
-            let forward = rotation * Vec3::Z;
-            let half = collider.half_size;
-            let corners = [
-                translation + right * half.x + forward * half.z,
-                translation - right * half.x + forward * half.z,
-                translation + right * half.x - forward * half.z,
-                translation - right * half.x - forward * half.z,
-            ];
-            let (min_x, max_x) = corners
-                .iter()
-                .fold((f32::MAX, f32::MIN), |(min, max), corner| {
-                    (min.min(corner.x), max.max(corner.x))
-                });
-            let (min_z, max_z) = corners
-                .iter()
-                .fold((f32::MAX, f32::MIN), |(min, max), corner| {
-                    (min.min(corner.z), max.max(corner.z))
-                });
-            (min_x, max_x, min_z, max_z)
-        };
-
-    // Helper: determine if two AABBs overlap.
-    let aabb_overlap = |a: (f32, f32, f32, f32), b: (f32, f32, f32, f32)| -> bool {
-        a.0 <= b.1 && a.1 >= b.0 && a.2 <= b.3 && a.3 >= b.2
-    };
-
     // Iterate over every unique pair of colliders in our wretched lobby.
-    let mut combinations = all_colliders.iter_combinations_mut::<2>();
+    let mut combinations = all_colliders.iter_combinations_mut();
     while let Some(
         [(
             entity_a,
@@ -296,23 +272,37 @@ pub fn detect_pairwise_collisions(
             let candidate_rotation_a = current_transform_a
                 .rotation
                 .slerp(wanted_transform_a.rotation, t);
+            let candidate_transform_a = Transform {
+                translation: candidate_translation_a,
+                rotation: candidate_rotation_a,
+                ..default()
+            };
             let candidate_translation_b = current_transform_b
                 .translation
                 .lerp(wanted_transform_b.translation, t);
             let candidate_rotation_b = current_transform_b
                 .rotation
                 .slerp(wanted_transform_b.rotation, t);
+            let candidate_transform_b = Transform {
+                translation: candidate_translation_b,
+                rotation: candidate_rotation_b,
+                ..default()
+            };
 
-            let aabb_a = compute_aabb(candidate_translation_a, candidate_rotation_a, collider_a);
-            let aabb_b = compute_aabb(candidate_translation_b, candidate_rotation_b, collider_b);
+            let obb_a = Obb3d::new(candidate_transform_a, collider_a);
+            let obb_b = Obb3d::new(candidate_transform_b, collider_b);
+
+            if obb_a.intersects(&obb_b) {
+                collision_detected = true;
+                break;
+            }
 
             safe_translation_a = candidate_translation_a;
             safe_rotation_a = candidate_rotation_a;
             safe_translation_b = candidate_translation_b;
             safe_rotation_b = candidate_rotation_b;
 
-            if aabb_overlap(aabb_a, aabb_b) {
-                collision_detected = true;
+            if collision_detected {
                 break;
             }
         }

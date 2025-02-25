@@ -9,8 +9,8 @@
             turretMinPitch: -0.5,
             maxSlope: 0.25,
             size: (
-                0.35,
-                0.35,
+                0.3,
+                0.3,
                 0.5,
             ),
             shootCooldown: 5,

@@ -97,7 +97,7 @@ pub fn handle_projectile_on_game_state_update(
     // If the server side projectile entity is not present in the game state, we can despawn the client side projectile entity.
     entity_mapping.mapping.retain(
         |server_side_projectile_entity, client_side_projectile_entity| {
-            // Only process if the client entity exists in the projectile query.
+            // Only process if the client entity exists in the projectile query, so we don't despawn entities that are not projectiles.
             if existing_projectiles
                 .get(*client_side_projectile_entity)
                 .is_ok()
@@ -105,7 +105,7 @@ pub fn handle_projectile_on_game_state_update(
                 if !server_projectile_ids.contains(server_side_projectile_entity) {
                     commands
                         .entity(*client_side_projectile_entity)
-                        .insert(DelayedDespawn(current_tick + 3));
+                        .insert(DelayedDespawn(current_tick + 2)); // Despawn after x ticks.
                     return false;
                 }
             }

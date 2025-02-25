@@ -8,6 +8,8 @@ pub struct MyCollisionHandlingPlugin;
 impl Plugin for MyCollisionHandlingPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(add_observers_to_lobby);
+
+        
     }
 }
 

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 pub mod components;
 pub mod triggers;
+pub mod structs;
 
 pub struct MyCollisionHandlingPlugin;
 
