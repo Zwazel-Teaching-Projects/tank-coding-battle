@@ -4,7 +4,7 @@ use bevy::{
 };
 use bevy_mod_billboard::BillboardText;
 use shared::{
-    game::player_handling::{TankBodyMarker, TankTurretMarker},
+    game::{collision_handling::components::WantedTransform, player_handling::{TankBodyMarker, TankTurretMarker}},
     networking::{lobby_management::InTeam, messages::message_container::GameStartsTrigger},
 };
 
@@ -74,6 +74,7 @@ pub fn create_player_visualisation(
                 TankTurretMarker {
                     body: client_side_tank_body_entity,
                 },
+                WantedTransform::default(),
                 Visibility::Inherited,
             ))
             .with_children(|commands| {

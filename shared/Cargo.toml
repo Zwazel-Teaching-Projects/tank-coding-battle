@@ -13,4 +13,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [features]
-default = ["bevy/serialize"]
+default = ["shared", "debug"]
+shared = ["bevy/serialize"]
+debug = []

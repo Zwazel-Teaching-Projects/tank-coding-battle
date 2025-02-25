@@ -1,17 +1,17 @@
 [alias]
 # Build SERVER with default features 
-bs = "build --features server --target-dir=target/server"
+bs = "build --features server_debug --target-dir=target/server"
 # Run SERVER with default features
-rs = "run --features server --target-dir=target/server"
+rs = "run --features server_debug --target-dir=target/server"
 # Build SERVER with release optimizations
 brs = "build --release --no-default-features --features server --target-dir=target/server"
 # Run SERVER with release optimizations
 rrs = "run --release --no-default-features --features server --target-dir=target/server"
 
 # Build SPECTATOR_CLIENT with default features
-bc = "build --features spectator_client --target-dir=target/client"
+bc = "build --features spectator_client_debug --target-dir=target/client"
 # Run SPECTATOR_CLIENT with default features
-rc = "run --features spectator_client --target-dir=target/client"
+rc = "run --features spectator_client_debug --target-dir=target/client"
 # Build SPECTATOR_CLIENT with release optimizations
 brc = "build --release --no-default-features --features spectator_client --target-dir=target/client"
 # Run SPECTATOR_CLIENT with release optimizations

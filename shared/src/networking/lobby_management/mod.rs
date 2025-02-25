@@ -32,6 +32,7 @@ impl Plugin for MyLobbyManagementPlugin {
             .init_resource::<MyLobbies>()
             .register_type::<MyLobby>()
             .register_type::<InLobby>()
+            .register_type::<InTeam>()
             .register_type::<LobbyState>()
             .register_type::<AwaitingFirstContact>()
             .add_observer(finish_setting_up_lobby)

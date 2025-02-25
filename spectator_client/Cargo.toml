@@ -4,15 +4,17 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-shared = { workspace = true }
+shared = { workspace = true, default-features = false }
 
 bevy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+bevy-inspector-egui = { workspace = true, optional = true }
 
-bevy-inspector-egui = { version = "0.29" }
-bevy_flycam = "0.15"
+bevy_flycam = { workspace = true }
 bevy_mod_billboard = { git = "https://github.com/voximity/bevy_mod_billboard.git", branch = "migrate-0.15" }
 
 [features]
-default = ["bevy/default", "bevy/serialize"]
+default = ["spectator_client", "debug"]
+spectator_client = ["bevy/default", "bevy/serialize"]
+debug = ["bevy-inspector-egui", "shared/debug"]

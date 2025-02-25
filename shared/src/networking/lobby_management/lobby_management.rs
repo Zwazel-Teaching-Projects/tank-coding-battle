@@ -42,10 +42,9 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
                     let map_name = map_name.to_string();
 
                     let entity = commands
-                        .spawn(MyLobby::new(
-                            lobby_id.to_string(),
-                            map_name,
-                            server_config.tick_rate,
+                        .spawn((
+                            Name::new(format!("Lobby_{}_{}", lobby_id, map_name)),
+                            MyLobby::new(lobby_id.to_string(), map_name, server_config.tick_rate),
                         ))
                         .id();
 

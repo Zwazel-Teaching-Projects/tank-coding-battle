@@ -28,7 +28,7 @@ impl Plugin for MySharedNetworkingPlugin {
                     .chain(),
             );
 
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "debug")]
         app.add_systems(
             Update,
             bevy::dev_tools::states::log_transitions::<MyNetworkingState>,

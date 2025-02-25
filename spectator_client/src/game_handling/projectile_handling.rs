@@ -1,13 +1,16 @@
 use bevy::{color::palettes::css::WHITE, ecs::entity::EntityHashSet, prelude::*};
 use shared::{
-    game::{projectile_handling::ProjectileMarker, tank_types::TankType},
+    game::{
+        collision_handling::components::WantedTransform, projectile_handling::ProjectileMarker,
+        tank_types::TankType,
+    },
     networking::{
         lobby_management::InTeam,
         messages::{message_container::GameStateTrigger, message_data::game_starts::GameStarts},
     },
 };
 
-use super::entity_mapping::MyEntityMapping;
+use super::{entity_mapping::MyEntityMapping, DelayedDespawn};
 
 pub fn handle_projectile_on_game_state_update(
     trigger: Trigger<GameStateTrigger>,
@@ -15,11 +18,12 @@ pub fn handle_projectile_on_game_state_update(
     mut commands: Commands,
     mut entity_mapping: ResMut<MyEntityMapping>,
     players: Query<(&InTeam, &TankType)>,
-    mut existing_projectiles: Query<(Entity, &mut Transform), With<ProjectileMarker>>,
+    mut existing_projectiles: Query<(Entity, &mut WantedTransform), With<ProjectileMarker>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let game_state = &(**trigger.event());
+    let current_tick = game_state.tick;
 
     // Collect all server projectile IDs from the game state.
     let mut server_projectile_ids = EntityHashSet::default();
@@ -64,6 +68,12 @@ pub fn handle_projectile_on_game_state_update(
                             },
                             Mesh3d(meshes.add(Cuboid::from_size(tank_config.projectile_size))),
                             MeshMaterial3d(materials.add(team_color)),
+                            WantedTransform(
+                                Transform::from_translation(
+                                    server_side_projectile_state.transform.translation,
+                                )
+                                .with_rotation(server_side_projectile_state.transform.rotation),
+                            ),
                         ))
                         .id();
                     entity_mapping.mapping.insert(
@@ -87,7 +97,7 @@ pub fn handle_projectile_on_game_state_update(
     // If the server side projectile entity is not present in the game state, we can despawn the client side projectile entity.
     entity_mapping.mapping.retain(
         |server_side_projectile_entity, client_side_projectile_entity| {
-            // Only process if the client entity exists in the projectile query.
+            // Only process if the client entity exists in the projectile query, so we don't despawn entities that are not projectiles.
             if existing_projectiles
                 .get(*client_side_projectile_entity)
                 .is_ok()
@@ -95,7 +105,7 @@ pub fn handle_projectile_on_game_state_update(
                 if !server_projectile_ids.contains(server_side_projectile_entity) {
                     commands
                         .entity(*client_side_projectile_entity)
-                        .despawn_recursive();
+                        .insert(DelayedDespawn(current_tick + 1)); // Despawn after x ticks.
                     return false;
                 }
             }

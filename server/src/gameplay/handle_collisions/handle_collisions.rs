@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use shared::{
     game::collision_handling::{
         components::{Collider, CollisionLayer, WantedTransform},
+        structs::Obb3d,
         triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
     },
     networking::lobby_management::{InLobby, MyLobby},
@@ -35,7 +36,7 @@ pub fn check_world_collision_and_apply_movement(
     mut colliders: Query<
         (
             Entity,
-            &mut Transform,
+            &Transform,
             &mut WantedTransform,
             &Collider,
             &CollisionLayer,
@@ -63,13 +64,13 @@ pub fn check_world_collision_and_apply_movement(
 
     // --- World Collision Check ---
     colliders.par_iter_mut().for_each(
-        |(entity, mut transform, mut wanted, collider, _layer, in_lobby)| {
+        |(entity, current_transform, mut wanted_transform, collider, _layer, in_lobby)| {
             if in_lobby.0 != my_lobby_entity {
                 return;
             }
 
-            let current = *transform;
-            let target = **wanted;
+            let current = *current_transform;
+            let target = **wanted_transform;
             let delta = target.translation - current.translation;
             let total_distance = delta.length();
             let steps = if total_distance == 0.0 {
@@ -87,9 +88,14 @@ pub fn check_world_collision_and_apply_movement(
                 let t = step as f32 / steps as f32;
                 let candidate_translation = current.translation.lerp(target.translation, t);
                 let candidate_rotation = current.rotation.slerp(target.rotation, t);
+                let candidate_transform = Transform {
+                    translation: candidate_translation,
+                    rotation: candidate_rotation,
+                    ..default()
+                };
 
-                let right = candidate_rotation * Vec3::X;
-                let forward = candidate_rotation * Vec3::Z;
+                let right = candidate_transform.right();
+                let forward = candidate_transform.forward();
                 let corners = [
                     candidate_translation
                         + right * collider.half_size.x
@@ -177,14 +183,8 @@ pub fn check_world_collision_and_apply_movement(
                 collided_entities.lock().unwrap().push(entity);
             }
 
-            transform.translation = safe_translation;
-            transform.rotation = safe_rotation;
-            transform.scale = Vec3::ONE;
-            **wanted = Transform {
-                translation: safe_translation,
-                rotation: safe_rotation,
-                scale: Vec3::ONE,
-            };
+            wanted_transform.translation = safe_translation;
+            wanted_transform.rotation = safe_rotation;
         },
     );
 
@@ -195,67 +195,147 @@ pub fn check_world_collision_and_apply_movement(
     commands.trigger_targets(CalculateCollisionsTrigger, my_lobby_entity);
 }
 
-pub fn detect_pairwise_collisions(
+pub fn collision_system(
     trigger: Trigger<CalculateCollisionsTrigger>,
-    mut all_colliders: Query<(Entity, &Transform, &Collider, &CollisionLayer, &InLobby)>,
     mut commands: Commands,
+    mut combinations: Query<(
+        Entity,
+        &mut Transform,
+        &mut WantedTransform,
+        &Collider,
+        &CollisionLayer,
+        &InLobby,
+    )>,
+    #[cfg(feature = "debug")] mut debug_obb_gizmos: ResMut<debug::DebugObbGizmosResource>,
 ) {
     let my_lobby_entity = trigger.entity();
+    let step_size = 0.01;
+    let steps = (1.0 / step_size) as usize;
 
-    // --- Pairwise Collider Collision Check ---
-    // Define helper closures for AABB computation and intersection test.
-    let compute_aabb = |transform: &Transform, collider: &Collider| -> (f32, f32, f32, f32) {
-        let translation = transform.translation;
-        let rotation = transform.rotation;
-        let right = rotation * Vec3::X;
-        let forward = rotation * Vec3::Z;
-        let half = collider.half_size;
-        let corners = [
-            translation + right * half.x + forward * half.z,
-            translation - right * half.x + forward * half.z,
-            translation + right * half.x - forward * half.z,
-            translation - right * half.x - forward * half.z,
-        ];
-        let (min_x, max_x) = corners
-            .iter()
-            .fold((f32::MAX, f32::MIN), |(min, max), corner| {
-                (min.min(corner.x), max.max(corner.x))
-            });
-        let (min_z, max_z) = corners
-            .iter()
-            .fold((f32::MAX, f32::MIN), |(min, max), corner| {
-                (min.min(corner.z), max.max(corner.z))
-            });
-        (min_x, max_x, min_z, max_z)
-    };
-
-    let aabb_overlap = |a: (f32, f32, f32, f32), b: (f32, f32, f32, f32)| -> bool {
-        a.0 <= b.1 && a.1 >= b.0 && a.2 <= b.3 && a.3 >= b.2
-    };
-
-    // Iterate through all combinations of colliders in the lobby.
-    let mut combinations = all_colliders.iter_combinations_mut::<2>();
+    #[cfg(feature = "debug")]
+    debug_obb_gizmos.0.remove(&my_lobby_entity);
+    let mut combinations_iter = combinations.iter_combinations_mut();
     while let Some(
-        [(entity_a, transform_a, collider_a, layer_a, in_lobby_a), (entity_b, transform_b, collider_b, layer_b, in_lobby_b)],
-    ) = combinations.fetch_next()
+        [(a_entity, mut a_transform, mut a_wanted, a_collider, a_collision_layer, a_in_lobby), (b_entity, mut b_transform, mut b_wanted, b_collider, b_collision_layer, b_in_lobby)],
+    ) = combinations_iter.fetch_next()
     {
-        if in_lobby_a.0 != my_lobby_entity || in_lobby_b.0 != my_lobby_entity {
+        // Existing lobby and collision layer checks...
+        if a_in_lobby.0 != my_lobby_entity || b_in_lobby.0 != my_lobby_entity {
             continue;
         }
-        // Check collision layer intersections and ignore lists.
-        if !layer_a.intersects(layer_b) {
+        if !a_collision_layer.intersects(b_collision_layer) {
             continue;
         }
-        if layer_a.ignore.contains(&entity_b) || layer_b.ignore.contains(&entity_a) {
+        if a_collision_layer.ignore.contains(&b_entity)
+            || b_collision_layer.ignore.contains(&a_entity)
+        {
             continue;
         }
-        // Compute AABBs.
-        let aabb_a = compute_aabb(transform_a, collider_a);
-        let aabb_b = compute_aabb(transform_b, collider_b);
-        if aabb_overlap(aabb_a, aabb_b) {
-            // Dispatch collision triggers for each entity.
-            commands.trigger_targets(CollidedWithTrigger { entity: entity_b }, entity_a);
-            commands.trigger_targets(CollidedWithTrigger { entity: entity_a }, entity_b);
+
+        // Calculate movement trajectories
+        let mut t_collision = None;
+        let mut a_safe_transform = *a_transform;
+        let mut b_safe_transform = *b_transform;
+        for step in 1..=steps {
+            let t = step as f32 * step_size;
+            let a_safe = interpolate_transform(&*a_transform, &a_wanted.0, t);
+            let b_safe = interpolate_transform(&*b_transform, &b_wanted.0, t);
+
+            let a_obb = Obb3d::from_transform(&a_safe, a_collider);
+            let b_obb = Obb3d::from_transform(&b_safe, b_collider);
+
+            #[cfg(feature = "debug")]
+            {
+                // Get or insert
+                let a_gizmos = debug_obb_gizmos
+                    .0
+                    .entry(my_lobby_entity)
+                    .or_insert_with(bevy::ecs::entity::EntityHashMap::default)
+                    .entry(a_entity)
+                    .or_insert_with(Vec::new);
+                a_gizmos.push((t, a_obb));
+                let b_gizmos = debug_obb_gizmos
+                    .0
+                    .entry(my_lobby_entity)
+                    .or_insert_with(bevy::ecs::entity::EntityHashMap::default)
+                    .entry(b_entity)
+                    .or_insert_with(Vec::new);
+                b_gizmos.push((t, b_obb));
+            }
+
+            if a_obb.intersects_obb(&b_obb) {
+                t_collision = Some(t);
+                break;
+            } else {
+                a_safe_transform = a_safe;
+                b_safe_transform = b_safe;
+            }
+        }
+
+        *a_transform = a_safe_transform;
+        a_wanted.0 = a_safe_transform;
+
+        *b_transform = b_safe_transform;
+        b_wanted.0 = b_safe_transform;
+
+        if let Some(_t) = t_collision {
+            // Trigger events...
+            commands.trigger_targets(CollidedWithTrigger { entity: b_entity }, a_entity);
+            commands.trigger_targets(CollidedWithTrigger { entity: a_entity }, b_entity);
+        }
+    }
+}
+
+fn interpolate_transform(start: &Transform, end: &Transform, t: f32) -> Transform {
+    Transform {
+        translation: start.translation.lerp(end.translation, t),
+        rotation: start.rotation.slerp(end.rotation, t),
+        scale: start.scale.lerp(end.scale, t),
+    }
+}
+
+#[cfg(feature = "debug")]
+pub mod debug {
+    use bevy::{ecs::entity::EntityHashMap, math::Vec3A, prelude::*};
+    use shared::game::collision_handling::structs::Obb3d;
+
+    #[derive(Default, Resource, Reflect, Debug)]
+    #[reflect(Resource)]
+    pub struct DebugObbGizmosResource(pub EntityHashMap<EntityHashMap<Vec<(f32, Obb3d)>>>);
+
+    pub fn visualize_obb3ds(mut gizmos: Gizmos, obb_gizmos: Res<DebugObbGizmosResource>) {
+        // Iterate through all entities, get the obb with lowest step and the one with highest step, draw them with gradient colors.
+        for (_lobby_entity, lobby_gizmos) in obb_gizmos.0.iter() {
+            for (_collider_entity, obb_gizmos) in lobby_gizmos.iter() {
+                let (min_step, _) = obb_gizmos
+                    .iter()
+                    .min_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
+                    .unwrap();
+                let (max_step, _) = obb_gizmos
+                    .iter()
+                    .max_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
+                    .unwrap();
+
+                let step_range = max_step - min_step;
+
+                for (step, obb) in obb_gizmos {
+                    let t = (step - min_step) / step_range;
+                    let color = Color::srgba(1.0 - t, t, 0.0, 1.0);
+
+                    let obb = Obb3d {
+                        half_size: obb.half_size + Vec3A::splat(0.01),
+                        ..*obb
+                    };
+
+                    gizmos.primitive_3d(
+                        &Cuboid {
+                            half_size: obb.half_size.into(),
+                        },
+                        Isometry3d::new(obb.center, Quat::from_mat3a(&obb.basis)),
+                        color,
+                    );
+                }
+            }
         }
     }
 }
