@@ -8,6 +8,7 @@ use tick_systems::TickSystemsPlugin;
 pub mod game_state_handling;
 pub mod handle_collisions;
 pub mod handle_players;
+pub mod lobby_cleanup;
 pub mod process_messages;
 pub mod process_messages_when_lobby_not_ready;
 pub mod simulation;
@@ -52,7 +53,8 @@ impl Plugin for MyGameplayPlugin {
                     .in_set(MyGameplaySet::ProcessMessagesBeforeLobbyReady),
             ),
         )
-        .add_observer(add_observers_to_lobby);
+        .add_observer(add_observers_to_lobby)
+        .add_observer(lobby_cleanup::cleanup_lobby);
     }
 }
 

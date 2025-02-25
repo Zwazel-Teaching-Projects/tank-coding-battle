@@ -63,7 +63,7 @@ pub fn simulate_movement(
             ); */
 
             // Simulate movement (Rotate body clockwise)
-            /* commands.trigger_targets(
+            commands.trigger_targets(
                 RotateTankBodyCommandTrigger {
                     sender: None,
                     message: RotateTankBodyCommand {
@@ -71,7 +71,7 @@ pub fn simulate_movement(
                     },
                 },
                 *player,
-            ); */
+            );
 
             // Simulate movement (Rotate turret counter-clockwise)
             commands.trigger_targets(

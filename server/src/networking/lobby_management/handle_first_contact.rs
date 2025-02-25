@@ -64,7 +64,7 @@ pub fn handle_first_contact_message(
                         TankBodyMarker::default(),
                         Name::new(format!(
                             "{:?}_{:?}_{}",
-                            message.client_type, message.tank_type, message.bot_name
+                            message.client_type, tank_type, message.bot_name
                         )),
                     ));
                 } else {
