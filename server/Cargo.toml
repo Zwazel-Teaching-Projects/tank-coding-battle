@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-shared = { workspace = true }
+shared = { workspace = true, default-features = false }
 
 bevy = { workspace = true }
 serde = { workspace = true }
@@ -14,11 +14,11 @@ bevy-inspector-egui = { workspace = true, optional = true }
 rand = "0.9.0"
 
 [features]
-default = ["server"]
+default = ["server", "debug"]
 server = [
     "bevy/bevy_state",
     "bevy/bevy_color",
     "bevy/serialize",
     "bevy/multi_threaded",
 ]
-debug = ["bevy/default", "bevy-inspector-egui"]
+debug = ["bevy/default", "bevy-inspector-egui", "shared/debug"]
