@@ -3,6 +3,8 @@ use gameplay::MyGameplayPlugin;
 use networking::MyNetworkingPlugin;
 use shared::MySharedPlugin;
 
+#[cfg(feature = "debug")]
+pub mod debug;
 pub mod gameplay;
 pub mod networking;
 
@@ -21,7 +23,7 @@ impl Plugin for MyServerPlugin {
             MyGameplayPlugin,
             MyNetworkingPlugin,
             #[cfg(feature = "debug")]
-            bevy_inspector_egui::quick::WorldInspectorPlugin::new(),
+            debug::MyServerDebugPlugin,
         ));
     }
 }
