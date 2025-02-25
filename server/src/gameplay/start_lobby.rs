@@ -137,15 +137,18 @@ pub fn check_if_lobby_should_start(
                 dummy_client.assigned_spawn_point = Some(*spawn_point);
                 taken_spawn_points_team.insert(team_name.clone(), *spawn_point);
 
+                let client_type = ClientType::Dummy;
+                let tank_type = TankType::LightTank; // TODO: Randomly select tank type? better would be if we could set up a lobby with specific dummies
+
                 let dummy = commands
                     .spawn((
-                        Name::new(dummy_name.clone()),
+                        Name::new(format!("{:?}_{:?}_{}", client_type, tank_type, dummy_name)),
                         DummyClientMarker,
                         InTeam(team_name.clone()),
                         InLobby(lobby_entity),
                         dummy_client,
-                        ClientType::Dummy,
-                        TankType::LightTank,
+                        client_type,
+                        tank_type,
                         TankBodyMarker::default(),
                     ))
                     .id();

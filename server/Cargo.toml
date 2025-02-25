@@ -10,6 +10,7 @@ bevy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 bevy-inspector-egui = { workspace = true, optional = true }
+bevy_flycam = { workspace = true, optional = true }
 
 rand = "0.9.0"
 
@@ -21,4 +22,4 @@ server = [
     "bevy/serialize",
     "bevy/multi_threaded",
 ]
-debug = ["bevy/default", "bevy-inspector-egui", "shared/debug"]
+debug = ["bevy/default", "bevy-inspector-egui", "shared/debug", "bevy_flycam"]

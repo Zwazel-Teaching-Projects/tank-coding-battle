@@ -24,6 +24,7 @@ pub fn accept_connections_system(
 
                 let networked_client = commands
                     .spawn((
+                        Name::new(format!("Client {}", stream.peer_addr().unwrap())),
                         MyNetworkClient::new(stream),
                         AwaitingFirstContact::new(config.timeout_first_contact),
                     ))

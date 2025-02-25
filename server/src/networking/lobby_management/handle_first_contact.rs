@@ -59,9 +59,14 @@ pub fn handle_first_contact_message(
         match message.client_type {
             ClientType::Player => {
                 if let Some(tank_type) = &message.tank_type {
-                    commands
-                        .entity(client_entity)
-                        .insert((tank_type.clone(), TankBodyMarker::default()));
+                    commands.entity(client_entity).insert((
+                        tank_type.clone(),
+                        TankBodyMarker::default(),
+                        Name::new(format!(
+                            "{:?}_{:?}_{}",
+                            message.client_type, message.tank_type, message.bot_name
+                        )),
+                    ));
                 } else {
                     error!("Player client did not specify a tank type");
                     message_queue.push_back(MessageContainer::new(
@@ -74,7 +79,16 @@ pub fn handle_first_contact_message(
                     return;
                 }
             }
-            _ => {}
+            ClientType::Spectator => {
+                commands.entity(client_entity).insert(Name::new(format!(
+                    "{:?}_{}",
+                    message.client_type, message.bot_name
+                )));
+            }
+            ClientType::Dummy => {
+                // We should never receive a dummy client here
+                error!("Received a dummy client in first contact message");
+            }
         }
     }
 
