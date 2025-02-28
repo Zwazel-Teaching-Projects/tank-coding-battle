@@ -2,18 +2,24 @@ use bevy::prelude::*;
 use shared::{
     game::{
         collision_handling::components::WantedTransform,
-        player_handling::{TankBodyMarker, TankTurretMarker},
+        player_handling::{Health, ShootCooldown, TankBodyMarker, TankTurretMarker},
     },
     networking::messages::message_container::GameStateTrigger,
 };
 
 use super::entity_mapping::MyEntityMapping;
 
-pub fn update_player_target_transform_on_game_state_update(
+pub fn update_player_state_on_game_state_update(
     game_state: Trigger<GameStateTrigger>,
     mut entity_mapping: ResMut<MyEntityMapping>,
     mut tank_body: Query<
-        (&mut Transform, &mut WantedTransform, &TankBodyMarker),
+        (
+            &mut Transform,
+            &mut WantedTransform,
+            &mut Health,
+            &mut ShootCooldown,
+            &TankBodyMarker,
+        ),
         Without<TankTurretMarker>,
     >,
     mut tank_turret: Query<(&mut Transform, &mut WantedTransform), With<TankTurretMarker>>,
@@ -23,9 +29,24 @@ pub fn update_player_target_transform_on_game_state_update(
     game_state.client_states.iter().for_each(
         |(server_side_client_entity, server_side_client_state)| {
             let client_side_entity = entity_mapping.map_entity(*server_side_client_entity);
-            if let Ok((mut current_body_transform, mut next_target_body_transform, tank_body)) =
-                tank_body.get_mut(client_side_entity)
+            if let Ok((
+                mut current_body_transform,
+                mut next_target_body_transform,
+                mut health,
+                mut shoot_cooldown,
+                tank_body,
+            )) = tank_body.get_mut(client_side_entity)
             {
+                health.health = server_side_client_state
+                    .as_ref()
+                    .expect("Client state is missing")
+                    .current_health;
+                shoot_cooldown.ticks_left = server_side_client_state
+                    .as_ref()
+                    .expect("Client state is missing")
+                    .shoot_cooldown;
+
+                // TRANSFORM UPDATES
                 let new_body_transform = server_side_client_state
                     .as_ref()
                     .expect("Client state is missing")

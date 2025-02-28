@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::hashbrown::HashSet};
 use shared::{
     game::{
         game_state::{ClientState, PersonalizedClientGameState, ProjectileState},
-        player_handling::{ShootCooldown, TankBodyMarker, TankTurretMarker},
+        player_handling::{Health, ShootCooldown, TankBodyMarker, TankTurretMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
     },
@@ -24,7 +24,13 @@ use super::triggers::{
 pub fn update_lobby_state(
     trigger: Trigger<UpdateLobbyGameStateTrigger>,
     mut lobby_management: LobbyManagementSystemParam,
-    tanks: Query<(&Transform, &TankType, &TankBodyMarker, &ShootCooldown)>,
+    tanks: Query<(
+        &Transform,
+        &TankType,
+        &TankBodyMarker,
+        &ShootCooldown,
+        &Health,
+    )>,
     turrets: Query<&Transform, With<TankTurretMarker>>,
     projectiles: Query<(&Transform, &ProjectileMarker), With<ProjectileMarker>>,
     mut commands: Commands,
@@ -51,7 +57,7 @@ pub fn update_lobby_state(
 
     // Updating client states of all players
     for player_entity in player_entities.iter() {
-        let (tank_transform, _tank_type, tank_body, shoot_cooldown) =
+        let (tank_transform, _tank_type, tank_body, shoot_cooldown, tank_health) =
             tanks.get(*player_entity).expect("Failed to get tank");
 
         let relative_turret_transform = turrets
@@ -65,6 +71,7 @@ pub fn update_lobby_state(
         client_state.transform_body = Some(tank_transform.clone());
         client_state.transform_turret = Some(relative_turret_transform.clone());
         client_state.shoot_cooldown = shoot_cooldown.ticks_left;
+        client_state.current_health = tank_health.health;
     }
 
     // Updating states of all projectiles and removing those that are not in the world anymore from the game state

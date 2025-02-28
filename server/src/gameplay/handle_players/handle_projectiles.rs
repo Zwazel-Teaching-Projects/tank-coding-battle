@@ -3,13 +3,21 @@ use shared::{
     game::{
         collision_handling::{
             components::{Collider, WantedTransform},
+            structs::Side,
             triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
         },
         common_components::TickBasedDespawnTimer,
-        player_handling::TankBodyMarker,
+        player_handling::{Health, TankBodyMarker},
         projectile_handling::ProjectileMarker,
     },
-    networking::lobby_management::MyLobby,
+    networking::{
+        lobby_management::MyLobby,
+        messages::{
+            message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+            message_data::tank_messages::hit_message_data::{GotHitMessageData, HitMessageData},
+            message_queue::OutMessageQueue,
+        },
+    },
 };
 
 use crate::gameplay::{
@@ -23,7 +31,10 @@ use crate::gameplay::{
 pub fn colliding_with_entity(
     trigger: Trigger<CollidedWithTrigger>,
     projectile: Query<(&ProjectileMarker, &Transform)>,
-    players: Query<(&TankBodyMarker, &Transform, &Collider)>,
+    mut players: Query<
+        (&Transform, &Collider, &mut Health, &mut OutMessageQueue),
+        With<TankBodyMarker>,
+    >,
     mut commands: Commands,
 ) {
     // TODO: Apply damage to player
@@ -33,9 +44,11 @@ pub fn colliding_with_entity(
         .expect("Failed to get projectile");
     let collided_with = trigger.event().entity;
 
-    if let Ok((body, body_transform, body_collider)) = players.get(collided_with) {
+    let mut hit_side = None;
+    if let Ok((body_transform, body_collider, mut health, mut message_queue)) =
+        players.get_mut(collided_with)
+    {
         let body_half_size = body_collider.half_size;
-        println!("Projectile hit player: {:?}", body);
 
         // Get the relative vector from the body to the projectile in world space.
         let relative = projectile_transform.translation - body_transform.translation;
@@ -47,30 +60,53 @@ pub fn colliding_with_entity(
         let face_dy = body_half_size.y - local_pos.y.abs();
         let face_dz = body_half_size.z - local_pos.z.abs();
 
-        if face_dx < face_dy && face_dx < face_dz {
+        hit_side = Some(if face_dx < face_dy && face_dx < face_dz {
             // Collision on x-axis (left or right)
             if local_pos.x > 0.0 {
-                println!("Collided with the left face."); // Swapped condition
+                Side::Left
             } else {
-                println!("Collided with the right face.");
+                Side::Right
             }
         } else if face_dy < face_dx && face_dy < face_dz {
             // Collision on y-axis (top or bottom)
             if local_pos.y > 0.0 {
-                println!("Collided with the top face.");
+                Side::Top
             } else {
-                println!("Collided with the bottom face.");
+                Side::Bottom
             }
         } else {
             // Collision on z-axis (front or back)
             if local_pos.z > 0.0 {
-                println!("Collided with the front face.");
+                Side::Front
             } else {
-                println!("Collided with the back face.");
+                Side::Back
             }
-        }
+        });
 
         commands.entity(projectile_entity).insert(CleanupNextTick);
+        // TODO: Armor calculation
+        health.health -= projectile.damage;
+        message_queue.push_back(MessageContainer::new(
+            MessageTarget::Client(collided_with),
+            NetworkMessageType::GotHit(GotHitMessageData {
+                damage_received: projectile.damage,
+                hit_side: hit_side.expect("Failed to get side hit"),
+                projectile_entity,
+                shooter_entity: projectile.owner,
+            }),
+        ));
+    }
+
+    if let Ok((_, _, _, mut projectile_owner_message_queue)) = players.get_mut(projectile.owner) {
+        projectile_owner_message_queue.push_back(MessageContainer::new(
+            MessageTarget::Client(projectile.owner),
+            NetworkMessageType::Hit(HitMessageData {
+                hit_entity: collided_with,
+                projectile_entity,
+                damage_dealt: projectile.damage,
+                hit_side: hit_side.expect("Failed to get side hit"),
+            }),
+        ));
     }
 }
 

@@ -2,8 +2,20 @@ use bevy::{
     math::{Mat3A, Vec3A},
     prelude::*,
 };
+use serde::{Deserialize, Serialize};
 
 use super::components::Collider;
+
+#[derive(Debug, Clone, Copy, Reflect, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum Side {
+    Top,
+    Bottom,
+    Left,
+    Right,
+    Front,
+    Back,
+}
 
 #[derive(Debug, Clone, Copy, Reflect)]
 pub struct Obb3d {

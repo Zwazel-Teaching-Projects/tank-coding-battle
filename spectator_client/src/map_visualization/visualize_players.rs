@@ -4,7 +4,10 @@ use bevy::{
 };
 use bevy_mod_billboard::BillboardText;
 use shared::{
-    game::{collision_handling::components::WantedTransform, player_handling::{TankBodyMarker, TankTurretMarker}},
+    game::{
+        collision_handling::components::WantedTransform,
+        player_handling::{Health, TankBodyMarker, TankTurretMarker},
+    },
     networking::{lobby_management::InTeam, messages::message_container::GameStartsTrigger},
 };
 
@@ -42,6 +45,7 @@ pub fn create_player_visualisation(
                 MeshMaterial3d(materials.add(team_color)),
                 tank_type.clone(),
                 InTeam(server_side_client_config.client_team.clone()),
+                Health::new(tank_config.max_health),
             ))
             .with_children(|commands| {
                 // Name tag
