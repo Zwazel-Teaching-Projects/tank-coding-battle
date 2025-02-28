@@ -23,6 +23,14 @@
                 0.2,
             ),
             maxHealth: 100,
+            armor: {
+                TOP: 0.0,
+                BOTTOM: 0.0,
+                FRONT: 0.3,
+                BACK: 0.1,
+                LEFT: 0.2,
+                RIGHT: 0.2,
+            }
         ),
         HEAVY_TANK: (
             moveSpeed: 0.25,
@@ -47,6 +55,14 @@
                 0.3,
             ),
             maxHealth: 100,
+            armor: {
+                TOP: 0.0,
+                BOTTOM: 0.0,
+                FRONT: 0.3,
+                BACK: 0.1,
+                LEFT: 0.2,
+                RIGHT: 0.2,
+            }
         ),
         SELF_PROPELLED_ARTILLERY: (
             moveSpeed: 0.1,
@@ -71,6 +87,14 @@
                 0.3,
             ),
             maxHealth: 100,
+            armor: {
+                TOP: 0.0,
+                BOTTOM: 0.0,
+                FRONT: 0.3,
+                BACK: 0.1,
+                LEFT: 0.2,
+                RIGHT: 0.2,
+            }
         ),
     },
 )

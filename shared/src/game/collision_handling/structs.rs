@@ -6,13 +6,14 @@ use serde::{Deserialize, Serialize};
 
 use super::components::Collider;
 
-#[derive(Debug, Clone, Copy, Reflect, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, Reflect, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Side {
     Top,
     Bottom,
     Left,
     Right,
+    #[default]
     Front,
     Back,
 }
