@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::hashbrown::HashSet};
 use shared::{
     game::{
         game_state::{ClientState, PersonalizedClientGameState, ProjectileState},
-        player_handling::{Health, ShootCooldown, TankBodyMarker, TankTurretMarker},
+        player_handling::{Health, PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
     },
@@ -30,6 +30,7 @@ pub fn update_lobby_state(
         &TankBodyMarker,
         &ShootCooldown,
         &Health,
+        &PlayerState,
     )>,
     turrets: Query<&Transform, With<TankTurretMarker>>,
     projectiles: Query<(&Transform, &ProjectileMarker), With<ProjectileMarker>>,
@@ -57,7 +58,7 @@ pub fn update_lobby_state(
 
     // Updating client states of all players
     for player_entity in player_entities.iter() {
-        let (tank_transform, _tank_type, tank_body, shoot_cooldown, tank_health) =
+        let (tank_transform, _tank_type, tank_body, shoot_cooldown, tank_health, player_state) =
             tanks.get(*player_entity).expect("Failed to get tank");
 
         let relative_turret_transform = turrets
@@ -72,6 +73,7 @@ pub fn update_lobby_state(
         client_state.transform_turret = Some(relative_turret_transform.clone());
         client_state.shoot_cooldown = shoot_cooldown.ticks_left;
         client_state.current_health = tank_health.health;
+        client_state.state = Some(player_state.clone());
     }
 
     // Updating states of all projectiles and removing those that are not in the world anymore from the game state

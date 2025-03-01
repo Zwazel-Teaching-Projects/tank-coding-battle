@@ -8,7 +8,7 @@ use shared::{
             triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
         },
         common_components::TickBasedDespawnTimer,
-        player_handling::{Health, TankBodyMarker},
+        player_handling::{Health, PlayerState, TankBodyMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
     },
@@ -39,6 +39,7 @@ pub fn colliding_with_entity(
             &Transform,
             &Collider,
             &TankType,
+            &mut PlayerState,
             &mut Health,
             &mut OutMessageQueue,
         ),
@@ -55,8 +56,14 @@ pub fn colliding_with_entity(
     let mut hit_a_tank = false;
     let mut hit_side = Side::default();
     let mut damage_dealt = 0.0;
-    if let Ok((body_transform, body_collider, tank_type, mut health, mut message_queue)) =
-        players.get_mut(collided_with)
+    if let Ok((
+        body_transform,
+        body_collider,
+        tank_type,
+        mut player_state,
+        mut health,
+        mut message_queue,
+    )) = players.get_mut(collided_with)
     {
         hit_a_tank = true;
         let tank_config = tank_configs
@@ -103,6 +110,11 @@ pub fn colliding_with_entity(
             .expect(format!("Failed to get armor for side {:?}", hit_side).as_str());
         damage_dealt = projectile.damage * (1.0 - armor);
         health.health -= projectile.damage;
+
+        if health.health <= 0.0 {
+            *player_state = PlayerState::Dead;
+        }
+
         message_queue.push_back(MessageContainer::new(
             MessageTarget::Client(collided_with),
             NetworkMessageType::GotHit(GotHitMessageData {
@@ -115,7 +127,7 @@ pub fn colliding_with_entity(
     }
 
     if hit_a_tank {
-        if let Ok((_, _, _, _, mut projectile_owner_message_queue)) =
+        if let Ok((_, _, _, _, _, mut projectile_owner_message_queue)) =
             players.get_mut(projectile.owner)
         {
             projectile_owner_message_queue.push_back(MessageContainer::new(
@@ -160,16 +172,21 @@ pub fn handle_despawn_timer(
 pub fn move_projectiles(
     trigger: Trigger<StartNextSimulationStepTrigger>,
     lobby: Query<&MyLobby>,
-    mut projectiles: Query<(&mut WantedTransform, &ProjectileMarker)>,
+    mut projectiles: Query<(&mut WantedTransform, &mut ProjectileMarker)>,
 ) {
     let lobby_entity = trigger.entity();
 
     let lobby = lobby.get(lobby_entity).expect("Failed to get lobby");
 
     for projectile in lobby.projectiles.iter() {
-        let (mut transform, projectile) = projectiles
+        let (mut transform, mut projectile) = projectiles
             .get_mut(*projectile)
             .expect("Failed to get projectile");
+
+        if projectile.just_spawned {
+            projectile.just_spawned = false;
+            continue;
+        }
 
         let rotation = transform.rotation;
         transform.translation += rotation * Vec3::new(0.0, 0.0, projectile.speed);
@@ -197,14 +214,14 @@ pub fn despawn_out_of_bounds(
             .expect("Failed to get projectile");
 
         if !map.is_inside_bounds(transform.translation) {
-            commands.entity(*projectile_entity).despawn_recursive();
+            commands.entity(*projectile_entity).insert(CleanupNextTick);
         }
     }
 }
 
-pub fn despawn_on_collision_with_world(
+pub fn despawn_projectile_on_collision_with_world(
     trigger: Trigger<CollidedWithWorldTrigger>,
     mut commands: Commands,
 ) {
-    commands.entity(trigger.entity()).despawn_recursive();
+    commands.entity(trigger.entity()).insert(CleanupNextTick);
 }

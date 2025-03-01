@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     game::{
         collision_handling::components::WantedTransform,
-        player_handling::{Health, ShootCooldown, TankBodyMarker, TankTurretMarker},
+        player_handling::{Health, PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker},
     },
     networking::messages::message_container::GameStateTrigger,
 };
@@ -18,6 +18,7 @@ pub fn update_player_state_on_game_state_update(
             &mut WantedTransform,
             &mut Health,
             &mut ShootCooldown,
+            &mut PlayerState,
             &TankBodyMarker,
         ),
         Without<TankTurretMarker>,
@@ -34,6 +35,7 @@ pub fn update_player_state_on_game_state_update(
                 mut next_target_body_transform,
                 mut health,
                 mut shoot_cooldown,
+                mut player_state,
                 tank_body,
             )) = tank_body.get_mut(client_side_entity)
             {
@@ -45,6 +47,13 @@ pub fn update_player_state_on_game_state_update(
                     .as_ref()
                     .expect("Client state is missing")
                     .shoot_cooldown;
+                *player_state = server_side_client_state
+                    .as_ref()
+                    .expect("Client state is missing")
+                    .state
+                    .as_ref()
+                    .expect("Player state is missing")
+                    .clone();
 
                 // TRANSFORM UPDATES
                 let new_body_transform = server_side_client_state
