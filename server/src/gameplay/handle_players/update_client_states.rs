@@ -45,7 +45,7 @@ pub fn update_client_states(
     // Only clears the non-persistent information (like transform)
     client_state.clear_non_persistent_data();
 
-    // Adding our own transform to the state, as we definitely know it
+    // Fully Copying our own state from the lobby state to the client state
     lobby_state
         .client_states
         .iter()
@@ -56,7 +56,7 @@ pub fn update_client_states(
             }
         });
 
-    // Adding our teammates' states to the state, as we definitely know them
+    // Copying the states of our teammates from the lobby state to the client state
     team_players.iter().for_each(|entity| {
         lobby_state
             .client_states
@@ -71,8 +71,8 @@ pub fn update_client_states(
             });
     });
 
-    // TODO: Add enemies' states to the state, as we might know them
-    // For now, we simply add all states to the state
+    // TODO: Only partially copy the states of the enemies from the lobby state to the client state
+    // For now, we simply copy all states from the lobby state to the client state
     other_players.iter().for_each(|entity| {
         lobby_state
             .client_states

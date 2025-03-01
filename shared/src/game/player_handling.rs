@@ -19,7 +19,23 @@ pub enum PlayerState {
 
 #[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
 #[reflect(Component)]
-#[require(ShootCooldown, PlayerState, WantedTransform)]
+pub struct Health {
+    pub health: f32,
+    pub max_health: f32,
+}
+
+impl Health {
+    pub fn new(max_health: f32) -> Self {
+        Self {
+            health: max_health,
+            max_health,
+        }
+    }
+}
+
+#[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
+#[reflect(Component)]
+#[require(ShootCooldown, PlayerState, WantedTransform, Health)]
 pub struct TankBodyMarker {
     pub turret: Option<Entity>,
 }
@@ -71,5 +87,6 @@ pub fn setup_tank_body(
             ticks_left: 0,
             ticks_cooldown: tank_config.shoot_cooldown,
         },
+        Health::new(tank_config.max_health),
     ));
 }

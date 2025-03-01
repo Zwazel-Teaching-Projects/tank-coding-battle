@@ -33,19 +33,3 @@ pub fn cleanup_entities(
         }
     }
 }
-
-#[cfg(feature = "debug")]
-pub mod debug {
-    use bevy::prelude::*;
-    use shared::networking::lobby_management::MyLobby;
-
-    use crate::gameplay::handle_collisions::handle_collisions::debug::DebugObbGizmosResource;
-
-    pub fn cleanup_debug_obbs(
-        trigger: Trigger<OnRemove, MyLobby>,
-        mut debug_obbs: ResMut<DebugObbGizmosResource>,
-    ) {
-        let lobby_entity = trigger.entity();
-        debug_obbs.0.remove(&lobby_entity);
-    }
-}

@@ -54,6 +54,7 @@ pub fn handle_tank_shooting_command(
                     owner: client_entity,
                     damage: tank_config.projectile_damage,
                     speed: tank_config.projectile_speed,
+                    just_spawned: true,
                 },
                 CollisionLayer::new(&[0])
                     .with_ignore(EntityHashSet::from_iter(vec![client_entity, turret_entity])),

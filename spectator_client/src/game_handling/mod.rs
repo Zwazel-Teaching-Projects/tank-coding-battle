@@ -29,7 +29,7 @@ fn add_observers(trigger: Trigger<OnAdd, MyNetworkStream>, mut commands: Command
     commands
         .entity(trigger.entity())
         .observe(game_starts::game_starts)
-        .observe(player_handling::update_player_target_transform_on_game_state_update)
+        .observe(player_handling::update_player_state_on_game_state_update)
         .observe(projectile_handling::handle_projectile_on_game_state_update)
         .observe(despawn_delayed::despawn_delayed_entites);
 }

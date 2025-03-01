@@ -12,6 +12,7 @@ impl Plugin for MyCollisionHandlingPlugin {
             .register_type::<components::CollisionLayer>()
             .register_type::<components::WantedTransform>()
             .register_type::<structs::Obb3d>()
+            .register_type::<structs::Side>()
             .add_observer(components::insert_transform_for_wanted_transform);
     }
 }

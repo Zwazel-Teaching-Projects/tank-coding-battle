@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+pub mod hit_message_data;
 pub mod move_tank;
 pub mod rotate_tank_body;
 pub mod rotate_tank_turret;
@@ -12,6 +13,8 @@ impl Plugin for MyTankMessagesPlugin {
         app.register_type::<move_tank::MoveTankCommand>()
             .register_type::<rotate_tank_body::RotateTankBodyCommand>()
             .register_type::<rotate_tank_turret::RotateTankTurretCommand>()
-            .register_type::<shoot::ShootCommand>();
+            .register_type::<shoot::ShootCommand>()
+            .register_type::<hit_message_data::HitMessageData>()
+            .register_type::<hit_message_data::GotHitMessageData>();
     }
 }

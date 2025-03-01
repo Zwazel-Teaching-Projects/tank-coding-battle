@@ -9,7 +9,10 @@ use bevy_asset_loader::{
 use bevy_common_assets::ron::RonAssetPlugin;
 use serde::{Deserialize, Serialize};
 
-use crate::{game::tank_types::TankType, main_state::MyMainState};
+use crate::{
+    game::{collision_handling::structs::Side, tank_types::TankType},
+    main_state::MyMainState,
+};
 
 pub struct MyConfigPlugin;
 
@@ -94,6 +97,9 @@ pub struct TankConfig {
     pub projectile_size: Vec3,
     /// The maximum amount of health this tank can have
     pub max_health: f32,
+    /// The armor of the tank on each side. value between 0 and 1
+    /// 0 = no armor, 1 = full armor (no damage when no armor penetration)
+    pub armor: HashMap<Side, f32>,
 }
 
 #[derive(SystemParam)]

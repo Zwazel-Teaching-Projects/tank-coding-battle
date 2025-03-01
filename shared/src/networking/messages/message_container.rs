@@ -14,8 +14,11 @@ use super::message_data::{
     message_error_types::ErrorMessageTypes,
     start_game_config::StartGameConfig,
     tank_messages::{
-        move_tank::MoveTankCommand, rotate_tank_body::RotateTankBodyCommand,
-        rotate_tank_turret::RotateTankTurretCommand, shoot::ShootCommand,
+        hit_message_data::{GotHitMessageData, HitMessageData},
+        move_tank::MoveTankCommand,
+        rotate_tank_body::RotateTankBodyCommand,
+        rotate_tank_turret::RotateTankTurretCommand,
+        shoot::ShootCommand,
     },
     text_data::TextDataWrapper,
 };
@@ -97,6 +100,8 @@ use super::message_data::{
             RotateTankTurretCommand(RotateTankTurretCommand),
             #[target(ToSelf)]
             ShootCommand(ShootCommand),
+            GotHit(GotHitMessageData),
+            Hit(HitMessageData),
         }
     }
 )]
