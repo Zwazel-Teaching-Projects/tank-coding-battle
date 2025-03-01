@@ -169,17 +169,15 @@ pub fn add_current_game_state_to_message_queue(
 
     // Sending the (global) game state to all spectators
     for spectator_entity in lobby.spectators.iter() {
-        let mut out_message_queue = out_message_queues
-            .get_mut(*spectator_entity)
-            .expect("Failed to get spectator out message queue");
+        if let Ok(mut out_message_queue) = out_message_queues.get_mut(*spectator_entity) {
+            let message = MessageContainer::new(
+                MessageTarget::Client(*spectator_entity),
+                NetworkMessageType::GameState(lobby_state.clone().into()),
+            );
 
-        let message = MessageContainer::new(
-            MessageTarget::Client(*spectator_entity),
-            NetworkMessageType::GameState(lobby_state.clone().into()),
-        );
-
-        // Make sure the game state is sent before any other messages
-        out_message_queue.push_front(message);
+            // Make sure the game state is sent before any other messages
+            out_message_queue.push_front(message);
+        }
     }
 
     commands.trigger_targets(SendOutgoingMessagesTrigger, lobby_entity);
