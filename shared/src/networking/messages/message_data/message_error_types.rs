@@ -15,4 +15,5 @@ pub enum ErrorMessageTypes {
     TeamDoesNotExist(String),
     TeamFull(String),
     InvalidFirstContact(String),
+    InvalidSenderState(String),
 }

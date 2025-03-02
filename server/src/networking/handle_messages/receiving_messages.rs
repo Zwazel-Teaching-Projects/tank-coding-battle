@@ -99,6 +99,7 @@ pub fn handle_reading_messages(
                                     _ => None,
                                 },
                                 team_name: in_team.map(|t| t.0.clone()),
+                                sender_state: None,
                             };
 
                             let result = message_container.trigger_message_received(

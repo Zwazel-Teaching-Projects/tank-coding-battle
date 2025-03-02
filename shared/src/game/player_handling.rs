@@ -8,7 +8,7 @@ use super::{
     tank_types::TankType,
 };
 
-#[derive(Debug, Reflect, Component, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Reflect, Component, Clone, PartialEq, Default, Serialize, Deserialize, Copy)]
 #[reflect(Component)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PlayerState {

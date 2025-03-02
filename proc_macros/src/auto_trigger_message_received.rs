@@ -114,6 +114,29 @@ fn get_allowed_targets(attrs: &[Attribute]) -> Option<Vec<Ident>> {
     None
 }
 
+// Extract allowed player states from #[player_state(...)].
+fn get_allowed_player_states(attrs: &[Attribute]) -> Option<Vec<Ident>> {
+    for attr in attrs {
+        if attr.path().is_ident("player_state") {
+            if let syn::Meta::List(meta_list) = &attr.meta {
+                let nested = Punctuated::<syn::Meta, Token![,]>::parse_terminated
+                    .parse2(meta_list.tokens.clone())
+                    .ok()?;
+                let mut state_vals = Vec::new();
+                for meta in nested {
+                    if let syn::Meta::Path(path) = meta {
+                        if let Some(ident) = path.get_ident() {
+                            state_vals.push(ident.clone());
+                        }
+                    }
+                }
+                return Some(state_vals);
+            }
+        }
+    }
+    None
+}
+
 pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as AutoTriggerArgs);
     let input_ast = parse_macro_input!(item as DeriveInput);
@@ -165,6 +188,9 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
         variant
             .attrs
             .retain(|attr| !attr.path().is_ident("behaviour"));
+        variant
+            .attrs
+            .retain(|attr| !attr.path().is_ident("player_state"));
     }
 
     let message_enum_for_match = message_enum.clone();
@@ -207,6 +233,26 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
             MessageBehaviour::Local => quote! { false },
         };
 
+        let allowed_states = get_allowed_player_states(&variant.attrs);
+        let sender_state_check = if let Some(ref allowed_states) = allowed_states {
+            let allowed_state_tokens = allowed_states.iter().map(|s| quote! { PlayerState::#s });
+            quote! {
+                if let Some(state) = lobby_management_arg.sender_state {
+                    if !matches!(state, #( #allowed_state_tokens )|* ) {
+                        return Err(ErrorMessageTypes::InvalidSenderState(
+                            concat!("Invalid sender state for ", stringify!(#variant_ident)).to_string()
+                        ));
+                    }
+                } else {
+                    return Err(ErrorMessageTypes::InvalidSenderState(
+                        concat!("Sender state not provided for ", stringify!(#variant_ident)).to_string()
+                    ));
+                }
+            }
+        } else {
+            quote! {}
+        };
+
         let match_arm = if let Some(targets) = allowed_targets {
             let allowed_patterns = targets.iter().map(|allowed_ident| {
                 let target_variant = target_enum
@@ -237,13 +283,17 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                         ));
                     }
 
+                    // --- New: Sender state check ---
+                    #sender_state_check
+                    // --- End sender state check ---
+
                     let is_forward = #is_forward_code;
                     let targets = match self.target {
                         #target_match_arms
                     }.map_err(|e| ErrorMessageTypes::LobbyManagementError(e))?;
 
                     if is_forward {
-                        // We'll forward these to out_message_queues
+                        // Forward the message to out_message_queues
                         if !targets.is_empty() {
                             for target in targets {
                                 let mut queue = out_message_queues.get_mut(target)
@@ -254,7 +304,7 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
                             }
                         }
                     } else {
-                        // Local messages -> global trigger if targets empty, or trigger_targets
+                        // Process locally: trigger global or target-specific
                         if targets.is_empty() {
                             commands.trigger(#trigger_struct_ident {
                                 message: data.clone(),

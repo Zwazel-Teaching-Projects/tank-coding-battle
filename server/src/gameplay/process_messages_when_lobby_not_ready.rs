@@ -76,6 +76,7 @@ pub fn process_messages_before_lobby_is_ready(
                     .get(message_container.sender.unwrap())
                     .ok()
                     .map(|t| t.0.clone()),
+                sender_state: None,
             };
 
             let result = message_container.trigger_message_received(
