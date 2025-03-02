@@ -59,8 +59,8 @@ pub fn check_if_lobby_should_start(
 
     // Assign every player, that hasn't already, a spawnpoint.
     let map_config = lobby.map_config.as_mut().expect("Failed to get map config");
-    // Team name -> spawn point id
-    let mut taken_spawn_points_team = HashMap::new();
+    // Team name -> set of taken spawn point ids
+    let mut taken_spawn_points_team: HashMap<String, Vec<usize>> = HashMap::new();
     for (team_name, team) in map_config.teams.iter() {
         let spawn_points = map_config
             .map
@@ -73,7 +73,10 @@ pub fn check_if_lobby_should_start(
         for player in team.players.iter() {
             let client = clients.get(*player).expect("Failed to get client");
             if let Some(assigned_spawn_point) = client.assigned_spawn_point {
-                taken_spawn_points_team.insert(team_name.clone(), assigned_spawn_point);
+                taken_spawn_points_team
+                    .entry(team_name.clone())
+                    .or_insert_with(Vec::new)
+                    .push(assigned_spawn_point);
                 info!(
                     "Player {:?} already has spawn point {:?}",
                     client.name, assigned_spawn_point
@@ -85,20 +88,19 @@ pub fn check_if_lobby_should_start(
 
         for client in clients_without_spawn_points {
             // Find the first spawn point that is not taken for this team,
-            // or just take the first one if the only available spawn point is already assigned
+            // or just take the first one if all available spawn points are already assigned
+            let taken_points = taken_spawn_points_team
+                .entry(team_name.clone())
+                .or_insert_with(Vec::new);
+
             let spawn_point = spawn_points
                 .iter()
-                .find(|spawn_point| {
-                    if let Some(&taken) = taken_spawn_points_team.get(team_name) {
-                        **spawn_point != taken
-                    } else {
-                        true
-                    }
-                })
+                .find(|spawn_point| !taken_points.contains(spawn_point))
                 .unwrap_or(&spawn_points[0]);
+
             let mut client = clients.get_mut(client).expect("Failed to get client");
             client.assigned_spawn_point = Some(*spawn_point);
-            taken_spawn_points_team.insert(team_name.clone(), *spawn_point);
+            taken_points.push(*spawn_point);
             info!(
                 "Assigned spawn point {:?} to player {:?}",
                 *spawn_point, client.name
@@ -120,22 +122,24 @@ pub fn check_if_lobby_should_start(
 
             for i in 0..needed_players {
                 let dummy_name = format!("{}-dummy-{}", team_name, i);
-                let mut dummy_client = MyNetworkClient::new_dummy(dummy_name.clone());
-
                 // Find the first spawn point that is not taken for this team,
-                // or just take the first one if the only available spawn point is already assigned
+                // or just take the first one if all available spawn points are already assigned
+                let taken_points = taken_spawn_points_team
+                    .entry(team_name.clone())
+                    .or_insert_with(Vec::new);
+
                 let spawn_point = spawn_points
                     .iter()
-                    .find(|spawn_point| {
-                        if let Some(&taken) = taken_spawn_points_team.get(team_name) {
-                            **spawn_point != taken
-                        } else {
-                            true
-                        }
-                    })
+                    .find(|spawn_point| !taken_points.contains(spawn_point))
                     .unwrap_or(&spawn_points[0]);
+
+                info!(
+                    "Assigned spawn point {:?} to dummy {:?}",
+                    *spawn_point, dummy_name
+                );
+                let mut dummy_client = MyNetworkClient::new_dummy(dummy_name.clone());
                 dummy_client.assigned_spawn_point = Some(*spawn_point);
-                taken_spawn_points_team.insert(team_name.clone(), *spawn_point);
+                taken_points.push(*spawn_point);
 
                 let client_type = ClientType::Dummy;
                 let tank_type = TankType::LightTank; // TODO: Randomly select tank type? better would be if we could set up a lobby with specific dummies
