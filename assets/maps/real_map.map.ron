@@ -95,7 +95,14 @@
         layers: [
         ], 
         markers: [
-            // FIRST TEAM SPAWNS
+            // FIRST TEAM FLAG AND SPAWNS 
+            (
+                tile: (x: 19, y: 4),
+                group: "Red",
+                kind: (
+                    type: "Flag",
+                ),
+            ),
             (
                 tile: (x: 4, y: 4),
                 group: "Red",
@@ -150,7 +157,14 @@
                     lookDirection: "NORTH",
                 ),
             ),
-            // SECOND TEAM SPAWNS
+            // SECOND TEAM FLAG AND SPAWNS
+            (
+                tile: (x: 20, y: 55),
+                group: "Blue",
+                kind: (
+                    type: "Flag",
+                ),
+            ),
             (
                 tile: (x: 4, y: 55),
                 group: "Blue",
