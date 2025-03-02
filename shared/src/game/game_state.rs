@@ -95,6 +95,8 @@ pub struct ClientState {
     pub state: Option<PlayerState>,
     /// The time in ticks until the client can shoot again
     pub shoot_cooldown: u32,
+    /// The current health of the client
+    pub current_health: f32,
 }
 
 impl ClientState {
@@ -105,6 +107,7 @@ impl ClientState {
             transform_turret: None,
             state: None,
             shoot_cooldown: 0,
+            current_health: 100.0,
         }
     }
 
@@ -126,6 +129,7 @@ impl Default for ClientState {
             transform_turret: None,
             state: None,
             shoot_cooldown: 0,
+            current_health: 100.0,
         }
     }
 }

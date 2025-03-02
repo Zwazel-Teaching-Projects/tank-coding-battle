@@ -19,7 +19,13 @@ pub struct MySpectatorClientPlugin;
 impl Plugin for MySpectatorClientPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            DefaultPlugins,
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Client".to_string(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
             PlayerPlugin,
             BillboardPlugin,
             MySharedPlugin,

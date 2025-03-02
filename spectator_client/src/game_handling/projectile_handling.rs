@@ -65,6 +65,7 @@ pub fn handle_projectile_on_game_state_update(
                                 damage: tank_config.projectile_damage,
                                 speed: tank_config.projectile_speed,
                                 owner: client_side_projectile_owner_id,
+                                just_spawned: true, // Doesn't matter for the client. It's only used on the server.
                             },
                             Mesh3d(meshes.add(Cuboid::from_size(tank_config.projectile_size))),
                             MeshMaterial3d(materials.add(team_color)),

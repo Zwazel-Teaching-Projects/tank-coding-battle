@@ -1,12 +1,15 @@
 use bevy::prelude::*;
-use shared::networking::{
-    lobby_management::{
-        lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-        InTeam,
-    },
-    messages::{
-        message_container::{MessageContainer, MessageTarget, NetworkMessageType},
-        message_queue::{ImmediateOutMessageQueue, OutMessageQueue},
+use shared::{
+    game::player_handling::PlayerState,
+    networking::{
+        lobby_management::{
+            lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+            InTeam,
+        },
+        messages::{
+            message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+            message_queue::{ImmediateOutMessageQueue, OutMessageQueue},
+        },
     },
 };
 
@@ -20,7 +23,7 @@ pub fn process_lobby_messages(
     mut commands: Commands,
     mut outgoing_message_queues: Query<&mut OutMessageQueue>,
     mut immediate_message_queues: Query<&mut ImmediateOutMessageQueue>,
-    client: Query<&InTeam>,
+    client: Query<(&InTeam, Option<&PlayerState>)>,
 ) {
     let lobby_entity = trigger.entity();
 
@@ -44,6 +47,9 @@ pub fn process_lobby_messages(
             continue;
         }
 
+        let (client_team_name, player_state) = client
+            .get(message_container.sender.expect("Message sender not found"))
+            .expect("Client not found");
         let sender = message_container.sender.expect("Message sender not found");
         let lobby_arg = LobbyManagementArgument {
             lobby: Some(lobby_entity),
@@ -52,7 +58,8 @@ pub fn process_lobby_messages(
                 MessageTarget::Client(e) => Some(e),
                 _ => None,
             },
-            team_name: client.get(sender).ok().map(|t| t.0.clone()),
+            team_name: Some(client_team_name.0.clone()),
+            sender_state: player_state.cloned(),
         };
 
         let result = message_container.trigger_message_received(

@@ -11,6 +11,8 @@ use std::sync::Mutex;
 
 use crate::gameplay::triggers::{CalculateCollisionsTrigger, FinishedNextSimulationStepTrigger};
 
+const STEP_SIZE: f32 = 0.05;
+
 /// Warlock Engineer Ikit Claw’s masterful collision and movement enactor!
 ///
 /// This function governs the motion of our pitiful minions, checking for collisions as they move
@@ -56,8 +58,6 @@ pub fn check_world_collision_and_apply_movement(
         .as_ref()
         .expect("Map config is missing, you miserable wretch!")
         .map;
-
-    const STEP_SIZE: f32 = 0.01;
 
     // A thread-safe hoard for entities that encounter collision misfortune.
     let collided_entities = Mutex::new(Vec::new());
@@ -206,14 +206,24 @@ pub fn collision_system(
         &CollisionLayer,
         &InLobby,
     )>,
-    #[cfg(feature = "debug")] mut debug_obb_gizmos: ResMut<debug::DebugObbGizmosResource>,
+    #[cfg(feature = "debug")] mut debug_obb_gizmos: Query<(
+        &mut debug::DebugColliderComponent,
+        &InLobby,
+    )>,
 ) {
     let my_lobby_entity = trigger.entity();
-    let step_size = 0.01;
-    let steps = (1.0 / step_size) as usize;
+    let steps = (1.0 / STEP_SIZE) as usize;
 
     #[cfg(feature = "debug")]
-    debug_obb_gizmos.0.remove(&my_lobby_entity);
+    {
+        for (mut gizmos, in_lobby) in debug_obb_gizmos.iter_mut() {
+            if in_lobby.0 != my_lobby_entity {
+                continue;
+            }
+            gizmos.clear();
+        }
+    }
+
     let mut combinations_iter = combinations.iter_combinations_mut();
     while let Some(
         [(a_entity, mut a_transform, mut a_wanted, a_collider, a_collision_layer, a_in_lobby), (b_entity, mut b_transform, mut b_wanted, b_collider, b_collision_layer, b_in_lobby)],
@@ -237,7 +247,7 @@ pub fn collision_system(
         let mut a_safe_transform = *a_transform;
         let mut b_safe_transform = *b_transform;
         for step in 1..=steps {
-            let t = step as f32 * step_size;
+            let t = step as f32 * STEP_SIZE;
             let a_safe = interpolate_transform(&*a_transform, &a_wanted.0, t);
             let b_safe = interpolate_transform(&*b_transform, &b_wanted.0, t);
 
@@ -246,20 +256,14 @@ pub fn collision_system(
 
             #[cfg(feature = "debug")]
             {
-                // Get or insert
-                let a_gizmos = debug_obb_gizmos
-                    .0
-                    .entry(my_lobby_entity)
-                    .or_insert_with(bevy::ecs::entity::EntityHashMap::default)
-                    .entry(a_entity)
-                    .or_insert_with(Vec::new);
+                let (mut a_gizmos, _) = debug_obb_gizmos
+                    .get_mut(a_entity)
+                    .expect("Failed to get debug collider");
                 a_gizmos.push((t, a_obb));
-                let b_gizmos = debug_obb_gizmos
-                    .0
-                    .entry(my_lobby_entity)
-                    .or_insert_with(bevy::ecs::entity::EntityHashMap::default)
-                    .entry(b_entity)
-                    .or_insert_with(Vec::new);
+
+                let (mut b_gizmos, _) = debug_obb_gizmos
+                    .get_mut(b_entity)
+                    .expect("Failed to get debug collider");
                 b_gizmos.push((t, b_obb));
             }
 
@@ -296,46 +300,64 @@ fn interpolate_transform(start: &Transform, end: &Transform, t: f32) -> Transfor
 
 #[cfg(feature = "debug")]
 pub mod debug {
-    use bevy::{ecs::entity::EntityHashMap, math::Vec3A, prelude::*};
-    use shared::game::collision_handling::structs::Obb3d;
+    use bevy::{math::Vec3A, prelude::*};
+    use shared::game::collision_handling::{components::Collider, structs::Obb3d};
 
-    #[derive(Default, Resource, Reflect, Debug)]
-    #[reflect(Resource)]
-    pub struct DebugObbGizmosResource(pub EntityHashMap<EntityHashMap<Vec<(f32, Obb3d)>>>);
+    pub struct CollisionDebugPlugin;
 
-    pub fn visualize_obb3ds(mut gizmos: Gizmos, obb_gizmos: Res<DebugObbGizmosResource>) {
-        // Iterate through all entities, get the obb with lowest step and the one with highest step, draw them with gradient colors.
-        for (_lobby_entity, lobby_gizmos) in obb_gizmos.0.iter() {
-            for (_collider_entity, obb_gizmos) in lobby_gizmos.iter() {
-                let (min_step, _) = obb_gizmos
-                    .iter()
-                    .min_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
-                    .unwrap();
-                let (max_step, _) = obb_gizmos
-                    .iter()
-                    .max_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
-                    .unwrap();
+    impl Plugin for CollisionDebugPlugin {
+        fn build(&self, app: &mut App) {
+            app.register_type::<DebugColliderComponent>()
+                .add_systems(Update, visualize_obb3ds)
+                .add_observer(insert_debug_collider);
+        }
+    }
 
-                let step_range = max_step - min_step;
+    #[derive(Default, Component, Reflect, Debug, Deref, DerefMut)]
+    #[reflect(Component)]
+    pub struct DebugColliderComponent(pub Vec<(f32, Obb3d)>);
 
-                for (step, obb) in obb_gizmos {
-                    let t = (step - min_step) / step_range;
-                    let color = Color::srgba(1.0 - t, t, 0.0, 1.0);
+    fn visualize_obb3ds(mut gizmos: Gizmos, mut obb_gizmos: Query<&mut DebugColliderComponent>) {
+        for debug_obb in obb_gizmos.iter_mut() {
+            if debug_obb.is_empty() {
+                continue;
+            }
 
-                    let obb = Obb3d {
-                        half_size: obb.half_size + Vec3A::splat(0.01),
-                        ..*obb
-                    };
+            let (max_step, _) = debug_obb
+                .iter()
+                .max_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
+                .unwrap();
 
-                    gizmos.primitive_3d(
-                        &Cuboid {
-                            half_size: obb.half_size.into(),
-                        },
-                        Isometry3d::new(obb.center, Quat::from_mat3a(&obb.basis)),
-                        color,
-                    );
-                }
+            let (min_step, _) = debug_obb
+                .iter()
+                .min_by(|(step_a, _), (step_b, _)| step_a.partial_cmp(step_b).unwrap())
+                .unwrap();
+
+            let step_range = max_step - min_step;
+
+            for (step, obb) in debug_obb.iter() {
+                let t = (step - min_step) / step_range;
+                let color = Color::srgba(1.0 - t, t, 0.0, 1.0);
+
+                let obb = Obb3d {
+                    half_size: obb.half_size + Vec3A::splat(0.01),
+                    ..*obb
+                };
+
+                gizmos.primitive_3d(
+                    &Cuboid {
+                        half_size: obb.half_size.into(),
+                    },
+                    Isometry3d::new(obb.center, Quat::from_mat3a(&obb.basis)),
+                    color,
+                );
             }
         }
+    }
+
+    fn insert_debug_collider(trigger: Trigger<OnAdd, Collider>, mut commands: Commands) {
+        commands
+            .entity(trigger.entity())
+            .insert(DebugColliderComponent(Vec::new()));
     }
 }

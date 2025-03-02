@@ -2,7 +2,7 @@ use bevy::{ecs::system::SystemParam, prelude::*, utils::Entry};
 
 use crate::{
     asset_handling::config::ServerConfig,
-    game::game_state::LobbyGameState,
+    game::{game_state::LobbyGameState, player_handling::PlayerState},
     networking::{
         lobby_management::PlayerRemovedFromLobbyTrigger,
         messages::message_data::first_contact::ClientType,
@@ -17,6 +17,7 @@ pub struct LobbyManagementArgument {
     pub sender: Option<Entity>,
     pub target_player: Option<Entity>,
     pub team_name: Option<String>,
+    pub sender_state: Option<PlayerState>,
 }
 
 #[derive(SystemParam)]

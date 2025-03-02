@@ -10,5 +10,5 @@ pub enum TankType {
     #[default]
     LightTank,
     HeavyTank,
-    SelfPropelledGunTank,
+    SelfPropelledArtillery,
 }

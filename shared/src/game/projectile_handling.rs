@@ -15,6 +15,8 @@ pub struct ProjectileMarker {
     pub speed: f32,
     pub damage: f32,
     pub owner: Entity,
+
+    pub just_spawned: bool,
 }
 
 pub fn setup_projectile(

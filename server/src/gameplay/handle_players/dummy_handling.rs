@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
-    game::tank_types::TankType,
+    game::{player_handling::PlayerState, tank_types::TankType},
     networking::{
         lobby_management::MyLobby,
         messages::{
@@ -40,19 +40,22 @@ pub fn simulate_movement(
     trigger: Trigger<CollectAndTriggerMessagesTrigger>,
     lobbies: Query<&MyLobby>,
     mut commands: Commands,
-    dummy_clients: Query<&TankType, With<DummyClientMarker>>,
+    dummy_clients: Query<(&TankType, &PlayerState), With<DummyClientMarker>>,
     tank_config: TankConfigSystemParam,
 ) {
     let lobby = lobbies.get(trigger.entity()).expect("Failed to get lobby");
     // Get all players of type Dummy
     for (_, player, _) in lobby.players.iter() {
-        if let Ok(tank_type) = dummy_clients.get(*player) {
+        if let Ok((tank_type, player_state)) = dummy_clients.get(*player) {
+            if player_state == &PlayerState::Dead {
+                continue;
+            }
             let tank_config = tank_config
                 .get_tank_type_config(tank_type)
                 .expect("Failed to get tank config");
 
             // Simulate movement (always forward)
-            /* commands.trigger_targets(
+            commands.trigger_targets(
                 MoveTankCommandTrigger {
                     sender: None,
                     message: MoveTankCommand {
@@ -60,7 +63,7 @@ pub fn simulate_movement(
                     },
                 },
                 *player,
-            ); */
+            );
 
             // Simulate movement (Rotate body clockwise)
             commands.trigger_targets(

@@ -2,9 +2,12 @@ use bevy::prelude::*;
 use proc_macros::{auto_trigger_message_received, generate_message_data_triggers};
 use serde::{Deserialize, Serialize};
 
-use crate::networking::{
-    lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
-    messages::message_queue::OutMessageQueue,
+use crate::{
+    game::player_handling::PlayerState,
+    networking::{
+        lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+        messages::message_queue::OutMessageQueue,
+    },
 };
 
 use super::message_data::{
@@ -14,8 +17,11 @@ use super::message_data::{
     message_error_types::ErrorMessageTypes,
     start_game_config::StartGameConfig,
     tank_messages::{
-        move_tank::MoveTankCommand, rotate_tank_body::RotateTankBodyCommand,
-        rotate_tank_turret::RotateTankTurretCommand, shoot::ShootCommand,
+        hit_message_data::{GotHitMessageData, HitMessageData},
+        move_tank::MoveTankCommand,
+        rotate_tank_body::RotateTankBodyCommand,
+        rotate_tank_turret::RotateTankTurretCommand,
+        shoot::ShootCommand,
     },
     text_data::TextDataWrapper,
 };
@@ -90,13 +96,19 @@ use super::message_data::{
             /// Will only be sent by a client
             /// Can only be sent to itself on the server
             #[target(ToSelf)]
+            #[player_state(Alive)]
             MoveTankCommand(MoveTankCommand),
             #[target(ToSelf)]
+            #[player_state(Alive)]
             RotateTankBodyCommand(RotateTankBodyCommand),
             #[target(ToSelf)]
+            #[player_state(Alive)]
             RotateTankTurretCommand(RotateTankTurretCommand),
             #[target(ToSelf)]
+            #[player_state(Alive)]
             ShootCommand(ShootCommand),
+            GotHit(GotHitMessageData),
+            Hit(HitMessageData),
         }
     }
 )]

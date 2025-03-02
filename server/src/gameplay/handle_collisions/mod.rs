@@ -10,9 +10,7 @@ impl Plugin for MyCollisionHandlingPlugin {
         app.add_observer(add_observers_to_lobby);
 
         #[cfg(feature = "debug")]
-        app.register_type::<handle_collisions::debug::DebugObbGizmosResource>()
-            .init_resource::<handle_collisions::debug::DebugObbGizmosResource>()
-            .add_systems(Update, handle_collisions::debug::visualize_obb3ds);
+        app.add_plugins(handle_collisions::debug::CollisionDebugPlugin);
     }
 }
 
