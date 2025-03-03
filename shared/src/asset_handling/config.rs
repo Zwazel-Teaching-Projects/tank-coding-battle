@@ -100,6 +100,8 @@ pub struct TankConfig {
     /// The armor of the tank on each side. value between 0 and 1
     /// 0 = no armor, 1 = full armor (no damage when no armor penetration)
     pub armor: HashMap<Side, f32>,
+    /// The time in ticks it takes for the tank to respawn after dying
+    pub respawn_timer: u32,
 }
 
 #[derive(SystemParam)]

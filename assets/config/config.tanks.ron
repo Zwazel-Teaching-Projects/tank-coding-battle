@@ -30,7 +30,8 @@
                 BACK: 0.1,
                 LEFT: 0.2,
                 RIGHT: 0.2,
-            }
+            },
+            respawnTimer: 25,
         ),
         HEAVY_TANK: (
             moveSpeed: 0.25,
@@ -62,7 +63,8 @@
                 BACK: 0.1,
                 LEFT: 0.2,
                 RIGHT: 0.2,
-            }
+            },
+            respawnTimer: 25,
         ),
         SELF_PROPELLED_ARTILLERY: (
             moveSpeed: 0.1,
@@ -94,7 +96,8 @@
                 BACK: 0.1,
                 LEFT: 0.2,
                 RIGHT: 0.2,
-            }
+            },
+            respawnTimer: 25,
         ),
     },
 )
