@@ -3,13 +3,34 @@ use shared::{
     asset_handling::config::TankConfigSystemParam,
     game::{
         collision_handling::components::WantedTransform,
-        player_handling::{PlayerState, TankBodyMarker, TankTurretMarker},
+        player_handling::{Health, PlayerState, RespawnTimer, TankBodyMarker, TankTurretMarker},
         tank_types::TankType,
     },
     networking::lobby_management::{lobby_management::LobbyManagementSystemParam, InLobby, InTeam},
 };
 
-use crate::networking::handle_clients::lib::MyNetworkClient;
+use crate::{
+    gameplay::triggers::StartNextTickProcessingTrigger,
+    networking::handle_clients::lib::MyNetworkClient,
+};
+
+pub fn tick_respawn_timer(
+    trigger: Trigger<StartNextTickProcessingTrigger>,
+    mut query: Query<(Entity, &InLobby, &mut RespawnTimer)>,
+    mut commands: Commands,
+) {
+    let lobby_entity = trigger.entity();
+
+    for (player_entity, in_lobby, mut respawn_timer) in query.iter_mut() {
+        if in_lobby.0 == lobby_entity {
+            if respawn_timer.0 > 0 {
+                respawn_timer.0 -= 1;
+            } else {
+                commands.trigger_targets(RespawnPlayerTrigger, player_entity);
+            }
+        }
+    }
+}
 
 #[derive(Debug, Reflect, Event)]
 pub struct RespawnPlayerTrigger;
@@ -18,9 +39,11 @@ pub fn respawn_player(
     trigger: Trigger<RespawnPlayerTrigger>,
     lobby_management: LobbyManagementSystemParam,
     mut body_query: Query<(
+        Entity,
         &mut Transform,
         &mut WantedTransform,
         &mut PlayerState,
+        &mut Health,
         &MyNetworkClient,
         &InTeam,
         &InLobby,
@@ -29,13 +52,16 @@ pub fn respawn_player(
     )>,
     mut turret_query: Query<&mut Transform, (With<TankTurretMarker>, Without<TankBodyMarker>)>,
     tank_configs: TankConfigSystemParam,
+    mut commands: Commands,
 ) {
     let client_entity = trigger.entity();
 
     if let Ok((
+        entity,
         mut tank_transform,
         mut wanted_transform,
         mut player_state,
+        mut health,
         client,
         client_team,
         client_in_lobby,
@@ -44,6 +70,9 @@ pub fn respawn_player(
     )) = body_query.get_mut(client_entity)
     {
         *player_state = PlayerState::Alive;
+        health.health = health.max_health;
+
+        commands.entity(entity).remove::<RespawnTimer>();
 
         let lobby = lobby_management
             .get_lobby(client_in_lobby.0)

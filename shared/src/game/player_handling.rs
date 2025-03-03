@@ -17,6 +17,10 @@ pub enum PlayerState {
     Dead,
 }
 
+#[derive(Debug, Component, Reflect, Clone, PartialEq, Default, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct RespawnTimer(pub u32);
+
 #[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
 #[reflect(Component)]
 pub struct Health {

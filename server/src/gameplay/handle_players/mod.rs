@@ -46,6 +46,7 @@ fn add_observers_to_player(trigger: Trigger<OnAdd, TankBodyMarker>, mut commands
 fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
     commands
         .entity(trigger.entity())
+        .observe(handle_spawning::tick_respawn_timer)
         .observe(handle_shooting::tick_shoot_cooldowns)
         .observe(handle_projectiles::move_projectiles)
         .observe(handle_projectiles::handle_despawn_timer)

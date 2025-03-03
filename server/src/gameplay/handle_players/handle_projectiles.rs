@@ -8,7 +8,7 @@ use shared::{
             triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
         },
         common_components::TickBasedDespawnTimer,
-        player_handling::{Health, PlayerState, TankBodyMarker},
+        player_handling::{Health, PlayerState, RespawnTimer, TankBodyMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
     },
@@ -36,9 +36,11 @@ pub fn colliding_with_entity(
     tank_configs: TankConfigSystemParam,
     mut players: Query<
         (
+            Entity,
             &Transform,
             &Collider,
             &TankType,
+            Has<RespawnTimer>,
             &mut PlayerState,
             &mut Health,
             &mut OutMessageQueue,
@@ -57,9 +59,11 @@ pub fn colliding_with_entity(
     let mut hit_side = Side::default();
     let mut damage_dealt = 0.0;
     if let Ok((
+        player_entity,
         body_transform,
         body_collider,
         tank_type,
+        is_respawning,
         mut player_state,
         mut health,
         mut message_queue,
@@ -111,8 +115,12 @@ pub fn colliding_with_entity(
         damage_dealt = projectile.damage * (1.0 - armor);
         health.health -= projectile.damage;
 
-        if health.health <= 0.0 {
+        if health.health <= 0.0 && !is_respawning {
             *player_state = PlayerState::Dead;
+
+            commands
+                .entity(player_entity)
+                .insert(RespawnTimer(tank_config.respawn_timer));
         }
 
         message_queue.push_back(MessageContainer::new(
@@ -127,7 +135,7 @@ pub fn colliding_with_entity(
     }
 
     if hit_a_tank {
-        if let Ok((_, _, _, _, _, mut projectile_owner_message_queue)) =
+        if let Ok((_, _, _, _, _, _, _, mut projectile_owner_message_queue)) =
             players.get_mut(projectile.owner)
         {
             projectile_owner_message_queue.push_back(MessageContainer::new(
