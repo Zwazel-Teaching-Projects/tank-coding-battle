@@ -1,5 +1,6 @@
 use bevy::{
     color::palettes::css::{GREEN, WHITE},
+    gltf::GltfMaterialName,
     prelude::*,
 };
 use bevy_mod_billboard::BillboardText;
@@ -9,7 +10,10 @@ use shared::{
         collision_handling::components::WantedTransform,
         player_handling::{Health, TankBodyMarker, TankTurretMarker},
     },
-    networking::{lobby_management::InTeam, messages::message_container::GameStartsTrigger},
+    networking::{
+        lobby_management::InTeam,
+        messages::{message_container::GameStartsTrigger, message_data::game_starts::GameStarts},
+    },
 };
 
 use crate::game_handling::entity_mapping::MyEntityMapping;
@@ -121,5 +125,43 @@ pub fn create_player_visualisation(
             server_side_client_config.client_id,
             client_side_tank_body_entity,
         );
+    }
+}
+
+pub fn update_tank_color(
+    trigger: Trigger<OnAdd, GltfMaterialName>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    tank: Query<&InTeam, With<TankBodyMarker>>,
+    parent_query: Query<&Parent>,
+    mat_query: Query<(&Name, &MeshMaterial3d<StandardMaterial>, &GltfMaterialName)>,
+    game_start: Res<GameStarts>,
+) {
+    let added_material_name_entity = trigger.entity();
+    let (name, mat_handle, material_name) = mat_query
+        .get(added_material_name_entity)
+        .expect("Failed to get material name");
+
+    if material_name.0 != "TeamColor" {
+        return;
+    }
+
+    // I do not understand.
+    println!("Name: {:?}, material name: {:?}", name, material_name.0);
+    let root = parent_query.root_ancestor(added_material_name_entity);
+    println!("Root: {:?}", root);
+
+    if let Ok(in_team) = tank.get(root) {
+        println!("Found tank with team: {:?}", in_team.0);
+        let team_color = game_start
+            .team_configs
+            .get(&in_team.0)
+            .map(|config| Color::from(config.color.clone()))
+            .unwrap_or(WHITE.into());
+
+        if let Some(material) = materials.get_mut(mat_handle.id()) {
+            material.base_color = team_color;
+        }
+    } else {
+        println!("Failed to get tank");
     }
 }

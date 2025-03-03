@@ -7,6 +7,7 @@ use shared::{
 };
 use visualize_colliders::{visualize_colliders, MyColliderGizmos};
 use visualize_markers::{draw_markers, MyMarkerGizmos};
+use visualize_players::update_tank_color;
 use visualize_positions::{visualize_cells, MyPositionGizmos};
 use visulize_turret_ranges::{draw_turret_ranges, MyTurretRangeGizmos};
 
@@ -39,7 +40,8 @@ impl Plugin for MyMapVisualizationPlugin {
                     .run_if(resource_exists::<GameStarts>),)
                     .run_if(in_state(MyMainState::Ready)),
             )
-            .add_observer(add_observers_to_client);
+            .add_observer(add_observers_to_client)
+            .add_observer(update_tank_color);
     }
 }
 
