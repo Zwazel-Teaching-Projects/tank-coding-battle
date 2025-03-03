@@ -4,6 +4,7 @@ use bevy::{
 };
 use bevy_mod_billboard::BillboardText;
 use shared::{
+    asset_handling::config::TankConfigSystemParam,
     game::{
         collision_handling::components::WantedTransform,
         player_handling::{Health, TankBodyMarker, TankTurretMarker},
@@ -20,6 +21,8 @@ pub fn create_player_visualisation(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
     mut entity_mapping: ResMut<MyEntityMapping>,
+    client_side_loaded_tank_assets: TankConfigSystemParam,
+    gltf_assets: Res<Assets<Gltf>>,
 ) {
     let game_start = trigger.event();
     let tank_configs = &game_start.tank_configs;
@@ -33,19 +36,26 @@ pub fn create_player_visualisation(
             .unwrap_or(WHITE.into());
 
         let tank_type = &server_side_client_config.client_tank_type;
-        let tank_config = tank_configs
+        let server_side_tank_config = tank_configs
             .get(tank_type)
             .expect("Failed to get tank config");
+        let client_side_tank_config = client_side_loaded_tank_assets
+            .get_tank_type_config(tank_type)
+            .expect("Failed to get tank assets");
+        let tank_model_handle =
+            client_side_loaded_tank_assets.get_tank_model(client_side_tank_config.model.as_ref());
+        let tank_gltf = gltf_assets
+            .get(tank_model_handle.id())
+            .expect("Failed to get tank gltf");
 
         // Tank Body
         let client_side_tank_body_entity = commands
             .spawn((
                 Name::new(server_side_client_config.client_name.clone()),
-                Mesh3d(meshes.add(Cuboid::from_size(tank_config.size))),
-                MeshMaterial3d(materials.add(team_color)),
+                SceneRoot(tank_gltf.scenes[0].clone()),
                 tank_type.clone(),
                 InTeam(server_side_client_config.client_team.clone()),
-                Health::new(tank_config.max_health),
+                Health::new(server_side_tank_config.max_health),
             ))
             .with_children(|commands| {
                 // Name tag
@@ -66,7 +76,11 @@ pub fn create_player_visualisation(
                         base_color: GREEN.into(),
                         ..Default::default()
                     })),
-                    Transform::from_translation(Vec3::new(0.0, 0.0, tank_config.size.z + 0.2)),
+                    Transform::from_translation(Vec3::new(
+                        0.0,
+                        0.0,
+                        server_side_tank_config.size.z + 0.2,
+                    )),
                 ));
             })
             .id();

@@ -6,7 +6,9 @@ use shared::{
 
 use crate::gameplay::triggers::CollectAndTriggerMessagesTrigger;
 
-use super::{system_sets::MyGameplaySet, triggers::StartNextTickProcessingTrigger};
+use super::{
+    system_sets::MyGameplaySet, triggers::StartNextTickProcessingTrigger, LobbyWaitTicksUntilStart,
+};
 
 pub struct TickSystemsPlugin;
 
@@ -22,13 +24,21 @@ impl Plugin for TickSystemsPlugin {
 
 fn process_tick_timer(
     mut commands: Commands,
-    mut lobbies: Query<(Entity, &mut MyLobby)>,
+    mut lobbies: Query<(Entity, &mut MyLobby, Option<&mut LobbyWaitTicksUntilStart>)>,
     time: Res<Time>,
 ) {
-    for (entity, mut lobby) in lobbies.iter_mut() {
+    for (entity, mut lobby, lobby_wait_tick_until_start) in lobbies.iter_mut() {
         if LobbyState::InProgress == lobby.state {
             if lobby.tick_timer.tick(time.delta()).just_finished() {
-                commands.trigger_targets(StartNextTickProcessingTrigger, entity);
+                if let Some(mut lobby_wait_tick_until_start) = lobby_wait_tick_until_start {
+                    if lobby_wait_tick_until_start.0 > 0 {
+                        lobby_wait_tick_until_start.0 -= 1;
+                    } else {
+                        commands.entity(entity).remove::<LobbyWaitTicksUntilStart>();
+                    }
+                } else {
+                    commands.trigger_targets(StartNextTickProcessingTrigger, entity);
+                }
             }
         }
     }

@@ -27,7 +27,6 @@ proc_macros = { path = "proc_macros" }
 bevy = { workspace = true }
 server = { workspace = true, optional = true, default-features = false }
 spectator_client = { workspace = true, optional = true, default-features = false }
-rand = "0.9.0"
 
 [features]
 default = []
