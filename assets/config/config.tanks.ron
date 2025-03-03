@@ -32,6 +32,7 @@
                 RIGHT: 0.2,
             },
             respawnTimer: 25,
+            model: "light_tank",
         ),
         HEAVY_TANK: (
             moveSpeed: 0.25,
@@ -65,6 +66,7 @@
                 RIGHT: 0.2,
             },
             respawnTimer: 25,
+            model: "light_tank",
         ),
         SELF_PROPELLED_ARTILLERY: (
             moveSpeed: 0.1,
@@ -98,6 +100,7 @@
                 RIGHT: 0.2,
             },
             respawnTimer: 25,
+            model: "light_tank",
         ),
     },
 )
