@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*'  # triggers on any tag starting with "v"
-  workflow_dispatch:
 
 jobs:
   build-linux:
@@ -20,11 +19,17 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Cache Cargo Registry (Linux)
+      - name: Cache Cargo and Build (Linux)
         uses: actions/cache@v3
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-linux-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/registry/
+            ~/.cargo/git/
+            target/
+          key: ${{ runner.os }}-cargo-server-linux-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-server-linux-
+            ${{ runner.os }}-cargo-
 
       - name: Build server-linux
         run: cargo brs
@@ -72,11 +77,17 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Cache Cargo Registry (Windows - ${{ matrix.name }})
+      - name: Cache Cargo and Build (Windows - ${{ matrix.name }})
         uses: actions/cache@v3
         with:
-          path: C:\Users\runneradmin\.cargo\registry
+          path: |
+            C:\Users\runneradmin\.cargo\registry
+            C:\Users\runneradmin\.cargo\git
+            target
           key: ${{ runner.os }}-cargo-${{ matrix.name }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.name }}-
+            ${{ runner.os }}-cargo-
 
       - name: Build ${{ matrix.name }}
         run: ${{ matrix.build_cmd }}
