@@ -8,12 +8,12 @@ use shared::{
     networking::lobby_management::{InLobby, MyLobby},
 };
 
-use crate::gameplay::triggers::FinishedNextSimulationStepTrigger;
+use crate::gameplay::triggers::{CheckForCollisionsTrigger, DespawnOutOfBoundsProjectilesTrigger};
 
 const STEP_SIZE: f32 = 0.05;
 
 pub fn unified_collision_system(
-    trigger: Trigger<FinishedNextSimulationStepTrigger>,
+    trigger: Trigger<CheckForCollisionsTrigger>,
     lobby: Query<&MyLobby>,
     mut commands: Commands,
     mut query: Query<(
@@ -308,6 +308,9 @@ pub fn unified_collision_system(
             commands.trigger_targets(CollidedWithTrigger { entity: entity_a }, entity_b);
         }
     }
+
+    // Despawn out-of-bounds projectiles.
+    commands.trigger_targets(DespawnOutOfBoundsProjectilesTrigger, my_lobby_entity);
 }
 
 /// A simple interpolation between two transforms over time t (0.0 to 1.0).

@@ -25,8 +25,9 @@ use shared::{
 use crate::gameplay::{
     lobby_cleanup::CleanupNextTick,
     triggers::{
-        FinishedNextSimulationStepTrigger, StartNextSimulationStepTrigger,
-        StartNextTickProcessingTrigger,
+        CheckForCollisionsTrigger, DespawnOutOfBoundsProjectilesTrigger,
+        MovePorjectilesSimulationStepTrigger, StartNextTickProcessingTrigger,
+        UpdateLobbyGameStateTrigger,
     },
 };
 
@@ -178,9 +179,10 @@ pub fn handle_despawn_timer(
 }
 
 pub fn move_projectiles(
-    trigger: Trigger<StartNextSimulationStepTrigger>,
+    trigger: Trigger<MovePorjectilesSimulationStepTrigger>,
     lobby: Query<&MyLobby>,
     mut projectiles: Query<(&mut WantedTransform, &mut ProjectileMarker)>,
+    mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
 
@@ -199,10 +201,12 @@ pub fn move_projectiles(
         let rotation = transform.rotation;
         transform.translation += rotation * Vec3::new(0.0, 0.0, projectile.speed);
     }
+
+    commands.trigger_targets(CheckForCollisionsTrigger, lobby_entity);
 }
 
 pub fn despawn_out_of_bounds(
-    trigger: Trigger<FinishedNextSimulationStepTrigger>,
+    trigger: Trigger<DespawnOutOfBoundsProjectilesTrigger>,
     lobby: Query<&MyLobby>,
     projectiles: Query<&Transform, With<ProjectileMarker>>,
     mut commands: Commands,
@@ -225,6 +229,8 @@ pub fn despawn_out_of_bounds(
             commands.entity(*projectile_entity).insert(CleanupNextTick);
         }
     }
+
+    commands.trigger_targets(UpdateLobbyGameStateTrigger, lobby_entity);
 }
 
 pub fn despawn_projectile_on_collision_with_world(

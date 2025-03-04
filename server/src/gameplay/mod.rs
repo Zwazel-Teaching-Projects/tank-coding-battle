@@ -12,7 +12,6 @@ pub mod handle_players;
 pub mod lobby_cleanup;
 pub mod process_messages;
 pub mod process_messages_when_lobby_not_ready;
-pub mod simulation;
 pub mod start_lobby;
 pub mod system_sets;
 mod tick_systems;
@@ -65,8 +64,6 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .entity(trigger.entity())
         .observe(game_state_handling::add_current_game_state_to_message_queue)
         .observe(game_state_handling::update_lobby_state)
-        .observe(simulation::process_tick_sim)
-        .observe(simulation::process_tick_sim_finished)
         .observe(start_lobby::check_if_lobby_should_start)
         .observe(start_lobby::start_lobby)
         .observe(process_messages::process_lobby_messages)
