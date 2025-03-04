@@ -63,6 +63,8 @@ pub fn unified_collision_system(
         world_safe: Transform,
         // The earliest entity collision time (default 1.0 means no collision).
         entity_collision_time: f32,
+        // The last safe transform before an entity collision.
+        entity_safe: Transform,
     }
 
     let mut sim_entities = Vec::new();
@@ -79,6 +81,7 @@ pub fn unified_collision_system(
             world_collision_time: None,
             world_safe: *transform,
             entity_collision_time: 1.0,
+            entity_safe: *transform,
         });
     }
 
@@ -182,8 +185,36 @@ pub fn unified_collision_system(
         sim.world_safe = safe_transform;
     }
 
-    // === Phase 2: Entity Collision Check ===
-    // We record collisions as (entity A, entity B, collision time).
+    // === Phase 2: Entity Collision Check with Binary Search Refinement ===
+    // Define helper closures that do NOT capture the whole sim_entities vector.
+    let candidate_transform_fn = |sim: &SimEntity, t: f32| -> Transform {
+        let world_t = sim.world_collision_time.unwrap_or(1.0);
+        if t <= world_t {
+            interpolate_transform(&sim.original, &sim.wanted, t)
+        } else {
+            sim.world_safe
+        }
+    };
+
+    let refine_collision_fn = |sim_i: &SimEntity, sim_j: &SimEntity, low: f32, high: f32| -> f32 {
+        let threshold = 0.001;
+        let mut low_t = low;
+        let mut high_t = high;
+        while high_t - low_t > threshold {
+            let mid_t = (low_t + high_t) / 2.0;
+            let candidate_i = candidate_transform_fn(sim_i, mid_t);
+            let candidate_j = candidate_transform_fn(sim_j, mid_t);
+            let obb_i = Obb3d::from_transform(&candidate_i, &sim_i.collider);
+            let obb_j = Obb3d::from_transform(&candidate_j, &sim_j.collider);
+            if obb_i.intersects_obb(&obb_j) {
+                high_t = mid_t;
+            } else {
+                low_t = mid_t;
+            }
+        }
+        low_t
+    };
+
     let mut collision_events: Vec<(Entity, Entity, f32)> = Vec::new();
     for step in 1..=n_steps {
         let t = step as f32 * STEP_SIZE;
@@ -236,15 +267,31 @@ pub fn unified_collision_system(
                 }
 
                 if obb_i.intersects_obb(&obb_j) {
-                    // Record collision if this is the earliest encounter.
-                    if t < sim_entities[i].entity_collision_time
-                        || t < sim_entities[j].entity_collision_time
+                    // Use the previous step's time as the lower bound.
+                    let lower_t = if step == 1 {
+                        0.0
+                    } else {
+                        (step - 1) as f32 * STEP_SIZE
+                    };
+                    let refined_t =
+                        refine_collision_fn(&sim_entities[i], &sim_entities[j], lower_t, t);
+                    // Record collision if this refined time is the earliest for either entity.
+                    if refined_t < sim_entities[i].entity_collision_time
+                        || refined_t < sim_entities[j].entity_collision_time
                     {
                         sim_entities[i].entity_collision_time =
-                            sim_entities[i].entity_collision_time.min(t);
+                            sim_entities[i].entity_collision_time.min(refined_t);
                         sim_entities[j].entity_collision_time =
-                            sim_entities[j].entity_collision_time.min(t);
-                        collision_events.push((sim_entities[i].entity, sim_entities[j].entity, t));
+                            sim_entities[j].entity_collision_time.min(refined_t);
+                        sim_entities[i].entity_safe =
+                            candidate_transform_fn(&sim_entities[i], refined_t);
+                        sim_entities[j].entity_safe =
+                            candidate_transform_fn(&sim_entities[j], refined_t);
+                        collision_events.push((
+                            sim_entities[i].entity,
+                            sim_entities[j].entity,
+                            refined_t,
+                        ));
                     }
                 }
             }
@@ -261,7 +308,7 @@ pub fn unified_collision_system(
                 sim.world_safe
             } else {
                 // An entity collision occurred first.
-                interpolate_transform(&sim.original, &sim.wanted, effective_t)
+                sim.entity_safe
             }
         } else {
             // No collisions; full movement is safe.
