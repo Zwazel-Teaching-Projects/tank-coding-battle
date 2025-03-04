@@ -7,200 +7,18 @@ use shared::{
     },
     networking::lobby_management::{InLobby, MyLobby},
 };
-use std::sync::Mutex;
 
-use crate::gameplay::triggers::{CalculateCollisionsTrigger, FinishedNextSimulationStepTrigger};
+use crate::gameplay::triggers::FinishedNextSimulationStepTrigger;
 
 const STEP_SIZE: f32 = 0.05;
 
-/// Warlock Engineer Ikit Claw’s masterful collision and movement enactor!
-///
-/// This function governs the motion of our pitiful minions, checking for collisions as they move
-/// from their current location to a desired destination. For each entity with a changed WantedTransform,
-/// it simulates movement in small, precise increments (STEP_SIZE), computing a rotated “footprint” at each step
-/// to determine its axis-aligned bounding box (AABB) over the game map’s tiles.
-///
-/// The function first gathers the floor heights of all tiles under the footprint, ensuring that each tile exists
-/// within the map’s bounds. It then verifies that the slope between the highest tile and its neighbors does not
-/// exceed the collider’s maximum allowed slope.
-///
-/// A special case is observed when the collider’s max_slope is 0.0—this denotes a flying entity, not meant to climb.
-/// In such cases, the vertical component of the candidate translation is not adjusted to match the floor height.
-/// Instead, if the candidate translation would dip below the calculated floor (plus the collider’s half height),
-/// a collision is triggered, ensuring that our aerial minions remain unburdened by the ground’s wretched grasp.
-///
-/// Upon detecting any collision, the entity is marked, and its transform is updated accordingly. Finally, the function
-/// dispatches collision triggers to deal with the unfortunate souls that encountered obstacles.
-/// Warlock Engineer Ikit Claw’s masterful collision and movement enactor!
-pub fn check_world_collision_and_apply_movement(
+pub fn unified_collision_system(
     trigger: Trigger<FinishedNextSimulationStepTrigger>,
     lobby: Query<&MyLobby>,
-    mut colliders: Query<
-        (
-            Entity,
-            &Transform,
-            &mut WantedTransform,
-            &Collider,
-            &CollisionLayer,
-            &InLobby,
-        ),
-        Changed<WantedTransform>,
-    >,
     mut commands: Commands,
-) {
-    // Secure our dominion over this wretched lobby!
-    let my_lobby_entity = trigger.entity();
-    let my_lobby = lobby
-        .get(my_lobby_entity)
-        .expect("Failed to secure dominion—your lobby is pitiful!");
-    let map_def = &my_lobby
-        .map_config
-        .as_ref()
-        .expect("Map config is missing, you miserable wretch!")
-        .map;
-
-    // A thread-safe hoard for entities that encounter collision misfortune.
-    let collided_entities = Mutex::new(Vec::new());
-
-    // --- World Collision Check ---
-    colliders.par_iter_mut().for_each(
-        |(entity, current_transform, mut wanted_transform, collider, _layer, in_lobby)| {
-            if in_lobby.0 != my_lobby_entity {
-                return;
-            }
-
-            let current = *current_transform;
-            let target = **wanted_transform;
-            let delta = target.translation - current.translation;
-            let total_distance = delta.length();
-            let steps = if total_distance == 0.0 {
-                1
-            } else {
-                (total_distance / STEP_SIZE).ceil() as i32
-            };
-
-            let mut safe_translation = current.translation;
-            let mut safe_rotation = current.rotation;
-            let mut collision_happened = false;
-
-            // Advance in meticulous steps, checking for collisions with the world.
-            for step in 1..=steps {
-                let t = step as f32 / steps as f32;
-                let candidate_translation = current.translation.lerp(target.translation, t);
-                let candidate_rotation = current.rotation.slerp(target.rotation, t);
-                let candidate_transform = Transform {
-                    translation: candidate_translation,
-                    rotation: candidate_rotation,
-                    ..default()
-                };
-
-                let right = candidate_transform.right();
-                let forward = candidate_transform.forward();
-                let corners = [
-                    candidate_translation
-                        + right * collider.half_size.x
-                        + forward * collider.half_size.z,
-                    candidate_translation - right * collider.half_size.x
-                        + forward * collider.half_size.z,
-                    candidate_translation + right * collider.half_size.x
-                        - forward * collider.half_size.z,
-                    candidate_translation
-                        - right * collider.half_size.x
-                        - forward * collider.half_size.z,
-                ];
-
-                let (min_x, max_x) = corners
-                    .iter()
-                    .fold((f32::MAX, f32::MIN), |(min, max), corner| {
-                        (min.min(corner.x), max.max(corner.x))
-                    });
-                let (min_z, max_z) = corners
-                    .iter()
-                    .fold((f32::MAX, f32::MIN), |(min, max), corner| {
-                        (min.min(corner.z), max.max(corner.z))
-                    });
-
-                let tile_min_x = min_x.floor() as isize;
-                let tile_max_x = max_x.ceil() as isize;
-                let tile_min_z = min_z.floor() as isize;
-                let tile_max_z = max_z.ceil() as isize;
-
-                let mut tile_heights = Vec::new();
-                let mut local_collision = false;
-                for tx in tile_min_x..tile_max_x {
-                    for tz in tile_min_z..tile_max_z {
-                        if tx < 0
-                            || tz < 0
-                            || (tx as usize) >= map_def.width
-                            || (tz as usize) >= map_def.depth
-                        {
-                            local_collision = true;
-                            break;
-                        }
-                        match map_def.get_floor_height_of_tile((tx as usize, tz as usize)) {
-                            Some(height) => tile_heights.push(height),
-                            None => {
-                                local_collision = true;
-                                break;
-                            }
-                        }
-                    }
-                    if local_collision {
-                        break;
-                    }
-                }
-                if local_collision {
-                    collision_happened = true;
-                    break;
-                }
-                let candidate_floor = tile_heights.iter().cloned().fold(f32::MIN, f32::max);
-
-                if collider.max_slope == 0.0 {
-                    if candidate_translation.y < candidate_floor + collider.half_size.y {
-                        collision_happened = true;
-                        break;
-                    }
-                    safe_translation = candidate_translation;
-                    safe_rotation = candidate_rotation;
-                } else {
-                    if tile_heights
-                        .iter()
-                        .any(|&h| (candidate_floor - h).abs() > collider.max_slope)
-                    {
-                        collision_happened = true;
-                        break;
-                    }
-                    safe_translation = Vec3::new(
-                        candidate_translation.x,
-                        candidate_floor + collider.half_size.y,
-                        candidate_translation.z,
-                    );
-                    safe_rotation = candidate_rotation;
-                }
-            }
-
-            if collision_happened {
-                collided_entities.lock().unwrap().push(entity);
-            }
-
-            wanted_transform.translation = safe_translation;
-            wanted_transform.rotation = safe_rotation;
-        },
-    );
-
-    commands.trigger_targets(
-        CollidedWithWorldTrigger,
-        collided_entities.into_inner().unwrap(),
-    );
-    commands.trigger_targets(CalculateCollisionsTrigger, my_lobby_entity);
-}
-
-pub fn collision_system(
-    trigger: Trigger<CalculateCollisionsTrigger>,
-    mut commands: Commands,
-    mut combinations: Query<(
+    mut query: Query<(
         Entity,
-        &mut Transform,
+        &Transform,
         &mut WantedTransform,
         &Collider,
         &CollisionLayer,
@@ -211,8 +29,16 @@ pub fn collision_system(
         &InLobby,
     )>,
 ) {
+    // Secure dominion over this wretched lobby.
     let my_lobby_entity = trigger.entity();
-    let steps = (1.0 / STEP_SIZE) as usize;
+    let my_lobby = lobby
+        .get(my_lobby_entity)
+        .expect("Failed to secure dominion over your pitiful lobby!");
+    let map_def = &my_lobby
+        .map_config
+        .as_ref()
+        .expect("Map config is missing, you miserable wretch!")
+        .map;
 
     #[cfg(feature = "debug")]
     {
@@ -224,72 +50,267 @@ pub fn collision_system(
         }
     }
 
-    let mut combinations_iter = combinations.iter_combinations_mut();
-    while let Some(
-        [(a_entity, mut a_transform, mut a_wanted, a_collider, a_collision_layer, a_in_lobby), (b_entity, mut b_transform, mut b_wanted, b_collider, b_collision_layer, b_in_lobby)],
-    ) = combinations_iter.fetch_next()
-    {
-        // Existing lobby and collision layer checks...
-        if a_in_lobby.0 != my_lobby_entity || b_in_lobby.0 != my_lobby_entity {
-            continue;
-        }
-        if !a_collision_layer.intersects(b_collision_layer) {
-            continue;
-        }
-        if a_collision_layer.ignore.contains(&b_entity)
-            || b_collision_layer.ignore.contains(&a_entity)
-        {
-            continue;
-        }
+    // Structure to hold our simulation data for each entity.
+    struct SimEntity {
+        entity: Entity,
+        original: Transform,
+        wanted: Transform,
+        collider: Collider,
+        collision_layer: CollisionLayer,
+        // The time (from 0.0 to 1.0) at which a world collision occurs; if None, no world collision happens.
+        world_collision_time: Option<f32>,
+        // The last safe transform before a world collision.
+        world_safe: Transform,
+        // The earliest entity collision time (default 1.0 means no collision).
+        entity_collision_time: f32,
+    }
 
-        // Calculate movement trajectories
-        let mut t_collision = None;
-        let mut a_safe_transform = *a_transform;
-        let mut b_safe_transform = *b_transform;
+    let mut sim_entities = Vec::new();
+    for (entity, transform, wanted, collider, collision_layer, in_lobby) in query.iter_mut() {
+        if in_lobby.0 != my_lobby_entity {
+            continue;
+        }
+        sim_entities.push(SimEntity {
+            entity,
+            original: *transform,
+            wanted: **wanted,
+            collider: collider.clone(),
+            collision_layer: collision_layer.clone(),
+            world_collision_time: None,
+            world_safe: *transform,
+            entity_collision_time: 1.0,
+        });
+    }
+
+    // Determine the number of discrete steps for our simulation.
+    let n_steps = (1.0 / STEP_SIZE).ceil() as usize;
+
+    // === Phase 1: World Collision Check ===
+    for sim in sim_entities.iter_mut() {
+        let delta = sim.wanted.translation - sim.original.translation;
+        let total_distance = delta.length();
+        let steps = if total_distance == 0.0 {
+            1
+        } else {
+            (total_distance / STEP_SIZE).ceil() as i32
+        };
+        let mut safe_transform = sim.original;
         for step in 1..=steps {
-            let t = step as f32 * STEP_SIZE;
-            let a_safe = interpolate_transform(&*a_transform, &a_wanted.0, t);
-            let b_safe = interpolate_transform(&*b_transform, &b_wanted.0, t);
+            let t = step as f32 / steps as f32;
+            let candidate = interpolate_transform(&sim.original, &sim.wanted, t);
+            // Compute corners of the candidate's footprint.
+            let right = candidate.rotation.mul_vec3(Vec3::X);
+            let forward = candidate.rotation.mul_vec3(Vec3::Z);
+            let corners = [
+                candidate.translation
+                    + right * sim.collider.half_size.x
+                    + forward * sim.collider.half_size.z,
+                candidate.translation - right * sim.collider.half_size.x
+                    + forward * sim.collider.half_size.z,
+                candidate.translation + right * sim.collider.half_size.x
+                    - forward * sim.collider.half_size.z,
+                candidate.translation
+                    - right * sim.collider.half_size.x
+                    - forward * sim.collider.half_size.z,
+            ];
+            let (min_x, max_x) = corners
+                .iter()
+                .fold((f32::MAX, f32::MIN), |(min, max), corner| {
+                    (min.min(corner.x), max.max(corner.x))
+                });
+            let (min_z, max_z) = corners
+                .iter()
+                .fold((f32::MAX, f32::MIN), |(min, max), corner| {
+                    (min.min(corner.z), max.max(corner.z))
+                });
+            let tile_min_x = min_x.floor() as isize;
+            let tile_max_x = max_x.ceil() as isize;
+            let tile_min_z = min_z.floor() as isize;
+            let tile_max_z = max_z.ceil() as isize;
 
-            let a_obb = Obb3d::from_transform(&a_safe, a_collider);
-            let b_obb = Obb3d::from_transform(&b_safe, b_collider);
-
-            #[cfg(feature = "debug")]
-            {
-                let (mut a_gizmos, _) = debug_obb_gizmos
-                    .get_mut(a_entity)
-                    .expect("Failed to get debug collider");
-                a_gizmos.push((t, a_obb));
-
-                let (mut b_gizmos, _) = debug_obb_gizmos
-                    .get_mut(b_entity)
-                    .expect("Failed to get debug collider");
-                b_gizmos.push((t, b_obb));
+            let mut tile_heights = Vec::new();
+            let mut local_collision = false;
+            'tile_loop: for tx in tile_min_x..tile_max_x {
+                for tz in tile_min_z..tile_max_z {
+                    if tx < 0
+                        || tz < 0
+                        || (tx as usize) >= map_def.width
+                        || (tz as usize) >= map_def.depth
+                    {
+                        local_collision = true;
+                        break 'tile_loop;
+                    }
+                    match map_def.get_floor_height_of_tile((tx as usize, tz as usize)) {
+                        Some(height) => tile_heights.push(height),
+                        None => {
+                            local_collision = true;
+                            break 'tile_loop;
+                        }
+                    }
+                }
             }
-
-            if a_obb.intersects_obb(&b_obb) {
-                t_collision = Some(t);
+            if local_collision {
+                sim.world_collision_time = Some(t);
                 break;
+            }
+            let candidate_floor = tile_heights.clone().into_iter().fold(f32::MIN, f32::max);
+            if sim.collider.max_slope == 0.0 {
+                if candidate.translation.y < candidate_floor + sim.collider.half_size.y {
+                    sim.world_collision_time = Some(t);
+                    break;
+                }
+                safe_transform = candidate;
             } else {
-                a_safe_transform = a_safe;
-                b_safe_transform = b_safe;
+                if tile_heights
+                    .iter()
+                    .any(|&h| (candidate_floor - h).abs() > sim.collider.max_slope)
+                {
+                    sim.world_collision_time = Some(t);
+                    break;
+                }
+                safe_transform = Transform {
+                    translation: Vec3::new(
+                        candidate.translation.x,
+                        candidate_floor + sim.collider.half_size.y,
+                        candidate.translation.z,
+                    ),
+                    rotation: candidate.rotation,
+                    scale: candidate.scale,
+                };
             }
         }
+        sim.world_safe = safe_transform;
+    }
 
-        *a_transform = a_safe_transform;
-        a_wanted.0 = a_safe_transform;
+    // === Phase 2: Entity Collision Check ===
+    // We record collisions as (entity A, entity B, collision time).
+    let mut collision_events: Vec<(Entity, Entity, f32)> = Vec::new();
+    for step in 1..=n_steps {
+        let t = step as f32 * STEP_SIZE;
+        // Compute candidate transform for each entity based on its world collision time.
+        let candidates: Vec<Transform> = sim_entities
+            .iter()
+            .map(|sim| {
+                let world_t = sim.world_collision_time.unwrap_or(1.0);
+                if t <= world_t {
+                    interpolate_transform(&sim.original, &sim.wanted, t)
+                } else {
+                    sim.world_safe
+                }
+            })
+            .collect();
 
-        *b_transform = b_safe_transform;
-        b_wanted.0 = b_safe_transform;
+        // Check each pair for collision.
+        for i in 0..sim_entities.len() {
+            for j in (i + 1)..sim_entities.len() {
+                // Skip if collision layers do not intersect or if either ignores the other.
+                if !sim_entities[i]
+                    .collision_layer
+                    .intersects(&sim_entities[j].collision_layer)
+                {
+                    continue;
+                }
+                if sim_entities[i]
+                    .collision_layer
+                    .ignore
+                    .contains(&sim_entities[j].entity)
+                    || sim_entities[j]
+                        .collision_layer
+                        .ignore
+                        .contains(&sim_entities[i].entity)
+                {
+                    continue;
+                }
 
-        if let Some(_t) = t_collision {
-            // Trigger events...
-            commands.trigger_targets(CollidedWithTrigger { entity: b_entity }, a_entity);
-            commands.trigger_targets(CollidedWithTrigger { entity: a_entity }, b_entity);
+                let obb_i = Obb3d::from_transform(&candidates[i], &sim_entities[i].collider);
+                let obb_j = Obb3d::from_transform(&candidates[j], &sim_entities[j].collider);
+
+                #[cfg(feature = "debug")]
+                {
+                    if let Ok((mut gizmos, _)) = debug_obb_gizmos.get_mut(sim_entities[i].entity) {
+                        gizmos.push((t, obb_i.clone()));
+                    }
+                    if let Ok((mut gizmos, _)) = debug_obb_gizmos.get_mut(sim_entities[j].entity) {
+                        gizmos.push((t, obb_j.clone()));
+                    }
+                }
+
+                if obb_i.intersects_obb(&obb_j) {
+                    // Record collision if this is the earliest encounter.
+                    if t < sim_entities[i].entity_collision_time
+                        || t < sim_entities[j].entity_collision_time
+                    {
+                        sim_entities[i].entity_collision_time =
+                            sim_entities[i].entity_collision_time.min(t);
+                        sim_entities[j].entity_collision_time =
+                            sim_entities[j].entity_collision_time.min(t);
+                        collision_events.push((sim_entities[i].entity, sim_entities[j].entity, t));
+                    }
+                }
+            }
+        }
+    }
+
+    // === Phase 3: Finalize Transforms and Trigger Events ===
+    for sim in sim_entities.iter() {
+        let world_t = sim.world_collision_time.unwrap_or(1.0);
+        let effective_t = world_t.min(sim.entity_collision_time);
+        let final_transform = if effective_t < 1.0 {
+            if world_t <= sim.entity_collision_time {
+                // The world struck first.
+                sim.world_safe
+            } else {
+                // An entity collision occurred first.
+                interpolate_transform(&sim.original, &sim.wanted, effective_t)
+            }
+        } else {
+            // No collisions; full movement is safe.
+            sim.wanted
+        };
+
+        // Update the entity's transform and desired transform accordingly.
+        commands.entity(sim.entity).insert(final_transform);
+        commands
+            .entity(sim.entity)
+            .insert(WantedTransform(final_transform));
+    }
+
+    // Trigger collision events.
+    // World collisions: if an entity's world collision time is the earliest, trigger the world collision event.
+    for sim in sim_entities.iter() {
+        let world_t = sim.world_collision_time.unwrap_or(1.0);
+        if world_t <= sim.entity_collision_time && world_t < 1.0 {
+            commands.trigger_targets(CollidedWithWorldTrigger, sim.entity);
+        }
+    }
+    // Entity collisions: trigger only if this collision is the earliest for both participants.
+    for (entity_a, entity_b, t) in collision_events.into_iter() {
+        let eff_a = sim_entities
+            .iter()
+            .find(|s| s.entity == entity_a)
+            .map(|s| {
+                s.world_collision_time
+                    .unwrap_or(1.0)
+                    .min(s.entity_collision_time)
+            })
+            .unwrap_or(1.0);
+        let eff_b = sim_entities
+            .iter()
+            .find(|s| s.entity == entity_b)
+            .map(|s| {
+                s.world_collision_time
+                    .unwrap_or(1.0)
+                    .min(s.entity_collision_time)
+            })
+            .unwrap_or(1.0);
+        if (eff_a - t).abs() < f32::EPSILON && (eff_b - t).abs() < f32::EPSILON && t < 1.0 {
+            commands.trigger_targets(CollidedWithTrigger { entity: entity_b }, entity_a);
+            commands.trigger_targets(CollidedWithTrigger { entity: entity_a }, entity_b);
         }
     }
 }
 
+/// A simple interpolation between two transforms over time t (0.0 to 1.0).
 fn interpolate_transform(start: &Transform, end: &Transform, t: f32) -> Transform {
     Transform {
         translation: start.translation.lerp(end.translation, t),

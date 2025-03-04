@@ -17,9 +17,6 @@ pub struct StartNextSimulationStepTrigger;
 pub struct FinishedNextSimulationStepTrigger;
 
 #[derive(Debug, Reflect, Event)]
-pub struct CalculateCollisionsTrigger;
-
-#[derive(Debug, Reflect, Event)]
 pub struct UpdateLobbyGameStateTrigger;
 
 #[derive(Debug, Reflect, Event)]

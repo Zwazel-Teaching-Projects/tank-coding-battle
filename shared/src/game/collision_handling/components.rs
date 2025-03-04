@@ -1,6 +1,6 @@
 use bevy::{ecs::entity::EntityHashSet, prelude::*};
 
-#[derive(Debug, Component, Reflect)]
+#[derive(Debug, Component, Reflect, Clone)]
 #[reflect(Component)]
 #[require(CollisionLayer)]
 pub struct Collider {
