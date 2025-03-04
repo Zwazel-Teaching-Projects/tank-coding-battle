@@ -6,15 +6,14 @@ pub struct StartNextTickProcessingTrigger;
 #[derive(Debug, Reflect, Event)]
 pub struct CollectAndTriggerMessagesTrigger;
 
-/// In this trigger, we simulate the tick for all entities.
-/// E.g. we move the entities.
 #[derive(Debug, Reflect, Event)]
-pub struct StartNextSimulationStepTrigger;
+pub struct MovePorjectilesSimulationStepTrigger;
 
-/// In this trigger, we finish the simulation step.
-/// E.g. we check for collisions.
 #[derive(Debug, Reflect, Event)]
-pub struct FinishedNextSimulationStepTrigger;
+pub struct CheckForCollisionsTrigger;
+
+#[derive(Debug, Reflect, Event)]
+pub struct DespawnOutOfBoundsProjectilesTrigger;
 
 #[derive(Debug, Reflect, Event)]
 pub struct UpdateLobbyGameStateTrigger;

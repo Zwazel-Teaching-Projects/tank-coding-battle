@@ -13,7 +13,7 @@ use shared::{
     },
 };
 
-use crate::gameplay::triggers::StartNextSimulationStepTrigger;
+use crate::gameplay::triggers::MovePorjectilesSimulationStepTrigger;
 
 use super::triggers::CollectAndTriggerMessagesTrigger;
 
@@ -86,5 +86,5 @@ pub fn process_lobby_messages(
         }
     }
 
-    commands.trigger_targets(StartNextSimulationStepTrigger, lobby_entity);
+    commands.trigger_targets(MovePorjectilesSimulationStepTrigger, lobby_entity);
 }
