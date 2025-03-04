@@ -49,7 +49,6 @@ pub fn unified_collision_system(
         target: Transform,
         collider: Collider,
         collision_layer: CollisionLayer,
-        stopped: bool,              // has the entity been halted by a collision?
         stopped_due_to_world: bool, // true if the world crushed its pitiful form
         last_safe_transform: Transform,
     }
@@ -69,7 +68,6 @@ pub fn unified_collision_system(
             target: **wanted_transform,
             collider: collider.clone(),
             collision_layer: collision_layer.clone(),
-            stopped: false,
             stopped_due_to_world: false,
             last_safe_transform: *transform,
         });
@@ -94,9 +92,6 @@ pub fn unified_collision_system(
 
         // First, update each entity's candidate transform if it hasn't yet met its doom.
         for sim in sim_entities.iter_mut() {
-            if sim.stopped {
-                continue;
-            }
             let candidate = interpolate_transform(&sim.current, &sim.target, t);
 
             // --- WORLD COLLISION CHECK ---
@@ -156,7 +151,6 @@ pub fn unified_collision_system(
             }
             if local_collision {
                 // The world has claimed this pitiful entity—halt its progress!
-                sim.stopped = true;
                 sim.stopped_due_to_world = true;
                 // Do not update last_safe_transform; it remains from the previous step.
                 continue;
@@ -164,7 +158,6 @@ pub fn unified_collision_system(
             let candidate_floor = tile_heights.clone().into_iter().fold(f32::MIN, f32::max);
             if sim.collider.max_slope == 0.0 {
                 if candidate.translation.y < candidate_floor + sim.collider.half_size.y {
-                    sim.stopped = true;
                     sim.stopped_due_to_world = true;
                     continue;
                 }
@@ -177,7 +170,6 @@ pub fn unified_collision_system(
                         .any(|h| (candidate_floor - h).abs() > sim.collider.max_slope);
                     exceeds
                 } {
-                    sim.stopped = true;
                     sim.stopped_due_to_world = true;
                     continue;
                 }
@@ -198,10 +190,6 @@ pub fn unified_collision_system(
         let len = sim_entities.len();
         for i in 0..len {
             for j in (i + 1)..len {
-                // Only consider pairs that haven’t already met their demise.
-                if sim_entities[i].stopped || sim_entities[j].stopped {
-                    continue;
-                }
                 // Respect collision layers and ignore lists.
                 if !sim_entities[i]
                     .collision_layer
@@ -245,8 +233,6 @@ pub fn unified_collision_system(
 
                 if a_obb.intersects_obb(&b_obb) {
                     // Collision between entities detected—halt both before they strike a false step!
-                    sim_entities[i].stopped = true;
-                    sim_entities[j].stopped = true;
                     entity_collision_events.push((sim_entities[i].entity, sim_entities[j].entity));
                 }
             }
@@ -270,7 +256,7 @@ pub fn unified_collision_system(
     // Dispatch the world collision triggers.
     let world_collision_entities: Vec<Entity> = sim_entities
         .iter()
-        .filter(|sim| sim.stopped && sim.stopped_due_to_world)
+        .filter(|sim| sim.stopped_due_to_world)
         .map(|sim| sim.entity)
         .collect();
     if !world_collision_entities.is_empty() {
