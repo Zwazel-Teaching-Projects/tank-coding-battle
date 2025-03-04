@@ -14,22 +14,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+        run: rustup toolchain install stable --profile minimal
 
-      - name: Cache Cargo and Build (Linux)
-        uses: actions/cache@v3
+      - name: Cache Rust (Linux Server)
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/
-            ~/.cargo/git/
-            target/
-          key: ${{ runner.os }}-cargo-server-linux-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-server-linux-
-            ${{ runner.os }}-cargo-
+          prefix-key: "v0-rust-linux"
+          shared-key: "rust-linux-server"  # static shared key for cross-branch reusability
+          key: "server"
+          env-vars: "CARGO CC CFLAGS CXX CMAKE RUST"
+          workspaces: ". -> target"
+          cache-directories: "~/.cargo/registry\n~/.cargo/git"
+          cache-targets: "true"
 
       - name: Build server-linux
         run: cargo brs
@@ -72,22 +68,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+        run: rustup toolchain install stable --profile minimal
 
-      - name: Cache Cargo and Build (Windows - ${{ matrix.name }})
-        uses: actions/cache@v3
+      - name: Cache Rust (Windows - ${{ matrix.name }})
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            C:\Users\runneradmin\.cargo\registry
-            C:\Users\runneradmin\.cargo\git
-            target
-          key: ${{ runner.os }}-cargo-${{ matrix.name }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-${{ matrix.name }}-
-            ${{ runner.os }}-cargo-
+          prefix-key: "v0-rust-win-${{ matrix.name }}"
+          shared-key: "rust-win-${{ matrix.name }}"  # ensures each config holds its unique cache across runs
+          key: "${{ matrix.name }}"
+          env-vars: "CARGO CC CFLAGS CXX CMAKE RUST"
+          workspaces: ". -> target"
+          cache-directories: "C:\\Users\\runneradmin\\.cargo\\registry\nC:\\Users\\runneradmin\\.cargo\\git"
+          cache-targets: "true"
 
       - name: Build ${{ matrix.name }}
         run: ${{ matrix.build_cmd }}
@@ -95,7 +87,7 @@ jobs:
       - name: Package Artifacts (Windows - ${{ matrix.name }})
         shell: pwsh
         run: |
-          Write-Host "Packaging $env:matrix_name for Windows..."
+          Write-Host "Packaging ${{ matrix.name }} for Windows..."
           New-Item -ItemType Directory -Path release_artifact | Out-Null
           Copy-Item -Path "${{ matrix.binary_dir }}\\${{ matrix.binary_name }}" -Destination "release_artifact\\${{ matrix.output_binary }}"
           Copy-Item -Path "assets" -Destination "release_artifact\\assets" -Recurse
@@ -116,25 +108,25 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-  
+
       - name: Download Linux Artifact
         uses: actions/download-artifact@v4
         with:
           name: tank-coding-battle_server_linux.zip
           path: .
-  
+
       - name: Download Windows Server Artifact
         uses: actions/download-artifact@v4
         with:
           name: tank-coding-battle_server_win.zip
           path: .
-  
+
       - name: Download Windows Client Artifact
         uses: actions/download-artifact@v4
         with:
           name: tank-coding-battle_client_win.zip
           path: .
-  
+
       - name: Create GitHub Release
         id: create_release
         uses: ncipollo/release-action@v1.15.0
@@ -143,5 +135,3 @@ jobs:
           allowUpdates: true
           generateReleaseNotes: true
           artifacts: "tank-coding-battle_server_linux.zip,tank-coding-battle_server_win.zip,tank-coding-battle_client_win.zip"
-          # Optional: Attach a release body from a file if available
-          # bodyFile: "release_body.md"
