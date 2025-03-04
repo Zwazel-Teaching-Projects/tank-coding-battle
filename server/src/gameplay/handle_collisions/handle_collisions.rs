@@ -40,6 +40,16 @@ pub fn unified_collision_system(
         .expect("Map config is missing, you miserable wretch!")
         .map;
 
+    #[cfg(feature = "debug")]
+    {
+        for (mut gizmos, in_lobby) in debug_obb_gizmos.iter_mut() {
+            if in_lobby.0 != my_lobby_entity {
+                continue;
+            }
+            gizmos.clear();
+        }
+    }
+
     // Structure to hold our simulation data for each entity.
     struct SimEntity {
         entity: Entity,
