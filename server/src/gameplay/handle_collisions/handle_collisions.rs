@@ -161,17 +161,21 @@ pub fn unified_collision_system(
                 }
                 safe_transform = candidate;
             } else {
-                if tile_heights
-                    .iter()
-                    .any(|&h| (candidate_floor - h).abs() > sim.collider.max_slope)
-                {
+                // Compute the maximum and minimum floor heights within the footprint.
+                let candidate_max_floor = tile_heights.iter().cloned().fold(f32::MIN, f32::max);
+                let candidate_min_floor = tile_heights.iter().cloned().fold(f32::MAX, f32::min);
+
+                // If the slope (difference between max and min) is too steep, declare collision.
+                if candidate_max_floor - candidate_min_floor > sim.collider.max_slope {
                     sim.world_collision_time = Some(t);
                     break;
                 }
+
+                // Otherwise, climb: update y to the maximum floor height plus half the collider’s height.
                 safe_transform = Transform {
                     translation: Vec3::new(
                         candidate.translation.x,
-                        candidate_floor + sim.collider.half_size.y,
+                        candidate_max_floor + sim.collider.half_size.y,
                         candidate.translation.z,
                     ),
                     rotation: candidate.rotation,
@@ -255,20 +259,28 @@ pub fn unified_collision_system(
     for sim in sim_entities.iter() {
         let world_t = sim.world_collision_time.unwrap_or(1.0);
         let effective_t = world_t.min(sim.entity_collision_time);
+
         let final_transform = if effective_t < 1.0 {
-            if world_t <= sim.entity_collision_time {
-                // The world struck first.
-                sim.world_safe
-            } else {
-                // An entity collision occurred first.
-                interpolate_transform(&sim.original, &sim.wanted, effective_t)
-            }
+            // A collision occurred—do not climb beyond what was safe.
+            sim.world_safe
         } else {
-            // No collisions; full movement is safe.
-            sim.wanted
+            // No collision: full movement is safe.
+            // If climbing is allowed, update the y component from safe transform.
+            if sim.collider.max_slope > 0.0 {
+                Transform {
+                    translation: Vec3::new(
+                        sim.wanted.translation.x,
+                        sim.world_safe.translation.y,
+                        sim.wanted.translation.z,
+                    ),
+                    rotation: sim.wanted.rotation,
+                    scale: sim.wanted.scale,
+                }
+            } else {
+                sim.wanted
+            }
         };
 
-        // Update the entity's transform and desired transform accordingly.
         commands.entity(sim.entity).insert(final_transform);
         commands
             .entity(sim.entity)
