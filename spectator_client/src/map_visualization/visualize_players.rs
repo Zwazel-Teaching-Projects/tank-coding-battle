@@ -1,4 +1,4 @@
-use bevy::{color::palettes::css::WHITE, gltf::GltfMaterialName, prelude::*};
+use bevy::{color::palettes::css::WHITE, gltf::GltfMaterialName, prelude::*, scene::SceneInstance};
 use bevy_mod_billboard::BillboardText;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
@@ -23,6 +23,7 @@ pub fn create_player_visualisation(
     mut entity_mapping: ResMut<MyEntityMapping>,
     client_side_loaded_tank_assets: TankConfigSystemParam,
     gltf_assets: Res<Assets<Gltf>>,
+    mut scene_spawner: ResMut<SceneSpawner>,
 ) {
     let game_start = trigger.event();
     let tank_configs = &game_start.tank_configs;
@@ -53,21 +54,28 @@ pub fn create_player_visualisation(
         let client_side_tank_body_entity = commands
             .spawn((
                 Name::new(server_side_client_config.client_name.clone()),
-                SceneRoot(tank_gltf.scenes[0].clone()),
                 tank_type.clone(),
                 InTeam(server_side_client_config.client_team.clone()),
                 Health::new(server_side_tank_config.max_health),
                 VisualOffset(Vec3::new(0.0, tank_y_visual_offset, 0.0)),
+                Visibility::Inherited,
             ))
             .with_children(|commands| {
                 // Name tag
                 commands.spawn((
+                    Name::new("Name Tag"),
                     BillboardText::new(&server_side_client_config.client_name),
                     TextFont::from_font(font.clone()).with_font_size(60.0),
                     TextColor(Color::WHITE),
                     TextLayout::new_with_justify(JustifyText::Center),
                     Transform::from_translation(Vec3::new(0.0, 1.0, 0.0))
                         .with_scale(Vec3::splat(0.0085)),
+                ));
+
+                // GLTF Scene
+                commands.spawn((
+                    Name::new("GLTF Scene"),
+                    SceneRoot(tank_gltf.scenes[0].clone()),
                 ));
             })
             .id();
@@ -112,40 +120,38 @@ pub fn create_player_visualisation(
     }
 }
 
-pub fn update_tank_color(
-    trigger: Trigger<OnAdd, GltfMaterialName>,
+pub fn setup_tank(
+    trigger: Trigger<OnAdd, Children>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    tank: Query<&InTeam, With<TankBodyMarker>>,
-    parent_query: Query<&Parent>,
+    tank: Query<&InTeam>,
+    children: Query<&Children>,
     mat_query: Query<(&Name, &MeshMaterial3d<StandardMaterial>, &GltfMaterialName)>,
-    game_start: Res<GameStarts>,
+    game_start: Option<Res<GameStarts>>,
 ) {
-    let added_material_name_entity = trigger.entity();
-    let (name, mat_handle, material_name) = mat_query
-        .get(added_material_name_entity)
-        .expect("Failed to get material name");
-
-    if material_name.0 != "TeamColor" {
+    if game_start.is_none() {
+        warn!("GameStarts resource is missing");
         return;
     }
+    let game_start = game_start.unwrap();
 
-    // I do not understand.
-    println!("Name: {:?}, material name: {:?}", name, material_name.0);
-    let root = parent_query.root_ancestor(added_material_name_entity);
-    println!("Root: {:?}", root);
+    let new_scene_entity = trigger.entity();
+    println!("New scene entity: {:?}", new_scene_entity);
 
-    if let Ok(in_team) = tank.get(root) {
-        println!("Found tank with team: {:?}", in_team.0);
-        let team_color = game_start
-            .team_configs
-            .get(&in_team.0)
-            .map(|config| Color::from(config.color.clone()))
-            .unwrap_or(WHITE.into());
+    for child in children.iter_descendants(new_scene_entity) {
+        println!("Child: {:?}", child);
+        if let Ok((name, mat_handle, material_name)) = mat_query.get(child) {
+            println!("Name: {:?}, material name: {:?}", name, material_name.0);
+            if material_name.0 != "TeamColor" {
+                return;
+            }
 
-        if let Some(material) = materials.get_mut(mat_handle.id()) {
-            material.base_color = team_color;
+            if let Some(material) = materials.get_mut(mat_handle.id()) {
+                material.base_color = Color::WHITE;
+
+                println!("Material: {:?}", material);
+            }
+        } else {
+            error!("Failed to get material");
         }
-    } else {
-        println!("Failed to get tank");
     }
 }

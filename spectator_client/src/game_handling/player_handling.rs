@@ -26,10 +26,7 @@ pub fn update_player_state_on_game_state_update(
         ),
         Without<TankTurretMarker>,
     >,
-    mut tank_turret: Query<
-        (&mut Transform, &mut WantedTransform, &VisualOffset),
-        With<TankTurretMarker>,
-    >,
+    mut tank_turret: Query<(&mut Transform, &mut WantedTransform), With<TankTurretMarker>>,
 ) {
     let game_state = &(**game_state.event());
 
@@ -79,21 +76,16 @@ pub fn update_player_state_on_game_state_update(
                 next_target_body_transform.translation = new_body_transform.translation;
                 next_target_body_transform.rotation = new_body_transform.rotation;
 
-                let (
-                    mut current_turret_transform,
-                    mut next_target_turret_transform,
-                    turret_visual_offset,
-                ) = tank_turret
+                let (mut current_turret_transform, mut next_target_turret_transform) = tank_turret
                     .get_mut(tank_body.turret.expect("Failed to get turret entity"))
                     .expect("Failed to get turret");
 
-                let mut new_turret_transform = server_side_client_state
+                let new_turret_transform = server_side_client_state
                     .as_ref()
                     .expect("Client state is missing")
                     .transform_turret
                     .clone()
                     .expect("Position is missing");
-                new_turret_transform.translation -= turret_visual_offset.0;
 
                 current_turret_transform.translation = next_target_turret_transform.translation;
                 current_turret_transform.rotation = next_target_turret_transform.rotation;
