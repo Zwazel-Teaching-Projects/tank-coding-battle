@@ -32,7 +32,7 @@
                 RIGHT: 0.2,
             },
             respawnTimer: 25,
-            model: "light_tank",
+            model: "heavy_tank",
         ),
         HEAVY_TANK: (
             moveSpeed: 0.25,

@@ -1,8 +1,4 @@
-use bevy::{
-    color::palettes::css::{GREEN, WHITE},
-    gltf::GltfMaterialName,
-    prelude::*,
-};
+use bevy::{color::palettes::css::WHITE, gltf::GltfMaterialName, prelude::*};
 use bevy_mod_billboard::BillboardText;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
@@ -16,7 +12,7 @@ use shared::{
     },
 };
 
-use crate::game_handling::entity_mapping::MyEntityMapping;
+use crate::{game_handling::entity_mapping::MyEntityMapping, VisualOffset};
 
 pub fn create_player_visualisation(
     trigger: Trigger<GameStartsTrigger>,
@@ -51,6 +47,7 @@ pub fn create_player_visualisation(
         let tank_gltf = gltf_assets
             .get(tank_model_handle.id())
             .expect("Failed to get tank gltf");
+        let tank_y_visual_offset = server_side_tank_config.size.y / 2.0;
 
         // Tank Body
         let client_side_tank_body_entity = commands
@@ -60,6 +57,7 @@ pub fn create_player_visualisation(
                 tank_type.clone(),
                 InTeam(server_side_client_config.client_team.clone()),
                 Health::new(server_side_tank_config.max_health),
+                VisualOffset(Vec3::new(0.0, tank_y_visual_offset, 0.0)),
             ))
             .with_children(|commands| {
                 // Name tag
@@ -70,21 +68,6 @@ pub fn create_player_visualisation(
                     TextLayout::new_with_justify(JustifyText::Center),
                     Transform::from_translation(Vec3::new(0.0, 1.0, 0.0))
                         .with_scale(Vec3::splat(0.0085)),
-                ));
-
-                // Forward marker
-                commands.spawn((
-                    Name::new("Forward marker"),
-                    Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.1))),
-                    MeshMaterial3d(materials.add(StandardMaterial {
-                        base_color: GREEN.into(),
-                        ..Default::default()
-                    })),
-                    Transform::from_translation(Vec3::new(
-                        0.0,
-                        0.0,
-                        server_side_tank_config.size.z + 0.2,
-                    )),
                 ));
             })
             .id();
@@ -97,6 +80,7 @@ pub fn create_player_visualisation(
                     body: client_side_tank_body_entity,
                 },
                 WantedTransform::default(),
+                VisualOffset(Vec3::new(0.0, tank_y_visual_offset, 0.0)),
                 Visibility::Inherited,
             ))
             .with_children(|commands| {
