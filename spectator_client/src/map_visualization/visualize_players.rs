@@ -23,7 +23,6 @@ pub fn create_player_visualisation(
     mut entity_mapping: ResMut<MyEntityMapping>,
     client_side_loaded_tank_assets: TankConfigSystemParam,
     gltf_assets: Res<Assets<Gltf>>,
-    mut scene_spawner: ResMut<SceneSpawner>,
 ) {
     let game_start = trigger.event();
     let tank_configs = &game_start.tank_configs;
@@ -59,6 +58,7 @@ pub fn create_player_visualisation(
                 Health::new(server_side_tank_config.max_health),
                 VisualOffset(Vec3::new(0.0, tank_y_visual_offset, 0.0)),
                 Visibility::Inherited,
+                AwaitsSetup::default(),
             ))
             .with_children(|commands| {
                 // Name tag
@@ -120,38 +120,39 @@ pub fn create_player_visualisation(
     }
 }
 
+#[derive(Debug, Default, Component, Reflect)]
+#[reflect(Component)]
+pub struct AwaitsSetup;
+
 pub fn setup_tank(
-    trigger: Trigger<OnAdd, Children>,
+    mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    tank: Query<&InTeam>,
+    tank: Query<(Entity, &InTeam), With<AwaitsSetup>>,
     children: Query<&Children>,
-    mat_query: Query<(&Name, &MeshMaterial3d<StandardMaterial>, &GltfMaterialName)>,
-    game_start: Option<Res<GameStarts>>,
+    mat_query: Query<(&MeshMaterial3d<StandardMaterial>, &GltfMaterialName)>,
+    game_start: Res<GameStarts>,
 ) {
-    if game_start.is_none() {
-        warn!("GameStarts resource is missing");
-        return;
-    }
-    let game_start = game_start.unwrap();
+    for (awaits_setup_entity, in_team) in tank.iter() {
+        let team_color = game_start
+            .team_configs
+            .get(&in_team.0)
+            .map(|config| Color::from(config.color.clone()))
+            .unwrap_or(WHITE.into());
 
-    let new_scene_entity = trigger.entity();
-    println!("New scene entity: {:?}", new_scene_entity);
+        for child in children.iter_descendants(awaits_setup_entity) {
+            if let Ok((mat_handle, material_name)) = mat_query.get(child) {
+                if material_name.0 != "TeamColor" {
+                    continue;
+                }
 
-    for child in children.iter_descendants(new_scene_entity) {
-        println!("Child: {:?}", child);
-        if let Ok((name, mat_handle, material_name)) = mat_query.get(child) {
-            println!("Name: {:?}, material name: {:?}", name, material_name.0);
-            if material_name.0 != "TeamColor" {
-                return;
+                if let Some(material) = materials.get_mut(mat_handle.id()) {
+                    material.base_color = team_color;
+
+                    commands.entity(awaits_setup_entity).remove::<AwaitsSetup>();
+
+                    return;
+                }
             }
-
-            if let Some(material) = materials.get_mut(mat_handle.id()) {
-                material.base_color = Color::WHITE;
-
-                println!("Material: {:?}", material);
-            }
-        } else {
-            error!("Failed to get material");
         }
     }
 }

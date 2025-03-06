@@ -7,7 +7,7 @@ use shared::{
 };
 use visualize_colliders::{visualize_colliders, MyColliderGizmos};
 use visualize_markers::{draw_markers, MyMarkerGizmos};
-use visualize_players::setup_tank;
+use visualize_players::{setup_tank, AwaitsSetup};
 use visualize_positions::{visualize_cells, MyPositionGizmos};
 use visulize_turret_ranges::{draw_turret_ranges, MyTurretRangeGizmos};
 
@@ -25,6 +25,7 @@ pub struct MyMapVisualizationPlugin;
 impl Plugin for MyMapVisualizationPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MapMeshMarker>()
+            .register_type::<AwaitsSetup>()
             .init_gizmo_group::<MyMarkerGizmos>()
             .init_gizmo_group::<MyPositionGizmos>()
             .init_gizmo_group::<MyTurretRangeGizmos>()
@@ -35,13 +36,12 @@ impl Plugin for MyMapVisualizationPlugin {
                     (listen_for_map_changes,).run_if(any_with_component::<MapMeshMarker>),
                     (draw_turret_ranges,).run_if(any_with_component::<TankTurretMarker>),
                     (visualize_colliders,).run_if(any_with_component::<Collider>),
-                    (draw_markers, visualize_cells),
+                    (draw_markers, visualize_cells, setup_tank),
                 )
                     .run_if(resource_exists::<GameStarts>),)
                     .run_if(in_state(MyMainState::Ready)),
             )
-            .add_observer(add_observers_to_client)
-            .add_observer(setup_tank);
+            .add_observer(add_observers_to_client);
     }
 }
 
