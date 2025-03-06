@@ -7,7 +7,7 @@ use shared::{
 };
 use visualize_colliders::{visualize_colliders, MyColliderGizmos};
 use visualize_markers::{draw_markers, MyMarkerGizmos};
-use visualize_players::{setup_tank, AwaitsSetup};
+use visualize_players::{setup_tank, AwaitsSetup, TeamColorMaterialsResource};
 use visualize_positions::{visualize_cells, MyPositionGizmos};
 use visulize_turret_ranges::{draw_turret_ranges, MyTurretRangeGizmos};
 
@@ -26,6 +26,7 @@ impl Plugin for MyMapVisualizationPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MapMeshMarker>()
             .register_type::<AwaitsSetup>()
+            .register_type::<TeamColorMaterialsResource>()
             .init_gizmo_group::<MyMarkerGizmos>()
             .init_gizmo_group::<MyPositionGizmos>()
             .init_gizmo_group::<MyTurretRangeGizmos>()

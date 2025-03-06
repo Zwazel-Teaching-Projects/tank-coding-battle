@@ -1,4 +1,4 @@
-use bevy::{color::palettes::css::WHITE, gltf::GltfMaterialName, prelude::*, scene::SceneInstance};
+use bevy::{color::palettes::css::WHITE, gltf::GltfMaterialName, prelude::*, utils::HashMap};
 use bevy_mod_billboard::BillboardText;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
@@ -6,10 +6,7 @@ use shared::{
         collision_handling::components::WantedTransform,
         player_handling::{Health, TankBodyMarker, TankTurretMarker},
     },
-    networking::{
-        lobby_management::InTeam,
-        messages::{message_container::GameStartsTrigger, message_data::game_starts::GameStarts},
-    },
+    networking::{lobby_management::InTeam, messages::message_container::GameStartsTrigger},
 };
 
 use crate::{game_handling::entity_mapping::MyEntityMapping, VisualOffset};
@@ -27,6 +24,7 @@ pub fn create_player_visualisation(
     let game_start = trigger.event();
     let tank_configs = &game_start.tank_configs;
     let font = asset_server.load("fonts/FiraSans-Regular.ttf");
+    let mut team_materials = HashMap::default();
 
     for server_side_client_config in game_start.connected_clients.iter() {
         let team_color = game_start
@@ -34,6 +32,12 @@ pub fn create_player_visualisation(
             .get(&server_side_client_config.client_team)
             .map(|config| Color::from(config.color.clone()))
             .unwrap_or(WHITE.into());
+
+        let team_material = materials.add(StandardMaterial {
+            base_color: team_color,
+            ..Default::default()
+        });
+        team_materials.insert(server_side_client_config.client_team.clone(), team_material);
 
         let tank_type = &server_side_client_config.client_tank_type;
         let server_side_tank_config = tank_configs
@@ -118,40 +122,48 @@ pub fn create_player_visualisation(
             client_side_tank_body_entity,
         );
     }
+
+    commands.insert_resource(TeamColorMaterialsResource {
+        materials: team_materials,
+    });
 }
 
 #[derive(Debug, Default, Component, Reflect)]
 #[reflect(Component)]
 pub struct AwaitsSetup;
 
+#[derive(Debug, Default, Resource, Reflect)]
+#[reflect(Resource)]
+pub struct TeamColorMaterialsResource {
+    pub materials: HashMap<String, Handle<StandardMaterial>>,
+}
+
 pub fn setup_tank(
     mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    team_materials: Res<TeamColorMaterialsResource>,
     tank: Query<(Entity, &InTeam), With<AwaitsSetup>>,
     children: Query<&Children>,
-    mat_query: Query<(&MeshMaterial3d<StandardMaterial>, &GltfMaterialName)>,
-    game_start: Res<GameStarts>,
+    mat_query: Query<&GltfMaterialName, With<MeshMaterial3d<StandardMaterial>>>,
 ) {
     for (awaits_setup_entity, in_team) in tank.iter() {
-        let team_color = game_start
-            .team_configs
-            .get(&in_team.0)
-            .map(|config| Color::from(config.color.clone()))
-            .unwrap_or(WHITE.into());
+        let team_name = in_team.0.clone();
+        let team_color = team_materials
+            .materials
+            .get(&team_name)
+            .expect("Failed to get team color material");
 
         for child in children.iter_descendants(awaits_setup_entity) {
-            if let Ok((mat_handle, material_name)) = mat_query.get(child) {
+            if let Ok(material_name) = mat_query.get(child) {
                 if material_name.0 != "TeamColor" {
                     continue;
                 }
 
-                if let Some(material) = materials.get_mut(mat_handle.id()) {
-                    material.base_color = team_color;
+                commands.entity(awaits_setup_entity).remove::<AwaitsSetup>();
 
-                    commands.entity(awaits_setup_entity).remove::<AwaitsSetup>();
+                let material = team_color.clone();
+                commands.entity(child).insert(MeshMaterial3d(material));
 
-                    return;
-                }
+                return;
             }
         }
     }
