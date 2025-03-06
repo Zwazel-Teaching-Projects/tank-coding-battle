@@ -66,7 +66,7 @@
                 RIGHT: 0.2,
             },
             respawnTimer: 25,
-            model: "light_tank",
+            model: "heavy_tank",
         ),
         SELF_PROPELLED_ARTILLERY: (
             moveSpeed: 0.1,
