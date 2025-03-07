@@ -40,7 +40,7 @@ pub fn setup_flags(
                         InTeam(team.clone()),
                         InLobby(lobby_id),
                         FlagMarker(flag_number),
-                        FlagState::Carried(Entity::PLACEHOLDER),
+                        FlagState::InBase,
                         WantedTransform(Transform::from_translation(marker_position)),
                         Collider {
                             half_size: Vec3::new(0.25, 0.5, 0.25),
