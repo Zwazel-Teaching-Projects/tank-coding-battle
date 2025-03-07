@@ -46,7 +46,7 @@
         markers: [
             // First Team
             (
-                tile: (x: 5, y: 4),
+                tile: (x: 2, y: 10),
                 group: "Red",
                 kind: (
                     type: "FlagBase",

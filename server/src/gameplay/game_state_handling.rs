@@ -1,6 +1,7 @@
 use bevy::{prelude::*, utils::hashbrown::HashSet};
 use shared::{
     game::{
+        collision_handling::components::Collider,
         flag::{FlagMarker, FlagState},
         game_state::{ClientState, FlagGameState, PersonalizedClientGameState, ProjectileState},
         player_handling::{Health, PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker},
@@ -35,7 +36,7 @@ pub fn update_lobby_state(
     )>,
     turrets: Query<&Transform, With<TankTurretMarker>>,
     projectiles: Query<(&Transform, &ProjectileMarker)>,
-    flags: Query<(&Transform, &FlagState, &InTeam), With<FlagMarker>>,
+    flags: Query<(&Transform, &FlagState, &InTeam, &FlagMarker, &Collider)>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
@@ -112,7 +113,7 @@ pub fn update_lobby_state(
         .flags
         .retain(|entity, _| flag_entities.contains(entity));
     for flag_entity in flag_entities.iter() {
-        let (flag_transform, flag_state, in_team) =
+        let (flag_transform, flag_state, in_team, flag_marker, flag_collider) =
             flags.get(*flag_entity).expect("Failed to get flag");
 
         lobby_game_state
@@ -127,6 +128,8 @@ pub fn update_lobby_state(
                 transform: flag_transform.clone(),
                 state: flag_state.clone(),
                 team: in_team.0.clone(),
+                flag_number: flag_marker.0,
+                collider_size: flag_collider.half_size * 2.0,
             });
     }
 

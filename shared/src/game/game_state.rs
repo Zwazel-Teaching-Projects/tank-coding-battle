@@ -160,22 +160,28 @@ impl ProjectileState {
 #[serde(rename_all = "camelCase")]
 pub struct FlagGameState {
     pub flag_id: Entity,
+    pub flag_number: usize,
     pub team: String,
     pub transform: Transform,
+    pub collider_size: Vec3,
     pub state: super::flag::FlagState,
 }
 
 impl FlagGameState {
     pub fn new(
         flag_id: Entity,
+        flag_number: usize,
         team: String,
         transform: Transform,
+        collider_size: Vec3,
         state: super::flag::FlagState,
     ) -> Self {
         FlagGameState {
             flag_id,
+            flag_number,
             team,
             transform,
+            collider_size,
             state,
         }
     }

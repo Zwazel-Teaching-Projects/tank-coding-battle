@@ -9,6 +9,7 @@ pub mod game_starts;
 pub mod player_handling;
 pub mod projectile_handling;
 pub mod smooth_transform_handling;
+pub mod flag_handling;
 
 pub struct MyGameHandlingPlugin;
 
@@ -31,6 +32,7 @@ fn add_observers(trigger: Trigger<OnAdd, MyNetworkStream>, mut commands: Command
         .observe(game_starts::game_starts)
         .observe(player_handling::update_player_state_on_game_state_update)
         .observe(projectile_handling::handle_projectile_on_game_state_update)
+        .observe(flag_handling::update_flag_state_on_game_state_update)
         .observe(despawn_delayed::despawn_delayed_entites);
 }
 
