@@ -23,8 +23,9 @@ use shared::{
 
 use crate::networking::handle_clients::lib::MyNetworkClient;
 
-use super::handle_players::{
-    dummy_handling::DummyClientMarker, handle_spawning::RespawnPlayerTrigger,
+use super::{
+    capture_the_flag::triggers::InitAllFlagsTrigger,
+    handle_players::{dummy_handling::DummyClientMarker, handle_spawning::RespawnPlayerTrigger},
 };
 
 #[derive(Debug, Event)]
@@ -210,6 +211,8 @@ pub fn start_lobby(
         .as_ref()
         .expect("Failed to get map config")
         .teams;
+
+    commands.trigger_targets(InitAllFlagsTrigger, lobby_entity);
 
     let server_config = server_config.server_config();
     let tank_configs = tank_config.tank_configs();

@@ -1,17 +1,21 @@
 use bevy::prelude::*;
+use capture_the_flag::MyCaptureTheFlagPlugin;
 use handle_collisions::MyCollisionHandlingPlugin;
 use handle_players::HandlePlayersPlugin;
 use lobby_cleanup::CleanupNextTick;
+use setup_map::MySetupMapPlugin;
 use shared::networking::lobby_management::MyLobby;
 use system_sets::MyGameplaySet;
 use tick_systems::TickSystemsPlugin;
 
+pub mod capture_the_flag;
 pub mod game_state_handling;
 pub mod handle_collisions;
 pub mod handle_players;
 pub mod lobby_cleanup;
 pub mod process_messages;
 pub mod process_messages_when_lobby_not_ready;
+pub mod setup_map;
 pub mod start_lobby;
 pub mod system_sets;
 mod tick_systems;
@@ -44,6 +48,8 @@ impl Plugin for MyGameplayPlugin {
                 TickSystemsPlugin,
                 HandlePlayersPlugin,
                 MyCollisionHandlingPlugin,
+                MyCaptureTheFlagPlugin,
+                MySetupMapPlugin,
             ))
             .add_systems(
                 Update,

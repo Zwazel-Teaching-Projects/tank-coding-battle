@@ -56,7 +56,7 @@ pub fn handle_tank_shooting_command(
                     speed: tank_config.projectile_speed,
                     just_spawned: true,
                 },
-                CollisionLayer::new(&[0])
+                CollisionLayer::player()
                     .with_ignore(EntityHashSet::from_iter(vec![client_entity, turret_entity])),
                 in_lobby.clone(),
             ))

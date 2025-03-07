@@ -29,8 +29,7 @@ pub fn draw_markers(mut my_gizmos: Gizmos<MyMarkerGizmos>, game_config: Res<Game
             MarkerType::Spawn { .. } => {
                 my_gizmos.circle(Isometry3d::new(position, rotation), 0.5, color);
             }
-            // TODO: This should be a tracked object, as it can move. the marker in the map definition only defines the initial position
-            MarkerType::FlagBase => {
+            MarkerType::FlagBase { .. } => {
                 let height = 0.5;
                 let width = 0.25;
                 my_gizmos.primitive_3d(

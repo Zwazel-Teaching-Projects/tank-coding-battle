@@ -391,7 +391,8 @@ pub enum MarkerType {
         spawn_number: usize,
         look_direction: LookDirection,
     },
-    FlagBase,
+    #[serde(rename_all = "camelCase")]
+    FlagBase { flag_number: usize },
 }
 
 impl Default for MarkerType {

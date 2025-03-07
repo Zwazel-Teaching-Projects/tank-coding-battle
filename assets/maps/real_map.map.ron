@@ -101,6 +101,7 @@
                 group: "Red",
                 kind: (
                     type: "FlagBase",
+                    flagNumber: 0,
                 ),
             ),
             (
@@ -163,6 +164,7 @@
                 group: "Blue",
                 kind: (
                     type: "FlagBase",
+                    flagNumber: 0,
                 ),
             ),
             (
