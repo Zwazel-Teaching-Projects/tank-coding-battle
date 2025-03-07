@@ -5,7 +5,6 @@ use shared::{
     game::{
         collision_handling::components::WantedTransform,
         player_handling::{Health, TankBodyMarker, TankTurretMarker},
-        tank_types::TankType,
     },
     networking::{lobby_management::InTeam, messages::message_container::GameStartsTrigger},
 };
@@ -15,7 +14,6 @@ use crate::{game_handling::entity_mapping::MyEntityMapping, VisualOffset};
 pub fn create_player_visualisation(
     trigger: Trigger<GameStartsTrigger>,
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
     mut entity_mapping: ResMut<MyEntityMapping>,
@@ -112,7 +110,7 @@ pub fn setup_tank(
     team_materials: Res<TeamColorMaterialsResource>,
     mut tank: Query<(Entity, &mut TankBodyMarker, &InTeam), With<AwaitsSetup>>,
     children: Query<&Children>,
-    names: Query<&Name>,
+    tank_turret: Query<(&Name, &Transform)>,
     mat_query: Query<&GltfMaterialName, With<MeshMaterial3d<StandardMaterial>>>,
 ) {
     for (awaits_setup_entity, mut tank_body, in_team) in tank.iter_mut() {
@@ -137,13 +135,13 @@ pub fn setup_tank(
             }
 
             // Inserting marker component for the turret
-            if let Ok(name) = names.get(child) {
+            if let Ok((name, transform)) = tank_turret.get(child) {
                 if **name == *"Turret" {
                     commands.entity(child).insert((
                         TankTurretMarker {
                             body: awaits_setup_entity,
                         },
-                        WantedTransform::default(),
+                        WantedTransform(*transform),
                     ));
 
                     tank_body.turret = Some(child);
