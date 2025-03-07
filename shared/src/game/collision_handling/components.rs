@@ -28,8 +28,9 @@ pub struct CollisionLayer {
 impl CollisionLayer {
     pub const ALL: u32 = u32::MAX;
 
-    pub const PLAYER: u32 = 0;
-    pub const FLAG: u32 = 1;
+    pub const NO_COLLISION: u32 = 0;
+    pub const PLAYER: u32 = 1;
+    pub const FLAG: u32 = 2;
 
     /// Create a collision layer from a list of layer indices.
     /// Each index in the list will be set as a bit in the mask.
@@ -49,6 +50,10 @@ impl CollisionLayer {
     /// Create a collision layer for player
     pub fn player() -> Self {
         Self::new(&[Self::PLAYER])
+    }
+
+    pub fn none() -> Self {
+        Self::new(&[Self::NO_COLLISION])
     }
 
     pub fn with_ignore(mut self, ignore: EntityHashSet) -> Self {
