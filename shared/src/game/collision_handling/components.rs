@@ -23,8 +23,6 @@ pub struct CollisionLayer {
     pub mask: u32,
     /// Collection of entities that this entity should ignore collisions with.
     pub ignore: EntityHashSet,
-    /// If it only registers collisions with entities that are in the same layer, but not stopping them.
-    pub trigger: bool,
 }
 
 impl CollisionLayer {
@@ -40,13 +38,12 @@ impl CollisionLayer {
         Self {
             mask,
             ignore: EntityHashSet::default(),
-            trigger: false,
         }
     }
 
     /// Create a collision layer for flag
     pub fn flag() -> Self {
-        Self::new(&[Self::FLAG]).with_is_trigger(true)
+        Self::new(&[Self::FLAG])
     }
 
     /// Create a collision layer for player
@@ -59,13 +56,10 @@ impl CollisionLayer {
         self
     }
 
-    pub fn with_is_trigger(mut self, trigger: bool) -> Self {
-        self.trigger = trigger;
-        self
-    }
-
     pub fn with_additinal_layers(mut self, layers: &[u32]) -> Self {
-        let mask = layers.iter().fold(self.mask, |acc, &layer| acc | (1 << layer));
+        let mask = layers
+            .iter()
+            .fold(self.mask, |acc, &layer| acc | (1 << layer));
         self.mask = mask;
         self
     }
