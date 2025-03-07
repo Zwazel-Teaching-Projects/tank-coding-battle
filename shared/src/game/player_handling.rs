@@ -86,7 +86,7 @@ pub fn setup_tank_body(
             half_size: tank_config.size / 2.0,
             max_slope: tank_config.max_slope,
         },
-        CollisionLayer::new(&[0]),
+        CollisionLayer::player().with_additinal_layers(&[CollisionLayer::FLAG]),
         ShootCooldown {
             ticks_left: 0,
             ticks_cooldown: tank_config.shoot_cooldown,
