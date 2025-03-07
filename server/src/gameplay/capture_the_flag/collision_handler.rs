@@ -26,7 +26,7 @@ pub fn handle_collision_with_flag(
                 *flag_state = FlagState::Carried(carrier_entity);
                 *collision_layer = CollisionLayer::none();
             } else {
-                warn!("Flag {:?} collided with a tank from the same team while in base, this should be ignored and never happen", flag_entity);
+                warn!("Flag {:?} collided with a tank from the same team while in base, this should never happen", flag_entity);
             }
         }
         FlagState::Carried(entity) => {
