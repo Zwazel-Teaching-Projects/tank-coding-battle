@@ -21,5 +21,12 @@ server = [
     "bevy/bevy_color",
     "bevy/serialize",
     "bevy/multi_threaded",
+    "bevy/file_watcher",
 ]
-debug = ["bevy/default", "bevy-inspector-egui", "shared/debug", "bevy_flycam"]
+debug = [
+    "bevy/default",
+    "bevy-inspector-egui",
+    "shared/debug",
+    "bevy_flycam",
+    "bevy/bevy_dev_tools",
+]

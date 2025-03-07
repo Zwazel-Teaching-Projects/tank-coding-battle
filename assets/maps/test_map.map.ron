@@ -49,7 +49,7 @@
                 tile: (x: 5, y: 4),
                 group: "Red",
                 kind: (
-                    type: "Flag",
+                    type: "FlagBase",
                 ),
             ),
             (
@@ -75,7 +75,7 @@
                 tile: (x: 9, y: 0),
                 group: "Blue",
                 kind: (
-                    type: "Flag",
+                    type: "FlagBase",
                 ),
             ),
             (

@@ -31,7 +31,7 @@ rand = "0.9.0"
 
 [features]
 default = ["debug"]
-debug = ["bevy/bevy_dev_tools", "bevy/file_watcher"]
+debug = []
 server = ["server/server"]
 server_debug = ["debug", "server", "server/debug"]
 spectator_client = ["spectator_client/spectator_client"]
