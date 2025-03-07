@@ -5,6 +5,7 @@ use shared::{
     game::{
         collision_handling::components::WantedTransform,
         player_handling::{Health, TankBodyMarker, TankTurretMarker},
+        tank_types::TankType,
     },
     networking::{lobby_management::InTeam, messages::message_container::GameStartsTrigger},
 };
@@ -62,6 +63,7 @@ pub fn create_player_visualisation(
                 Health::new(server_side_tank_config.max_health),
                 VisualOffset(Vec3::new(0.0, tank_y_visual_offset, 0.0)),
                 Visibility::Inherited,
+                TankBodyMarker { turret: None },
                 AwaitsSetup::default(),
             ))
             .with_children(|commands| {
@@ -83,39 +85,6 @@ pub fn create_player_visualisation(
                 ));
             })
             .id();
-
-        // Turret
-        let client_side_turret_entity = commands
-            .spawn((
-                Name::new("Turret Root"),
-                TankTurretMarker {
-                    body: client_side_tank_body_entity,
-                },
-                WantedTransform::default(),
-                VisualOffset(Vec3::new(0.0, tank_y_visual_offset, 0.0)),
-                Visibility::Inherited,
-            ))
-            .with_children(|commands| {
-                // Turret, placed a bit in front of the turret root. This is just for visualization.
-                // more rectangle, long not wide or tall
-                commands.spawn((
-                    Name::new("Turret"),
-                    Mesh3d(meshes.add(Cuboid::new(0.1, 0.1, 0.5))),
-                    MeshMaterial3d(materials.add(StandardMaterial {
-                        base_color: team_color,
-                        ..Default::default()
-                    })),
-                    Transform::from_translation(Vec3::new(0.0, 0.0, 0.25)),
-                ));
-            })
-            .id();
-
-        commands
-            .entity(client_side_tank_body_entity)
-            .insert((TankBodyMarker {
-                turret: Some(client_side_turret_entity),
-            },))
-            .add_child(client_side_turret_entity);
 
         entity_mapping.mapping.insert(
             server_side_client_config.client_id,
@@ -141,29 +110,51 @@ pub struct TeamColorMaterialsResource {
 pub fn setup_tank(
     mut commands: Commands,
     team_materials: Res<TeamColorMaterialsResource>,
-    tank: Query<(Entity, &InTeam), With<AwaitsSetup>>,
+    mut tank: Query<(Entity, &mut TankBodyMarker, &InTeam), With<AwaitsSetup>>,
     children: Query<&Children>,
+    names: Query<&Name>,
     mat_query: Query<&GltfMaterialName, With<MeshMaterial3d<StandardMaterial>>>,
 ) {
-    for (awaits_setup_entity, in_team) in tank.iter() {
+    for (awaits_setup_entity, mut tank_body, in_team) in tank.iter_mut() {
         let team_name = in_team.0.clone();
         let team_color = team_materials
             .materials
             .get(&team_name)
             .expect("Failed to get team color material");
 
+        let mut setup_color = false;
+        let mut setup_turret = false;
         for child in children.iter_descendants(awaits_setup_entity) {
+            // Updating the material of the tank body to match the team color
             if let Ok(material_name) = mat_query.get(child) {
                 if material_name.0 != "TeamColor" {
                     continue;
                 }
 
-                commands.entity(awaits_setup_entity).remove::<AwaitsSetup>();
-
                 let material = team_color.clone();
                 commands.entity(child).insert(MeshMaterial3d(material));
+                setup_color = true;
+            }
 
-                return;
+            // Inserting marker component for the turret
+            if let Ok(name) = names.get(child) {
+                if **name == *"Turret" {
+                    commands.entity(child).insert((
+                        TankTurretMarker {
+                            body: awaits_setup_entity,
+                        },
+                        WantedTransform::default(),
+                    ));
+
+                    tank_body.turret = Some(child);
+                    setup_turret = true;
+                }
+            }
+
+            if setup_color && setup_turret {
+                commands.entity(awaits_setup_entity).remove::<AwaitsSetup>();
+
+                break;
             }
         }
     }
