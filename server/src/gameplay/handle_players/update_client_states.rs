@@ -55,6 +55,12 @@ pub fn update_client_states(
                 return;
             }
         });
+    lobby_state.projectiles.iter().for_each(|(entity, state)| {
+        client_state.projectiles.insert(*entity, state.clone());
+    });
+    lobby_state.flags.iter().for_each(|(entity, state)| {
+        client_state.flags.insert(*entity, state.clone());
+    });
 
     // Copying the states of our teammates from the lobby state to the client state
     team_players.iter().for_each(|entity| {
@@ -69,6 +75,21 @@ pub fn update_client_states(
                     return;
                 }
             });
+        lobby_state
+            .projectiles
+            .iter()
+            .for_each(|(state_entity, state)| {
+                if state_entity == *entity {
+                    client_state.projectiles.insert(**entity, state.clone());
+                    return;
+                }
+            });
+        lobby_state.flags.iter().for_each(|(state_entity, state)| {
+            if state_entity == *entity {
+                client_state.flags.insert(**entity, state.clone());
+                return;
+            }
+        });
     });
 
     // TODO: Only partially copy the states of the enemies from the lobby state to the client state
@@ -85,6 +106,21 @@ pub fn update_client_states(
                     return;
                 }
             });
+        lobby_state
+            .projectiles
+            .iter()
+            .for_each(|(state_entity, state)| {
+                if state_entity == entity {
+                    client_state.projectiles.insert(*entity, state.clone());
+                    return;
+                }
+            });
+        lobby_state.flags.iter().for_each(|(state_entity, state)| {
+            if state_entity == entity {
+                client_state.flags.insert(*entity, state.clone());
+                return;
+            }
+        });
     });
 
     // Updating the tick

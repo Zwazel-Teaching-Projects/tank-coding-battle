@@ -3,7 +3,7 @@ use shared::{
     asset_handling::maps::MarkerType,
     game::{
         collision_handling::components::{Collider, CollisionLayer, WantedTransform},
-        flag::FlagMarker,
+        flag::{FlagMarker, FlagState},
     },
     networking::lobby_management::{InLobby, InTeam, MyLobby},
 };
@@ -13,11 +13,12 @@ use crate::gameplay::capture_the_flag::triggers::InitAllFlagsTrigger;
 pub fn setup_flags(
     trigger: Trigger<InitAllFlagsTrigger>,
     mut commands: Commands,
-    my_lobby: Query<&MyLobby>,
+    mut my_lobby: Query<&mut MyLobby>,
 ) {
     let lobby_id = trigger.entity();
-    let lobby = my_lobby.get(lobby_id).expect("Lobby not found");
+    let mut lobby = my_lobby.get_mut(lobby_id).expect("Lobby not found");
 
+    let mut new_flags = Vec::new();
     if let Some(map_config) = &lobby.map_config {
         let map = &map_config.map;
         map.markers.iter().for_each(|marker| {
@@ -33,20 +34,28 @@ pub fn setup_flags(
                     .players;
 
                 // Create flag entity
-                commands.spawn((
-                    InTeam(team.clone()),
-                    InLobby(lobby_id),
-                    FlagMarker(flag_number),
-                    WantedTransform(Transform::from_translation(marker_position)),
-                    Collider {
-                        half_size: Vec3::new(0.25, 0.5, 0.25),
-                        max_slope: 0.0,
-                    },
-                    // At start, it's considered to be in base, so teammembers should not collide with it
-                    CollisionLayer::flag()
-                        .with_ignore(EntityHashSet::from_iter(team_members.clone())),
-                ));
+                let new_flag = commands
+                    .spawn((
+                        Name::new(format!("Flag_{}_{}", team, flag_number)),
+                        InTeam(team.clone()),
+                        InLobby(lobby_id),
+                        FlagMarker(flag_number),
+                        FlagState::Carried(Entity::PLACEHOLDER),
+                        WantedTransform(Transform::from_translation(marker_position)),
+                        Collider {
+                            half_size: Vec3::new(0.25, 0.5, 0.25),
+                            max_slope: 0.0,
+                        },
+                        // At start, it's considered to be in base, so teammembers should not collide with it
+                        CollisionLayer::flag()
+                            .with_ignore(EntityHashSet::from_iter(team_members.clone())),
+                    ))
+                    .id();
+                new_flags.push(new_flag);
             }
         });
+    }
+    for flag in new_flags {
+        lobby.flags.push(flag);
     }
 }

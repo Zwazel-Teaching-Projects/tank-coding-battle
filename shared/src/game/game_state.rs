@@ -14,6 +14,7 @@ pub struct LobbyGameState {
     pub tick: u64,
     pub client_states: HashMap<Entity, ClientState>,
     pub projectiles: HashMap<Entity, ProjectileState>,
+    pub flags: HashMap<Entity, FlagGameState>,
 }
 
 impl From<LobbyGameState> for GameState {
@@ -26,6 +27,7 @@ impl From<LobbyGameState> for GameState {
                 .map(|(entity, client_state)| (entity, Some(client_state)))
                 .collect(),
             projectile_states: lobby_game_state.projectiles,
+            flag_states: lobby_game_state.flags,
         }
     }
 }
@@ -40,6 +42,7 @@ pub struct PersonalizedClientGameState {
     pub personal_state: ClientState,
     pub other_client_states: HashMap<Entity, Option<ClientState>>,
     pub projectiles: HashMap<Entity, ProjectileState>,
+    pub flags: HashMap<Entity, FlagGameState>,
 }
 
 impl PersonalizedClientGameState {
@@ -71,6 +74,7 @@ impl From<PersonalizedClientGameState> for GameState {
             tick: personalized_client_game_state.tick,
             client_states,
             projectile_states: personalized_client_game_state.projectiles,
+            flag_states: personalized_client_game_state.flags,
         }
     }
 }
@@ -148,6 +152,31 @@ impl ProjectileState {
             projectile_id,
             owner_id,
             transform,
+        }
+    }
+}
+
+#[derive(Debug, Reflect, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct FlagGameState {
+    pub flag_id: Entity,
+    pub team: String,
+    pub transform: Transform,
+    pub state: super::flag::FlagState,
+}
+
+impl FlagGameState {
+    pub fn new(
+        flag_id: Entity,
+        team: String,
+        transform: Transform,
+        state: super::flag::FlagState,
+    ) -> Self {
+        FlagGameState {
+            flag_id,
+            team,
+            transform,
+            state,
         }
     }
 }
