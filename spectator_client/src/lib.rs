@@ -41,7 +41,8 @@ impl Plugin for MySpectatorClientPlugin {
         .add_sub_state::<MyGameState>()
         .enable_state_scoped_entities::<MyGameState>()
         .register_type::<MyEntityMapping>()
-        .init_resource::<MyEntityMapping>();
+        .init_resource::<MyEntityMapping>()
+        .register_type::<VisualOffset>();
 
         #[cfg(feature = "debug")]
         {
@@ -71,3 +72,7 @@ fn change_camera_transform(
     let center_of_map = game_config.map_definition.get_center_of_map();
     camera_transform.look_at(center_of_map, Vec3::Y);
 }
+
+#[derive(Debug, Component, Reflect, Default, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct VisualOffset(pub Vec3);

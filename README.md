@@ -53,3 +53,6 @@ The project is split into multiple members.
     - Smoke: low damage, high splash, low visibility (great for cover)
 - Generally bad vision
   - Depends much on the vision of other units
+
+# Credit
+- Tank Models made by Alexander Siegmann

@@ -23,8 +23,9 @@ use shared::{
 
 use crate::networking::handle_clients::lib::MyNetworkClient;
 
-use super::handle_players::{
-    dummy_handling::DummyClientMarker, handle_spawning::RespawnPlayerTrigger,
+use super::{
+    handle_players::{dummy_handling::DummyClientMarker, handle_spawning::RespawnPlayerTrigger},
+    LobbyWaitTicksUntilStart,
 };
 
 #[derive(Debug, Event)]
@@ -244,6 +245,10 @@ pub fn start_lobby(
                         tank_configs: tank_configs.tanks.clone(),
                     }),
                 ));
+
+                commands
+                    .entity(lobby_entity)
+                    .insert(LobbyWaitTicksUntilStart::default());
             }
 
             lobby_management

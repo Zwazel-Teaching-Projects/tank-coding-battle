@@ -16,3 +16,5 @@ serde_json = { workspace = true }
 default = ["shared", "debug"]
 shared = ["bevy/serialize"]
 debug = []
+server = []
+spectator_client = []

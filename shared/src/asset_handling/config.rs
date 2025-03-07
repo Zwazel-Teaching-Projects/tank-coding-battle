@@ -5,6 +5,7 @@ use bevy_asset_loader::{
         config::{ConfigureLoadingState, LoadingStateConfig},
         LoadingStateAppExt,
     },
+    mapped::AssetFileStem,
 };
 use bevy_common_assets::ron::RonAssetPlugin;
 use serde::{Deserialize, Serialize};
@@ -43,6 +44,10 @@ struct MyConfigAsset {
     client: Handle<ClientConfig>,
     #[asset(path = "config/config.tanks.ron")]
     tank: Handle<TankConfigs>,
+    #[cfg(feature = "spectator_client")]
+    #[reflect(ignore)]
+    #[asset(path = "models/tanks/exported", collection(mapped, typed))]
+    tank_models: HashMap<AssetFileStem, Handle<Gltf>>,
 }
 
 #[derive(Debug, Default, Reflect, Clone, Asset, Deserialize)]
@@ -102,6 +107,10 @@ pub struct TankConfig {
     pub armor: HashMap<Side, f32>,
     /// The time in ticks it takes for the tank to respawn after dying
     pub respawn_timer: u32,
+    #[cfg(feature = "spectator_client")]
+    /// The model of the tank
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub model: String,
 }
 
 #[derive(SystemParam)]
@@ -153,5 +162,15 @@ impl<'w> TankConfigSystemParam<'w> {
         self.tank_configs
             .get(self.config_asset.tank.id())
             .expect("Tank configs not loaded")
+    }
+
+    #[cfg(feature = "spectator_client")]
+    pub fn get_tank_model(&self, model: &str) -> Handle<Gltf> {
+        self.config_asset
+            .tank_models
+            .iter()
+            .find(|(stem, _)| stem.as_ref() == model)
+            .map(|(_, handle)| handle.clone())
+            .expect("Failed to get tank model")
     }
 }

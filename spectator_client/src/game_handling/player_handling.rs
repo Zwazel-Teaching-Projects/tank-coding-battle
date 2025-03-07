@@ -7,6 +7,8 @@ use shared::{
     networking::messages::message_container::GameStateTrigger,
 };
 
+use crate::VisualOffset;
+
 use super::entity_mapping::MyEntityMapping;
 
 pub fn update_player_state_on_game_state_update(
@@ -20,6 +22,7 @@ pub fn update_player_state_on_game_state_update(
             &mut ShootCooldown,
             &mut PlayerState,
             &TankBodyMarker,
+            &VisualOffset,
         ),
         Without<TankTurretMarker>,
     >,
@@ -37,6 +40,7 @@ pub fn update_player_state_on_game_state_update(
                 mut shoot_cooldown,
                 mut player_state,
                 tank_body,
+                body_visual_offset,
             )) = tank_body.get_mut(client_side_entity)
             {
                 health.health = server_side_client_state
@@ -56,12 +60,13 @@ pub fn update_player_state_on_game_state_update(
                     .clone();
 
                 // TRANSFORM UPDATES
-                let new_body_transform = server_side_client_state
+                let mut new_body_transform = server_side_client_state
                     .as_ref()
                     .expect("Client state is missing")
                     .transform_body
                     .clone()
                     .expect("Position is missing");
+                new_body_transform.translation -= body_visual_offset.0;
 
                 // Setting the actual current body transform to the next target body transform (the one that was previously set)
                 current_body_transform.translation = next_target_body_transform.translation;
@@ -71,15 +76,16 @@ pub fn update_player_state_on_game_state_update(
                 next_target_body_transform.translation = new_body_transform.translation;
                 next_target_body_transform.rotation = new_body_transform.rotation;
 
+                let (mut current_turret_transform, mut next_target_turret_transform) = tank_turret
+                    .get_mut(tank_body.turret.expect("Failed to get turret entity"))
+                    .expect("Failed to get turret");
+
                 let new_turret_transform = server_side_client_state
                     .as_ref()
                     .expect("Client state is missing")
                     .transform_turret
                     .clone()
                     .expect("Position is missing");
-                let (mut current_turret_transform, mut next_target_turret_transform) = tank_turret
-                    .get_mut(tank_body.turret.expect("Failed to get turret entity"))
-                    .expect("Failed to get turret");
 
                 current_turret_transform.translation = next_target_turret_transform.translation;
                 current_turret_transform.rotation = next_target_turret_transform.rotation;

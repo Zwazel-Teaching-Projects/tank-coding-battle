@@ -22,6 +22,7 @@ pub struct MyGameplayPlugin;
 impl Plugin for MyGameplayPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<CleanupNextTick>()
+            .register_type::<LobbyWaitTicksUntilStart>()
             .configure_sets(
                 Update,
                 (
@@ -68,4 +69,14 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .observe(start_lobby::start_lobby)
         .observe(process_messages::process_lobby_messages)
         .observe(lobby_cleanup::cleanup_entities);
+}
+
+#[derive(Debug, Component, Reflect, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct LobbyWaitTicksUntilStart(pub u32);
+
+impl Default for LobbyWaitTicksUntilStart {
+    fn default() -> Self {
+        Self(1)
+    }
 }
