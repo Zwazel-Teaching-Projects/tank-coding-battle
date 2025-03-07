@@ -391,7 +391,7 @@ pub enum MarkerType {
         spawn_number: usize,
         look_direction: LookDirection,
     },
-    Flag,
+    FlagBase,
 }
 
 impl Default for MarkerType {
