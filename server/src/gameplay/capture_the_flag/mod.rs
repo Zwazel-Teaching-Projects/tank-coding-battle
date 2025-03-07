@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use shared::{game::flag::FlagMarker, networking::lobby_management::MyLobby};
 
 pub mod collision_handler;
+pub mod follow_carrier;
 pub mod reset_flags;
 pub mod triggers;
 
@@ -17,7 +18,8 @@ impl Plugin for MyCaptureTheFlagPlugin {
 fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
     commands
         .entity(trigger.entity())
-        .observe(reset_flags::reset_flags);
+        .observe(reset_flags::reset_flags)
+        .observe(follow_carrier::follow_carrier);
 }
 
 fn add_observers_to_flag(trigger: Trigger<OnAdd, FlagMarker>, mut commands: Commands) {

@@ -25,9 +25,7 @@ use shared::{
 use crate::gameplay::{
     lobby_cleanup::CleanupNextTick,
     triggers::{
-        CheckForCollisionsTrigger, DespawnOutOfBoundsProjectilesTrigger,
-        MovePorjectilesSimulationStepTrigger, StartNextTickProcessingTrigger,
-        UpdateLobbyGameStateTrigger,
+        CheckForCollisionsTrigger, DespawnOutOfBoundsProjectilesTrigger, MoveFlagsSimulationStepTrigger, MovePorjectilesSimulationStepTrigger, StartNextTickProcessingTrigger, UpdateLobbyGameStateTrigger
     },
 };
 
@@ -230,7 +228,7 @@ pub fn despawn_out_of_bounds(
         }
     }
 
-    commands.trigger_targets(UpdateLobbyGameStateTrigger, lobby_entity);
+    commands.trigger_targets(MoveFlagsSimulationStepTrigger, lobby_entity);
 }
 
 pub fn despawn_projectile_on_collision_with_world(
