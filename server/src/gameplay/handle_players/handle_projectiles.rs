@@ -25,7 +25,9 @@ use shared::{
 use crate::gameplay::{
     lobby_cleanup::CleanupNextTick,
     triggers::{
-        CheckForCollisionsTrigger, DespawnOutOfBoundsProjectilesTrigger, MoveFlagsSimulationStepTrigger, MovePorjectilesSimulationStepTrigger, StartNextTickProcessingTrigger, UpdateLobbyGameStateTrigger
+        CheckForCollisionsTrigger, DespawnOutOfBoundsProjectilesTrigger,
+        MoveFlagsSimulationStepTrigger, MovePorjectilesSimulationStepTrigger,
+        StartNextTickProcessingTrigger,
     },
 };
 

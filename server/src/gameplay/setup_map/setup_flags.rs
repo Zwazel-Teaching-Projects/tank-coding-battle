@@ -2,7 +2,7 @@ use bevy::{ecs::entity::EntityHashSet, prelude::*};
 use shared::{
     asset_handling::maps::MarkerType,
     game::{
-        collision_handling::components::{Collider, CollisionLayer},
+        collision_handling::components::{Collider, CollisionLayer, WantedTransform},
         flag::{FlagMarker, FlagState},
     },
     networking::lobby_management::{InLobby, InTeam, MyLobby},
@@ -41,7 +41,7 @@ pub fn setup_flags(
                         InLobby(lobby_id),
                         FlagMarker(flag_number),
                         FlagState::InBase,
-                        Transform::from_translation(marker_position),
+                        WantedTransform(Transform::from_translation(marker_position)),
                         Collider {
                             half_size: Vec3::new(0.25, 0.5, 0.25),
                             max_slope: 0.0,

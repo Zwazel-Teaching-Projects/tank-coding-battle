@@ -29,11 +29,9 @@ pub fn handle_collision_with_flag(
                 warn!("Flag {:?} collided with a tank from the same team while in base, this should never happen", flag_entity);
             }
         }
-        FlagState::Carried(entity) => {
+        FlagState::Carried(_entity) => {
             unimplemented!("We should never be able to collide with a carried flag")
         }
         FlagState::Dropped => todo!(),
     }
-
-    println!("Flag {:?} collided with {:?}", flag_entity, trigger.entity);
 }

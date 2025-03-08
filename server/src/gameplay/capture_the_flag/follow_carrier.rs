@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use shared::{
     game::{
+        collision_handling::components::WantedTransform,
         flag::{FlagMarker, FlagState},
         player_handling::TankBodyMarker,
     },
@@ -13,14 +14,18 @@ pub fn follow_carrier(
     trigger: Trigger<MoveFlagsSimulationStepTrigger>,
     my_lobby: Query<&MyLobby>,
     tanks: Query<&Transform, (With<TankBodyMarker>, Without<FlagMarker>)>,
-    mut flags: Query<(&mut Transform, &FlagState), (With<FlagMarker>, Without<TankBodyMarker>)>,
+    mut flags: Query<
+        (&mut Transform, &mut WantedTransform, &FlagState),
+        (With<FlagMarker>, Without<TankBodyMarker>),
+    >,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
 
     let lobby = my_lobby.get(lobby_entity).expect("Lobby not found");
     for flag in lobby.flags.iter() {
-        let (mut transform, flag_state) = flags.get_mut(*flag).expect("Flag not found");
+        let (mut transform, mut wanted_transform, flag_state) =
+            flags.get_mut(*flag).expect("Flag not found");
 
         match flag_state {
             FlagState::Carried(carrier_entity) => {
@@ -28,6 +33,7 @@ pub fn follow_carrier(
 
                 transform.translation = carrier_transform.translation;
                 transform.rotation = carrier_transform.rotation;
+                wanted_transform.0 = transform.clone();
             }
             FlagState::InBase => {
                 // Do nothing
