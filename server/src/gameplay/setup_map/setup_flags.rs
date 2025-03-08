@@ -10,7 +10,7 @@ use shared::{
 
 use crate::gameplay::capture_the_flag::triggers::InitAllFlagsTrigger;
 
-const FLAG_BASE_HALF_SIZE: Vec3 = Vec3::new(0.5, 0.5, 0.5);
+const FLAG_BASE_HALF_SIZE: Vec3 = Vec3::new(0.25, 0.5, 0.25);
 const FLAG_HALF_SIZE: Vec3 = Vec3::new(0.25, 0.5, 0.25);
 
 pub fn setup_flags(
@@ -24,6 +24,7 @@ pub fn setup_flags(
     let mut new_bases = Vec::new();
     let mut new_flags = Vec::new();
     if let Some(map_config) = &lobby.map_config {
+        let team_names = map_config.get_team_names();
         let map = &map_config.map;
         map.markers.iter().for_each(|marker| {
             if let MarkerType::FlagBase { flag_number } = marker.kind {
@@ -31,24 +32,36 @@ pub fn setup_flags(
                     .get_real_world_position_of_tile(marker.tile.clone())
                     .expect("Failed to get real world position of tile");
 
-                let team = &marker.group;
+                let my_team = &marker.group;
                 let team_members = &map_config
-                    .get_team(team)
+                    .get_team(my_team)
                     .expect("Failed to get team")
                     .players;
+                let enemy_team_members = team_names
+                    .iter()
+                    .filter(|team_name| *team_name != my_team)
+                    .flat_map(|team_name| {
+                        map_config
+                            .get_team(team_name)
+                            .expect("Failed to get team")
+                            .players
+                            .clone()
+                    })
+                    .collect::<Vec<_>>();
 
                 // Create flag base entity
                 let new_base = commands
                     .spawn((
-                        Name::new(format!("FlagBase_{}_{}", team, flag_number)),
+                        Name::new(format!("FlagBase_{}_{}", my_team, flag_number)),
                         WantedTransform(Transform::from_translation(marker_position)),
                         Collider {
                             half_size: FLAG_BASE_HALF_SIZE,
                             max_slope: 0.0,
                         },
                         CollisionLayer::flag_base()
-                            .with_ignore(EntityHashSet::from_iter(team_members.clone())),
-                        InTeam(team.clone()),
+                            // Never interact with other flag bases, only with flags or my own flag base (to deliver enemy flag)
+                            .with_ignore(EntityHashSet::from_iter(enemy_team_members.clone())),
+                        InTeam(my_team.clone()),
                         InLobby(lobby_id),
                     ))
                     .id();
@@ -57,8 +70,8 @@ pub fn setup_flags(
                 // Create flag entity
                 let new_flag = commands
                     .spawn((
-                        Name::new(format!("Flag_{}_{}", team, flag_number)),
-                        InTeam(team.clone()),
+                        Name::new(format!("Flag_{}_{}", my_team, flag_number)),
+                        InTeam(my_team.clone()),
                         InLobby(lobby_id),
                         FlagMarker { base: new_base },
                         FlagState::InBase,

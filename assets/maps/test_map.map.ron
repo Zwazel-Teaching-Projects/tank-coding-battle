@@ -54,7 +54,7 @@
                 ),
             ),
             (
-                tile: (x: 2, y: 2),
+                tile: (x: 4, y: 9),
                 group: "Red",
                 kind: (
                     type: "Spawn",
@@ -73,7 +73,7 @@
             ),
             // Second Team
             (
-                tile: (x: 3, y: 10),
+                tile: (x: 4, y: 10),
                 group: "Blue",
                 kind: (
                     type: "FlagBase",
@@ -81,7 +81,7 @@
                 ),
             ),
             (
-                tile: (x: 1, y: 9),
+                tile: (x: 1, y: 10),
                 group: "Blue",
                 kind: (
                     type: "Spawn",

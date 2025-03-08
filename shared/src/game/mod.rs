@@ -36,6 +36,7 @@ impl Plugin for MySharedGamePlugin {
             .register_type::<flag::FlagMarker>()
             .register_type::<flag::FlagState>()
             .register_type::<flag::FlagBaseMarker>()
+            .register_type::<flag::FlagCarrier>()
             .add_plugins((MyCollisionHandlingPlugin,))
             .add_systems(
                 Update,

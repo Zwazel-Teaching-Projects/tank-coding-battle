@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use shared::game::{
     collision_handling::components::CollisionLayer,
-    flag::{FlagMarker, FlagState},
+    flag::{FlagCarrier, FlagMarker, FlagState},
 };
 
 use super::triggers::FlagGotDroppedTrigger;
@@ -11,6 +11,7 @@ pub fn flag_dropped(
     trigger: Trigger<FlagGotDroppedTrigger>,
     mut flags: Query<(&mut FlagState, &mut CollisionLayer), With<FlagMarker>>,
     mut player_collision_layer: Query<&mut CollisionLayer, Without<FlagMarker>>,
+    mut commands: Commands,
 ) {
     let _lobby_entity = trigger.entity();
     let flag_entity = trigger.flag;
@@ -26,4 +27,6 @@ pub fn flag_dropped(
         .get_mut(carrier_entity)
         .expect("Player not found");
     player_collision_layer.remove_layer(CollisionLayer::FLAG_BASE);
+
+    commands.entity(carrier_entity).remove::<FlagCarrier>();
 }

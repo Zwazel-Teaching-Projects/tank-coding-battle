@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use shared::game::{
     collision_handling::components::CollisionLayer,
-    flag::{FlagBaseMarker, FlagMarker, FlagState},
+    flag::{FlagBaseMarker, FlagCarrier, FlagMarker, FlagState},
     player_handling::TankBodyMarker,
 };
 
@@ -19,6 +19,7 @@ pub fn flag_picked_up(
         &mut CollisionLayer,
         (With<TankBodyMarker>, Without<FlagMarker>),
     >,
+    mut commands: Commands,
 ) {
     let _lobby_entity = trigger.entity();
     let flag_entity = trigger.flag;
@@ -40,4 +41,8 @@ pub fn flag_picked_up(
 
     *flag_state = FlagState::Carried(picker_entity);
     *collision_layer = CollisionLayer::none(); // Can not collide with anything while carried
+
+    commands
+        .entity(picker_entity)
+        .insert(FlagCarrier { flag: flag_entity });
 }

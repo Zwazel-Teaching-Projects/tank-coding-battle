@@ -15,6 +15,12 @@ pub struct FlagMarker {
     pub base: Entity,
 }
 
+#[derive(Debug, Clone, Reflect, Component, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct FlagCarrier {
+    pub flag: Entity,
+}
+
 #[derive(Debug, Clone, Default, Reflect, Component, Serialize, Deserialize, PartialEq)]
 #[reflect(Component)]
 #[serde(rename_all = "PascalCase", tag = "state", content = "entityId")]
