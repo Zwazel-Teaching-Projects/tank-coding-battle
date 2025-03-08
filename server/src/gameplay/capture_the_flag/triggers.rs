@@ -12,11 +12,14 @@ pub struct FlagGotPickedUpTrigger {
     /// Used to check if the flag was picked up by a player in the flag's team.
     /// If it was, the flag will be reset.
     /// If it wasn't, the flag will follow the player.
-    pub picker: Entity,
+    pub carrier: Entity,
     pub flag: Entity,
 }
 
 #[derive(Debug, Clone, Reflect, Event)]
 pub struct FlagGotDroppedTrigger {
+    /// The entity that dropped the flag.
+    pub carrier: Entity,
+    /// The entity of the flag that was dropped.
     pub flag: Entity,
 }

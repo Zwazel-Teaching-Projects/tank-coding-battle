@@ -1,5 +1,8 @@
 use bevy::prelude::*;
-use shared::{game::flag::FlagMarker, networking::lobby_management::MyLobby};
+use shared::{
+    game::flag::{FlagBaseMarker, FlagMarker},
+    networking::lobby_management::MyLobby,
+};
 
 pub mod collision_handler;
 pub mod follow_carrier;
@@ -13,7 +16,8 @@ pub struct MyCaptureTheFlagPlugin;
 impl Plugin for MyCaptureTheFlagPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(add_observers_to_lobby)
-            .add_observer(add_observers_to_flag);
+            .add_observer(add_observers_to_flag)
+            .add_observer(add_observers_to_flag_base);
     }
 }
 
@@ -30,4 +34,10 @@ fn add_observers_to_flag(trigger: Trigger<OnAdd, FlagMarker>, mut commands: Comm
         .entity(trigger.entity())
         .observe(collision_handler::handle_collision_with_flag)
         .observe(reset_flags::reset_flag);
+}
+
+fn add_observers_to_flag_base(trigger: Trigger<OnAdd, FlagBaseMarker>, mut commands: Commands) {
+    commands
+        .entity(trigger.entity())
+        .observe(collision_handler::handle_collision_with_flag_base);
 }

@@ -29,7 +29,13 @@ pub fn client_died(
         let flag_state = flags.get(*flag).expect("Flag not found");
         if let FlagState::Carried(carrier_entity) = *flag_state {
             if carrier_entity == player_entity {
-                commands.trigger_targets(FlagGotDroppedTrigger { flag: *flag }, lobby_entity);
+                commands.trigger_targets(
+                    FlagGotDroppedTrigger {
+                        flag: *flag,
+                        carrier: carrier_entity,
+                    },
+                    lobby_entity,
+                );
             }
 
             return;

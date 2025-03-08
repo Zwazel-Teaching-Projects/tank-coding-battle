@@ -28,7 +28,7 @@ pub fn handle_collision_with_flag(
             if !carrier_is_in_flag_team {
                 commands.trigger_targets(
                     FlagGotPickedUpTrigger {
-                        picker: carrier_entity,
+                        carrier: carrier_entity,
                         flag: flag_entity,
                     },
                     **in_lobby,
@@ -46,7 +46,7 @@ pub fn handle_collision_with_flag(
             } else {
                 commands.trigger_targets(
                     FlagGotPickedUpTrigger {
-                        picker: carrier_entity,
+                        carrier: carrier_entity,
                         flag: flag_entity,
                     },
                     **in_lobby,
@@ -54,4 +54,16 @@ pub fn handle_collision_with_flag(
             }
         }
     }
+}
+
+pub fn handle_collision_with_flag_base(trigger: Trigger<CollidedWithTrigger>) {
+    let flag_base_entity = trigger.entity();
+    let collider_entity = trigger.entity;
+
+    warn!(
+        "Flag base {:?} collided with collider {:?}. Checking if return flag",
+        flag_base_entity, collider_entity
+    );
+
+    // Check if the collider is a player carrying a flag, if so, check if this is the flags base, if so, return the flag to the base.
 }
