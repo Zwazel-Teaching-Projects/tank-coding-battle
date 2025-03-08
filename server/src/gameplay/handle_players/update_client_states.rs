@@ -90,6 +90,15 @@ pub fn update_client_states(
                 return;
             }
         });
+        lobby_state
+            .flag_bases
+            .iter()
+            .for_each(|(state_entity, state)| {
+                if state_entity == *entity {
+                    client_state.flag_bases.insert(**entity, state.clone());
+                    return;
+                }
+            });
     });
 
     // TODO: Only partially copy the states of the enemies from the lobby state to the client state

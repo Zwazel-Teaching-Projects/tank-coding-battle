@@ -74,7 +74,7 @@ pub fn respawn_player(
         *player_state = PlayerState::Alive;
         health.health = health.max_health;
 
-        *collision_layer = CollisionLayer::player().with_additinal_layers(&[CollisionLayer::FLAG]);
+        *collision_layer = CollisionLayer::player().with_additional_layers(&[CollisionLayer::FLAG]);
 
         commands.entity(entity).remove::<RespawnTimer>();
 

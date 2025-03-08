@@ -31,6 +31,7 @@ impl CollisionLayer {
     pub const NO_COLLISION: u32 = 0;
     pub const PLAYER: u32 = 1;
     pub const FLAG: u32 = 2;
+    pub const FLAG_BASE: u32 = 3;
 
     /// Create a collision layer from a list of layer indices.
     /// Each index in the list will be set as a bit in the mask.
@@ -47,6 +48,11 @@ impl CollisionLayer {
         Self::new(&[Self::FLAG])
     }
 
+    /// Create a collision layer for flag base
+    pub fn flag_base() -> Self {
+        Self::new(&[Self::FLAG_BASE])
+    }
+
     /// Create a collision layer for player
     pub fn player() -> Self {
         Self::new(&[Self::PLAYER])
@@ -61,7 +67,7 @@ impl CollisionLayer {
         self
     }
 
-    pub fn with_additinal_layers(mut self, layers: &[u32]) -> Self {
+    pub fn with_additional_layers(mut self, layers: &[u32]) -> Self {
         let mask = layers
             .iter()
             .fold(self.mask, |acc, &layer| acc | (1 << layer));

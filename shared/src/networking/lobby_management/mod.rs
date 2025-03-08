@@ -106,6 +106,7 @@ pub struct MyLobby {
     pub spectators: Vec<Entity>,
     pub projectiles: Vec<Entity>,
     pub flags: Vec<Entity>,
+    pub flag_bases: Vec<Entity>,
 
     pub map_name: String,
     pub map_config: Option<MapConfig>,
@@ -130,6 +131,7 @@ impl MyLobby {
             spectators: Vec::new(),
             projectiles: Vec::new(),
             flags: Vec::new(),
+            flag_bases: Vec::new(),
 
             map_name,
             map_config: None,

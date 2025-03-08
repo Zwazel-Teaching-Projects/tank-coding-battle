@@ -35,6 +35,7 @@ impl Plugin for MySharedGamePlugin {
             .register_type::<common_components::TickBasedDespawnTimer>()
             .register_type::<flag::FlagMarker>()
             .register_type::<flag::FlagState>()
+            .register_type::<flag::FlagBaseMarker>()
             .add_plugins((MyCollisionHandlingPlugin,))
             .add_systems(
                 Update,

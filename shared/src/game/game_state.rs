@@ -15,6 +15,7 @@ pub struct LobbyGameState {
     pub client_states: HashMap<Entity, ClientState>,
     pub projectiles: HashMap<Entity, ProjectileState>,
     pub flags: HashMap<Entity, FlagGameState>,
+    pub flag_bases: HashMap<Entity, FlagBaseState>,
 }
 
 impl From<LobbyGameState> for GameState {
@@ -28,6 +29,7 @@ impl From<LobbyGameState> for GameState {
                 .collect(),
             projectile_states: lobby_game_state.projectiles,
             flag_states: lobby_game_state.flags,
+            flag_base_states: lobby_game_state.flag_bases,
         }
     }
 }
@@ -43,6 +45,7 @@ pub struct PersonalizedClientGameState {
     pub other_client_states: HashMap<Entity, Option<ClientState>>,
     pub projectiles: HashMap<Entity, ProjectileState>,
     pub flags: HashMap<Entity, FlagGameState>,
+    pub flag_bases: HashMap<Entity, FlagBaseState>,
 }
 
 impl PersonalizedClientGameState {
@@ -75,6 +78,7 @@ impl From<PersonalizedClientGameState> for GameState {
             client_states,
             projectile_states: personalized_client_game_state.projectiles,
             flag_states: personalized_client_game_state.flags,
+            flag_base_states: personalized_client_game_state.flag_bases,
         }
     }
 }
@@ -160,7 +164,7 @@ impl ProjectileState {
 #[serde(rename_all = "camelCase")]
 pub struct FlagGameState {
     pub flag_id: Entity,
-    pub flag_number: usize,
+    pub flag_base_id: Entity,
     pub team: String,
     pub transform: Transform,
     pub collider_size: Vec3,
@@ -170,7 +174,7 @@ pub struct FlagGameState {
 impl FlagGameState {
     pub fn new(
         flag_id: Entity,
-        flag_number: usize,
+        flag_base_id: Entity,
         team: String,
         transform: Transform,
         collider_size: Vec3,
@@ -178,11 +182,22 @@ impl FlagGameState {
     ) -> Self {
         FlagGameState {
             flag_id,
-            flag_number,
+            flag_base_id,
             team,
             transform,
             collider_size,
             state,
         }
     }
+}
+
+#[derive(Debug, Reflect, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct FlagBaseState {
+    pub flag_id: Entity,
+    pub flag_base_id: Entity,
+    pub team: String,
+    pub transform: Transform,
+    pub collider_size: Vec3,
+    pub flag_in_base: bool,
 }

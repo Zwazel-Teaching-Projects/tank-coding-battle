@@ -4,9 +4,6 @@ use bevy::prelude::*;
 pub struct InitAllFlagsTrigger;
 
 #[derive(Debug, Clone, Default, Reflect, Event)]
-pub struct ResetAllFlagsTrigger;
-
-#[derive(Debug, Clone, Default, Reflect, Event)]
 pub struct ResetFlagTrigger;
 
 #[derive(Debug, Clone, Reflect, Event)]

@@ -3,12 +3,15 @@ use shared::{
     asset_handling::maps::MarkerType,
     game::{
         collision_handling::components::{Collider, CollisionLayer, WantedTransform},
-        flag::{FlagMarker, FlagState},
+        flag::{FlagBaseMarker, FlagMarker, FlagState},
     },
     networking::lobby_management::{InLobby, InTeam, MyLobby},
 };
 
 use crate::gameplay::capture_the_flag::triggers::InitAllFlagsTrigger;
+
+const FLAG_BASE_HALF_SIZE: Vec3 = Vec3::new(0.5, 0.5, 0.5);
+const FLAG_HALF_SIZE: Vec3 = Vec3::new(0.25, 0.5, 0.25);
 
 pub fn setup_flags(
     trigger: Trigger<InitAllFlagsTrigger>,
@@ -18,6 +21,7 @@ pub fn setup_flags(
     let lobby_id = trigger.entity();
     let mut lobby = my_lobby.get_mut(lobby_id).expect("Lobby not found");
 
+    let mut new_bases = Vec::new();
     let mut new_flags = Vec::new();
     if let Some(map_config) = &lobby.map_config {
         let map = &map_config.map;
@@ -33,17 +37,34 @@ pub fn setup_flags(
                     .expect("Failed to get team")
                     .players;
 
+                // Create flag base entity
+                let new_base = commands
+                    .spawn((
+                        Name::new(format!("FlagBase_{}_{}", team, flag_number)),
+                        WantedTransform(Transform::from_translation(marker_position)),
+                        Collider {
+                            half_size: FLAG_BASE_HALF_SIZE,
+                            max_slope: 0.0,
+                        },
+                        CollisionLayer::flag_base()
+                            .with_ignore(EntityHashSet::from_iter(team_members.clone())),
+                        InTeam(team.clone()),
+                        InLobby(lobby_id),
+                    ))
+                    .id();
+                new_bases.push(new_base);
+
                 // Create flag entity
                 let new_flag = commands
                     .spawn((
                         Name::new(format!("Flag_{}_{}", team, flag_number)),
                         InTeam(team.clone()),
                         InLobby(lobby_id),
-                        FlagMarker(flag_number),
+                        FlagMarker { base: new_base },
                         FlagState::InBase,
                         WantedTransform(Transform::from_translation(marker_position)),
                         Collider {
-                            half_size: Vec3::new(0.25, 0.5, 0.25),
+                            half_size: FLAG_HALF_SIZE,
                             max_slope: 0.0,
                         },
                         // At start, it's considered to be in base, so teammembers should not collide with it
@@ -52,10 +73,18 @@ pub fn setup_flags(
                     ))
                     .id();
                 new_flags.push(new_flag);
+
+                commands.entity(new_base).insert(FlagBaseMarker {
+                    flag_in_base: true,
+                    my_flag: new_flag,
+                });
             }
         });
     }
     for flag in new_flags {
         lobby.flags.push(flag);
+    }
+    for base in new_bases {
+        lobby.flag_bases.push(base);
     }
 }

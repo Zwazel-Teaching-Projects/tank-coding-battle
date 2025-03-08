@@ -2,8 +2,10 @@ use bevy::{prelude::*, utils::hashbrown::HashSet};
 use shared::{
     game::{
         collision_handling::components::Collider,
-        flag::{FlagMarker, FlagState},
-        game_state::{ClientState, FlagGameState, PersonalizedClientGameState, ProjectileState},
+        flag::{FlagBaseMarker, FlagMarker, FlagState},
+        game_state::{
+            ClientState, FlagBaseState, FlagGameState, PersonalizedClientGameState, ProjectileState,
+        },
         player_handling::{Health, PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
@@ -37,6 +39,7 @@ pub fn update_lobby_state(
     turrets: Query<&Transform, With<TankTurretMarker>>,
     projectiles: Query<(&Transform, &ProjectileMarker)>,
     flags: Query<(&Transform, &FlagState, &InTeam, &FlagMarker, &Collider)>,
+    flag_bases: Query<(&Transform, &FlagBaseMarker, &Collider, &InTeam)>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
@@ -54,6 +57,14 @@ pub fn update_lobby_state(
         .expect("Failed to get lobby")
         .1
         .flags
+        .iter()
+        .map(|entity| *entity)
+        .collect::<HashSet<_>>();
+    let flag_base_entities = lobby_management
+        .get_lobby(lobby_entity)
+        .expect("Failed to get lobby")
+        .1
+        .flag_bases
         .iter()
         .map(|entity| *entity)
         .collect::<HashSet<_>>();
@@ -131,8 +142,34 @@ pub fn update_lobby_state(
                 transform: flag_transform.clone(),
                 state: flag_state.clone(),
                 team: in_team.0.clone(),
-                flag_number: flag_marker.0,
+                flag_base_id: flag_marker.base,
                 collider_size: flag_collider.half_size * 2.0,
+            });
+    }
+
+    // Updating states of all flag bases
+    lobby_game_state
+        .flag_bases
+        .retain(|entity, _| flag_base_entities.contains(entity));
+    for flag_base_entity in flag_base_entities.iter() {
+        let (flag_base_transform, flag_base_marker, flag_base_collider, in_team) = flag_bases
+            .get(*flag_base_entity)
+            .expect("Failed to get flag base");
+
+        lobby_game_state
+            .flag_bases
+            .entry(*flag_base_entity)
+            .and_modify(|state| {
+                state.transform = flag_base_transform.clone();
+                state.flag_in_base = flag_base_marker.flag_in_base;
+            })
+            .or_insert_with(|| FlagBaseState {
+                flag_in_base: flag_base_marker.flag_in_base,
+                collider_size: flag_base_collider.half_size * 2.0,
+                flag_id: flag_base_marker.my_flag,
+                flag_base_id: *flag_base_entity,
+                team: in_team.0.clone(),
+                transform: flag_base_transform.clone(),
             });
     }
 

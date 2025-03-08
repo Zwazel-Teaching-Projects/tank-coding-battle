@@ -59,7 +59,7 @@ pub fn update_flag_state_on_game_state_update(
                     .spawn((
                         Name::new(format!(
                             "Flag_{}_{}",
-                            server_side_flag_state.team, server_side_flag_state.flag_number
+                            server_side_flag_state.team, server_side_flag_state.flag_base_id
                         )),
                         Mesh3d(meshes.add(Cuboid::new(flag_size.x, flag_size.y, flag_size.z))),
                         MeshMaterial3d(materials.add(StandardMaterial {
@@ -71,7 +71,9 @@ pub fn update_flag_state_on_game_state_update(
                             flag_size.y / 2.0,
                             0.0,
                         ))),
-                        FlagMarker(server_side_flag_state.flag_number),
+                        FlagMarker {
+                            base: entity_mapping.map_entity(server_side_flag_state.flag_base_id),
+                        },
                         server_side_flag_state.state.clone(),
                         Collider {
                             half_size: flag_size / 2.0,
