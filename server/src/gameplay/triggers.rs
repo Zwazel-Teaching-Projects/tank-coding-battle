@@ -16,6 +16,9 @@ pub struct CheckForCollisionsTrigger;
 pub struct DespawnOutOfBoundsProjectilesTrigger;
 
 #[derive(Debug, Reflect, Event)]
+pub struct CheckHealthTrigger;
+
+#[derive(Debug, Reflect, Event)]
 pub struct MoveFlagsSimulationStepTrigger;
 
 #[derive(Debug, Reflect, Event)]

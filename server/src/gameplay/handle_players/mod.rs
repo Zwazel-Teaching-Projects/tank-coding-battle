@@ -8,12 +8,14 @@ use shared::{
 use crate::networking::handle_clients::lib::MyNetworkClient;
 
 pub mod dummy_handling;
+pub mod handle_health;
 pub mod handle_projectiles;
 pub mod handle_shooting;
 pub mod handle_spawning;
 pub mod insert_turret;
 pub mod movement_handling;
 pub mod update_client_states;
+pub mod handle_death;
 
 pub struct HandlePlayersPlugin;
 
@@ -50,7 +52,8 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .observe(handle_shooting::tick_shoot_cooldowns)
         .observe(handle_projectiles::move_projectiles)
         .observe(handle_projectiles::handle_despawn_timer)
-        .observe(handle_projectiles::despawn_out_of_bounds);
+        .observe(handle_projectiles::despawn_out_of_bounds)
+        .observe(handle_health::check_health_and_die);
 }
 
 fn add_observers_to_projectile(trigger: Trigger<OnAdd, ProjectileMarker>, mut commands: Commands) {

@@ -21,9 +21,10 @@ pub enum PlayerState {
 #[reflect(Component)]
 pub struct RespawnTimer(pub u32);
 
-#[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
+#[derive(Debug, Component, Reflect, Clone, PartialEq, Default, Deref, DerefMut)]
 #[reflect(Component)]
 pub struct Health {
+    #[deref]
     pub health: f32,
     pub max_health: f32,
 }
