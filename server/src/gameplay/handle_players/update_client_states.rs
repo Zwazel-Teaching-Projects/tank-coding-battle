@@ -61,6 +61,9 @@ pub fn update_client_states(
     lobby_state.flags.iter().for_each(|(entity, state)| {
         client_state.flags.insert(*entity, state.clone());
     });
+    lobby_state.flag_bases.iter().for_each(|(entity, state)| {
+        client_state.flag_bases.insert(*entity, state.clone());
+    });
 
     // Copying the states of our teammates from the lobby state to the client state
     team_players.iter().for_each(|entity| {
@@ -130,6 +133,15 @@ pub fn update_client_states(
                 return;
             }
         });
+        lobby_state
+            .flag_bases
+            .iter()
+            .for_each(|(state_entity, state)| {
+                if state_entity == entity {
+                    client_state.flag_bases.insert(*entity, state.clone());
+                    return;
+                }
+            });
     });
 
     // Updating the tick
