@@ -19,7 +19,7 @@ pub fn update_client_states(
     let mut client_state = states
         .get_mut(client_entity)
         .expect("Failed to get client state");
-    let my_lobby = lobby_management
+    let (_, my_lobby, _) = lobby_management
         .get_lobby(**in_lobby)
         .expect("Failed to get lobby");
     // Get all teammates, filtering out myself

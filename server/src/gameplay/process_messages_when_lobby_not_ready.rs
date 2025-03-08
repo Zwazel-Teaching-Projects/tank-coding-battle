@@ -29,6 +29,7 @@ pub fn process_messages_before_lobby_is_ready(
         match lobby_management
             .get_lobby(*lobby_entity)
             .expect("Lobby not found")
+            .1
             .state
         {
             LobbyState::InProgress => {
@@ -41,11 +42,12 @@ pub fn process_messages_before_lobby_is_ready(
         let messages_to_process = lobby_management
             .get_lobby_mut(*lobby_entity)
             .expect("Lobby not found")
+            .1
             .messages
             .drain(..)
             .collect::<Vec<_>>();
 
-        let lobby = lobby_management
+        let (_, lobby, _) = lobby_management
             .get_lobby(*lobby_entity)
             .expect("Lobby not found");
 

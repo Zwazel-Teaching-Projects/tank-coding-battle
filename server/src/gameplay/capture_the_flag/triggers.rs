@@ -16,4 +16,10 @@ pub struct FlagGotPickedUpTrigger {
     /// If it was, the flag will be reset.
     /// If it wasn't, the flag will follow the player.
     pub picker: Entity,
+    pub flag: Entity,
+}
+
+#[derive(Debug, Clone, Reflect, Event)]
+pub struct FlagGotDroppedTrigger {
+    pub flag: Entity,
 }

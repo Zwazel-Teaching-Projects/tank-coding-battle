@@ -3,6 +3,8 @@ use shared::{game::flag::FlagMarker, networking::lobby_management::MyLobby};
 
 pub mod collision_handler;
 pub mod follow_carrier;
+pub mod handle_flag_dropped;
+pub mod handle_flag_picked_up;
 pub mod reset_flags;
 pub mod triggers;
 
@@ -18,12 +20,14 @@ impl Plugin for MyCaptureTheFlagPlugin {
 fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
     commands
         .entity(trigger.entity())
-        .observe(reset_flags::reset_flags)
-        .observe(follow_carrier::follow_carrier);
+        .observe(follow_carrier::follow_carrier)
+        .observe(handle_flag_dropped::flag_dropped)
+        .observe(handle_flag_picked_up::flag_picked_up);
 }
 
 fn add_observers_to_flag(trigger: Trigger<OnAdd, FlagMarker>, mut commands: Commands) {
     commands
         .entity(trigger.entity())
-        .observe(collision_handler::handle_collision_with_flag);
+        .observe(collision_handler::handle_collision_with_flag)
+        .observe(reset_flags::reset_flag);
 }

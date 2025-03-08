@@ -206,7 +206,7 @@ fn adding_player_to_lobby(
         player_name,
     } = trigger.event();
 
-    if let Ok(mut lobby) = lobby_management.get_lobby_mut(*lobby_entity) {
+    if let Ok((_, mut lobby, _)) = lobby_management.get_lobby_mut(*lobby_entity) {
         let mut queue = player_immediate_message_queues.get_mut(*player).unwrap();
 
         match lobby.state {
@@ -297,7 +297,7 @@ fn finish_setting_up_lobby(
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let mut lobby = lobby_management.get_lobby_mut(lobby_entity).unwrap();
+    let (_, mut lobby, _) = lobby_management.get_lobby_mut(lobby_entity).unwrap();
     if lobby.map_config.is_none() {
         if let Some(map_config) = map_config.get_map_config_from_name(&lobby.map_name) {
             info!(

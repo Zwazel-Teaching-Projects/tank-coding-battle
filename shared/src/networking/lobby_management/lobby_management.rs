@@ -165,18 +165,49 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         });
     }
 
-    pub fn get_lobby(&self, lobby: Entity) -> Result<&MyLobby, String> {
+    pub fn get_lobby(&self, lobby: Entity) -> Result<(Entity, &MyLobby, &LobbyGameState), String> {
         self.lobby_entities
             .get(lobby)
-            .map(|(_, lobby, _)| lobby)
+            .map(|(entity, lobby, state)| (entity, lobby, state))
             .map_err(|_| format!("Failed to get lobby for lobby entity: {}", lobby))
     }
 
-    pub fn get_lobby_mut(&mut self, lobby: Entity) -> Result<Mut<MyLobby>, String> {
+    pub fn get_lobby_mut(
+        &mut self,
+        lobby: Entity,
+    ) -> Result<(Entity, Mut<MyLobby>, Mut<LobbyGameState>), String> {
         self.lobby_entities
             .get_mut(lobby)
-            .map(|(_, lobby, _)| lobby)
+            .map(|(entity, lobby, state)| (entity, lobby, state))
             .map_err(|_| format!("Failed to get lobby for lobby entity: {}", lobby))
+    }
+
+    pub fn get_lobby_of_player(
+        &self,
+        player: Entity,
+    ) -> Result<(Entity, &MyLobby, &LobbyGameState), String> {
+        self.lobby_entities
+            .iter()
+            .find(|(_, lobby, _)| {
+                lobby.players.iter().any(|(_, p, _)| *p == player)
+                    || lobby.spectators.contains(&player)
+            })
+            .map(|(entity, lobby, state)| (entity, lobby, state))
+            .ok_or(format!("Failed to get lobby for player entity: {}", player))
+    }
+
+    pub fn get_lobby_of_player_mut(
+        &mut self,
+        player: Entity,
+    ) -> Result<(Entity, Mut<MyLobby>, Mut<LobbyGameState>), String> {
+        self.lobby_entities
+            .iter_mut()
+            .find(|(_, lobby, _)| {
+                lobby.players.iter().any(|(_, p, _)| *p == player)
+                    || lobby.spectators.contains(&player)
+            })
+            .map(|(entity, lobby, state)| (entity, lobby, state))
+            .ok_or(format!("Failed to get lobby for player entity: {}", player))
     }
 
     pub fn get_lobby_gamestate(&self, lobby: Entity) -> Result<&LobbyGameState, String> {
@@ -201,7 +232,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
         self.get_lobby(arg.lobby.ok_or("No lobby provided")?)
-            .map(|lobby| {
+            .map(|(_, lobby, _)| {
                 lobby
                     .players
                     .iter()
@@ -216,7 +247,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
         self.get_lobby(arg.lobby.ok_or("No lobby provided")?)
-            .map(|lobby| {
+            .map(|(_, lobby, _)| {
                 lobby
                     .players
                     .iter()
@@ -232,7 +263,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         arg: LobbyManagementArgument,
     ) -> Result<Vec<Entity>, String> {
         self.get_lobby(arg.lobby.ok_or("No lobby provided")?)
-            .map(|lobby| {
+            .map(|(_, lobby, _)| {
                 lobby
                     .spectators
                     .iter()
@@ -249,7 +280,7 @@ impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
         let team_name = arg.clone().team_name.ok_or("No team name provided")?;
 
         self.get_lobby(arg.lobby.ok_or("No lobby provided")?)
-            .and_then(|lobby| {
+            .and_then(|(_, lobby, _)| {
                 lobby
                     .map_config
                     .as_ref()

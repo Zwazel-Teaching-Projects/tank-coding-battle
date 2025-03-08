@@ -44,6 +44,7 @@ pub fn update_lobby_state(
     let player_entities = lobby_management
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby")
+        .1
         .players
         .iter()
         .map(|(_, entity, _)| *entity)
@@ -51,6 +52,7 @@ pub fn update_lobby_state(
     let flag_entities = lobby_management
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby")
+        .1
         .flags
         .iter()
         .map(|entity| *entity)
@@ -58,6 +60,7 @@ pub fn update_lobby_state(
     let projectile_entities = lobby_management
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby")
+        .1
         .projectiles
         .iter()
         .map(|entity| *entity)
@@ -177,7 +180,7 @@ pub fn add_current_game_state_to_message_queue(
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let lobby = lobby_management
+    let (_, lobby, _) = lobby_management
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby");
     let lobby_state = lobby_management

@@ -198,7 +198,7 @@ pub fn start_lobby(
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let lobby = lobby_management
+    let (_, lobby, _) = lobby_management
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby");
     let map = &lobby
@@ -252,6 +252,7 @@ pub fn start_lobby(
             lobby_management
                 .get_lobby_mut(lobby_entity)
                 .expect("Failed to get lobby")
+                .1
                 .state = LobbyState::InProgress;
         }
         Err(err) => error!("Failed to get players in lobby: {}", err),
@@ -265,7 +266,7 @@ fn get_connected_configs_in_lobby(
 ) -> Vec<ConnectedClientConfig> {
     lobby_management
         .get_lobby(lobby_entity)
-        .map(|lobby| {
+        .map(|(_, lobby, _)| {
             let map_config = lobby.map_config.as_ref().unwrap();
 
             let mut connected_configs = Vec::new();

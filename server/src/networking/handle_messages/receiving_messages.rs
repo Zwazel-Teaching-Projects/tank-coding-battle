@@ -85,9 +85,10 @@ pub fn handle_reading_messages(
                             // Add message to the lobby's message queue
                             lobby_management
                                 .get_lobby_mut(**in_lobby)
-                                // TODO Replace with adding error to queue, not panicking
-                                .expect("Failed to get lobby")
+                                .expect("Failed to get lobby messages")
+                                .1
                                 .messages
+                                // TODO Replace with adding error to queue, not panicking
                                 .push_back(message_container.clone());
                         } else {
                             // If we're not in the lobby, add the message to the immediate message queue. expecting server only messages

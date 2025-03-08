@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
     game::{
-        collision_handling::components::WantedTransform,
+        collision_handling::components::{CollisionLayer, WantedTransform},
         player_handling::{Health, PlayerState, RespawnTimer, TankBodyMarker, TankTurretMarker},
         tank_types::TankType,
     },
@@ -44,6 +44,7 @@ pub fn respawn_player(
         &mut WantedTransform,
         &mut PlayerState,
         &mut Health,
+        &mut CollisionLayer,
         &MyNetworkClient,
         &InTeam,
         &InLobby,
@@ -62,6 +63,7 @@ pub fn respawn_player(
         mut wanted_transform,
         mut player_state,
         mut health,
+        mut collision_layer,
         client,
         client_team,
         client_in_lobby,
@@ -72,9 +74,11 @@ pub fn respawn_player(
         *player_state = PlayerState::Alive;
         health.health = health.max_health;
 
+        *collision_layer = CollisionLayer::player().with_additinal_layers(&[CollisionLayer::FLAG]);
+
         commands.entity(entity).remove::<RespawnTimer>();
 
-        let lobby = lobby_management
+        let (_, lobby, _) = lobby_management
             .get_lobby(client_in_lobby.0)
             .expect("Failed to get lobby");
         let map = &lobby

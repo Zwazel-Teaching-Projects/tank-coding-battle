@@ -10,6 +10,8 @@ use shared::{
 
 use crate::gameplay::triggers::{CheckHealthTrigger, MoveFlagsSimulationStepTrigger};
 
+use super::handle_death::ClientDiedTrigger;
+
 pub fn check_health_and_die(
     trigger: Trigger<CheckHealthTrigger>,
     lobby: Query<&MyLobby>,
@@ -32,6 +34,8 @@ pub fn check_health_and_die(
             commands
                 .entity(*player_entity)
                 .insert(RespawnTimer(tank_config.respawn_timer));
+
+            commands.trigger_targets(ClientDiedTrigger, *player_entity);
         }
     }
 
