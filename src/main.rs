@@ -1,5 +1,5 @@
 #![cfg_attr(
-    all(not(debug_assertions), feature = "spectator_client"),
+    all(feature = "spectator_client", not(feature = "debug")),
     windows_subsystem = "windows"
 )]
 
