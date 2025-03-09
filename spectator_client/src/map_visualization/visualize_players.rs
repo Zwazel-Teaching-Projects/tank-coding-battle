@@ -1,5 +1,6 @@
 use bevy::{
     color::palettes::css::{GREEN, WHITE},
+    pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
 };
 use bevy_mod_billboard::BillboardText;
@@ -56,6 +57,8 @@ pub fn create_player_visualisation(
                     TextLayout::new_with_justify(JustifyText::Center),
                     Transform::from_translation(Vec3::new(0.0, 1.0, 0.0))
                         .with_scale(Vec3::splat(0.0085)),
+                    NotShadowCaster,
+                    NotShadowReceiver,
                 ));
 
                 // Forward marker
@@ -67,6 +70,8 @@ pub fn create_player_visualisation(
                         ..Default::default()
                     })),
                     Transform::from_translation(Vec3::new(0.0, 0.0, tank_config.size.z + 0.2)),
+                    NotShadowCaster,
+                    NotShadowReceiver,
                 ));
             })
             .id();

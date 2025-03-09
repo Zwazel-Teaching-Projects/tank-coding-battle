@@ -313,6 +313,14 @@ impl MapDefinition {
         Vec3::new(self.width as f32 / 2.0, 0.0, self.depth as f32 / 2.0)
     }
 
+    pub fn get_highest_point(&self) -> f32 {
+        self.tiles
+            .iter()
+            .flat_map(|row| row.iter())
+            .copied()
+            .fold(f32::MIN, f32::max)
+    }
+
     pub fn get_center_of_tile(&self, tile: impl Into<TileDefinition>) -> Option<Vec3> {
         let TileDefinition { x, y } = tile.into();
         if let Some(height) = self.get_floor_height_of_tile((x, y)) {

@@ -1,4 +1,8 @@
-use bevy::{color::palettes::css::WHITE, prelude::*};
+use bevy::{
+    color::palettes::css::WHITE,
+    pbr::{NotShadowCaster, NotShadowReceiver},
+    prelude::*,
+};
 use shared::{
     game::{
         collision_handling::components::{Collider, WantedTransform},
@@ -62,6 +66,8 @@ pub fn update_flag_state_on_game_state_update(
                             server_side_flag_state.team, server_side_flag_state.flag_base_id
                         )),
                         Mesh3d(meshes.add(Cuboid::new(flag_size.x, flag_size.y, flag_size.z))),
+                        NotShadowCaster,
+                        NotShadowReceiver,
                         MeshMaterial3d(materials.add(StandardMaterial {
                             base_color: team_color,
                             ..Default::default()

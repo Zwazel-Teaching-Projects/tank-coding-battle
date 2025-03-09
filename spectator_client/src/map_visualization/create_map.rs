@@ -22,6 +22,8 @@ pub fn create_map(
 ) {
     let game_starts = (**trigger.event()).clone();
     let map_config = &game_starts.map_definition;
+    let center_of_map = map_config.get_center_of_map();
+    let highest_point = map_config.get_highest_point();
 
     let mesh = generate_mesh_from_grid(map_config.width, map_config.depth, &map_config.tiles);
     let mesh_handle = meshes.add(mesh);
@@ -38,11 +40,24 @@ pub fn create_map(
     ));
 
     commands.spawn((
-        PointLight {
+        DirectionalLight {
             shadows_enabled: true,
             ..default()
         },
-        Transform::from_xyz(0.0, 10.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+        // Light is positioned above the map, on the top left corner, looking at the bottom right corner (z is forward, x is right)
+        Transform::from_xyz(
+            center_of_map.x - map_config.width as f32 * 2.0,
+            highest_point + 100.0,
+            center_of_map.z - map_config.depth as f32 * 2.0,
+        )
+        .looking_at(
+            Vec3::new(
+                center_of_map.x + map_config.width as f32 * 2.0,
+                0.0,
+                center_of_map.z + map_config.depth as f32 * 2.0,
+            ),
+            Vec3::Y,
+        ),
     ));
 
     commands.insert_resource(game_starts);
