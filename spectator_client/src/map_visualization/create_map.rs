@@ -42,6 +42,7 @@ pub fn create_map(
     commands.spawn((
         DirectionalLight {
             shadows_enabled: true,
+            illuminance: light_consts::lux::OVERCAST_DAY,
             ..default()
         },
         // Light is positioned above the map, on the top left corner, looking at the bottom right corner (z is forward, x is right)
