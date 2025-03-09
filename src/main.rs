@@ -1,3 +1,8 @@
+#![cfg_attr(
+    all(not(debug_assertions), feature = "spectator_client"),
+    windows_subsystem = "windows"
+)]
+
 use bevy::prelude::*;
 
 fn main() {
