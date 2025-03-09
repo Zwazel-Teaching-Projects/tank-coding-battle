@@ -37,7 +37,7 @@ pub fn setup_flags(
                     .get_team(my_team)
                     .expect("Failed to get team")
                     .players;
-                let enemy_team_members = team_names
+                let _enemy_team_members = team_names
                     .iter()
                     .filter(|team_name| *team_name != my_team)
                     .flat_map(|team_name| {
@@ -58,9 +58,6 @@ pub fn setup_flags(
                             half_size: FLAG_BASE_HALF_SIZE,
                             max_slope: 0.0,
                         },
-                        CollisionLayer::flag_base()
-                            // Never interact with other flag bases, only with flags or my own flag base (to deliver enemy flag)
-                            .with_ignore(EntityHashSet::from_iter(enemy_team_members.clone())),
                         InTeam(my_team.clone()),
                         InLobby(lobby_id),
                     ))
@@ -87,10 +84,15 @@ pub fn setup_flags(
                     .id();
                 new_flags.push(new_flag);
 
-                commands.entity(new_base).insert(FlagBaseMarker {
-                    flag_in_base: true,
-                    my_flag: new_flag,
-                });
+                commands.entity(new_base).insert((
+                    FlagBaseMarker {
+                        flag_in_base: true,
+                        my_flag: new_flag,
+                    },
+                    CollisionLayer::flag_base()
+                        // The flag base should only collide with other flag, not its own flag
+                        .with_ignore(EntityHashSet::from_iter(vec![new_flag])),
+                ));
             }
         });
     }

@@ -7,7 +7,7 @@
                 g: 0.0,
                 b: 0.0,
             ),
-            maxPlayers: 2,
+            maxPlayers: 1,
         ),
         "Blue": (
             teamName: "Blue",
@@ -16,7 +16,7 @@
                 g: 0.0,
                 b: 1.0,
             ),
-            maxPlayers: 2,
+            maxPlayers: 1,
         ),
     },
     map: (

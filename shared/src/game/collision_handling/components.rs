@@ -94,6 +94,11 @@ impl CollisionLayer {
     pub fn intersects(&self, other: &Self) -> bool {
         (self.mask & other.mask) != 0
     }
+
+    /// Gets all layers that are set in the mask.
+    pub fn layers(&self) -> Vec<u32> {
+        (0..32).filter(|&i| self.contains(i)).collect()
+    }
 }
 
 #[derive(Debug, Component, Reflect, Default, Deref, DerefMut)]

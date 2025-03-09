@@ -13,7 +13,7 @@ impl Plugin for MyServerDebugPlugin {
             .init_gizmo_group::<visualize_colliders::MyColliderGizmos>()
             .add_systems(
                 Update,
-                visualize_colliders::visualize_colliders.run_if(any_with_component::<Collider>),
+                (visualize_colliders::visualize_colliders.run_if(any_with_component::<Collider>),),
             );
     }
 }
