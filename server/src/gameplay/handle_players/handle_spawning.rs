@@ -6,7 +6,16 @@ use shared::{
         player_handling::{Health, PlayerState, RespawnTimer, TankBodyMarker, TankTurretMarker},
         tank_types::TankType,
     },
-    networking::lobby_management::{lobby_management::LobbyManagementSystemParam, InLobby, InTeam},
+    networking::{
+        lobby_management::{
+            lobby_management::LobbyManagementSystemParam, InLobby, InTeam, MyLobby,
+        },
+        messages::{
+            message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+            message_data::entity_data::EntityDataWrapper,
+            message_queue::OutMessageQueue,
+        },
+    },
 };
 
 use crate::{
@@ -38,8 +47,8 @@ pub struct RespawnPlayerTrigger;
 pub fn respawn_player(
     trigger: Trigger<RespawnPlayerTrigger>,
     lobby_management: LobbyManagementSystemParam,
+    mut lobby_message_queue: Query<&mut OutMessageQueue, (With<MyLobby>, Without<MyNetworkClient>)>,
     mut body_query: Query<(
-        Entity,
         &mut Transform,
         &mut WantedTransform,
         &mut PlayerState,
@@ -55,10 +64,9 @@ pub fn respawn_player(
     tank_configs: TankConfigSystemParam,
     mut commands: Commands,
 ) {
-    let client_entity = trigger.entity();
+    let entity_to_respawn = trigger.entity();
 
     if let Ok((
-        entity,
         mut tank_transform,
         mut wanted_transform,
         mut player_state,
@@ -69,14 +77,14 @@ pub fn respawn_player(
         client_in_lobby,
         tank_type,
         tank_body_marker,
-    )) = body_query.get_mut(client_entity)
+    )) = body_query.get_mut(entity_to_respawn)
     {
         *player_state = PlayerState::Alive;
         health.health = health.max_health;
 
         *collision_layer = CollisionLayer::player().with_additional_layers(&[CollisionLayer::FLAG]);
 
-        commands.entity(entity).remove::<RespawnTimer>();
+        commands.entity(entity_to_respawn).remove::<RespawnTimer>();
 
         let (_, lobby, _) = lobby_management
             .get_lobby(client_in_lobby.0)
@@ -125,10 +133,18 @@ pub fn respawn_player(
                 client_team.0, spawn_point
             );
         }
+
+        let mut message_queue = lobby_message_queue
+            .get_mut(client_in_lobby.0)
+            .expect("Failed to get lobby message queue");
+        message_queue.push_back(MessageContainer::new(
+            MessageTarget::AllInLobby,
+            NetworkMessageType::PlayerRespawned(EntityDataWrapper::new(entity_to_respawn)),
+        ));
     } else {
         error!(
             "Failed to get tank transform for client {:?}",
-            client_entity
+            entity_to_respawn
         );
     }
 }

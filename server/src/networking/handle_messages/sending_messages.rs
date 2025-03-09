@@ -2,7 +2,10 @@ use std::io::Write;
 
 use bevy::prelude::*;
 use shared::networking::{
-    lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+    lobby_management::{
+        lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
+        MyLobby,
+    },
     messages::message_queue::{ImmediateOutMessageQueue, OutMessageQueue},
 };
 
@@ -35,12 +38,20 @@ pub fn sending_immediate_messages(
     }
 }
 
+/// Sends out all messages in the out message queue
+/// Also sends out messages in the lobby message queue, these are meant for all clients in the lobby
+/// Priority is: First send out personal messages, then lobby messages
 pub fn sending_client_messages(
     trigger: Trigger<SendOutgoingMessagesTrigger>,
     lobby_management: LobbyManagementSystemParam,
     mut connected_clients: Query<(&mut MyNetworkClient, &mut OutMessageQueue)>,
+    mut lobby_message_queue: Query<&mut OutMessageQueue, (With<MyLobby>, Without<MyNetworkClient>)>,
 ) {
     let lobby = trigger.entity();
+    let mut lobby_message_queue = lobby_message_queue
+        .get_mut(lobby)
+        .expect("Failed to get lobby message queue");
+    let lobby_messages = lobby_message_queue.drain(..).collect::<Vec<_>>();
 
     match lobby_management.targets_get_players_and_spectators_in_lobby(LobbyManagementArgument {
         lobby: Some(lobby),
@@ -55,7 +66,8 @@ pub fn sending_client_messages(
                     .get_mut(player)
                     .expect("Failed to get client");
 
-                let mut messages: Vec<_> = out_message_queue.drain(..).collect();
+                let mut messages: Vec<_> = out_message_queue.drain(..).collect(); // Add personal messages
+                messages.extend(lobby_messages.iter().cloned()); // Add lobby messages
                 if let Some(stream) = &mut client.stream {
                     for message in &mut messages {
                         message.tick_sent = game_state.tick;

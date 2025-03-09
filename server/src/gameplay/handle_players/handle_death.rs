@@ -4,18 +4,28 @@ use shared::{
         collision_handling::components::CollisionLayer,
         flag::{FlagCarrier, FlagState},
     },
-    networking::lobby_management::lobby_management::LobbyManagementSystemParam,
+    networking::{
+        lobby_management::{lobby_management::LobbyManagementSystemParam, MyLobby},
+        messages::{
+            message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+            message_data::entity_data::EntityDataWrapper,
+            message_queue::OutMessageQueue,
+        },
+    },
 };
 
-use crate::gameplay::capture_the_flag::triggers::FlagGotDroppedTrigger;
+use crate::{
+    gameplay::capture_the_flag::triggers::FlagGotDroppedTrigger,
+    networking::handle_clients::lib::MyNetworkClient,
+};
 
 #[derive(Debug, Reflect, Event)]
 pub struct ClientDiedTrigger;
 
-// TODO: Send out network message for client died(?)
 pub fn client_died(
     trigger: Trigger<ClientDiedTrigger>,
     lobby: LobbyManagementSystemParam,
+    mut lobby_message_queue: Query<&mut OutMessageQueue, (With<MyLobby>, Without<MyNetworkClient>)>,
     mut player: Query<(&mut CollisionLayer, Option<&FlagCarrier>)>,
     flags: Query<&FlagState>,
     mut commands: Commands,
@@ -24,6 +34,14 @@ pub fn client_died(
     let (lobby_entity, _, _) = lobby
         .get_lobby_of_player(player_entity)
         .expect("Lobby not found");
+    let mut lobby_message_queue = lobby_message_queue
+        .get_mut(lobby_entity)
+        .expect("Message queue not found");
+
+    lobby_message_queue.push_back(MessageContainer::new(
+        MessageTarget::AllInLobby,
+        NetworkMessageType::PlayerDied(EntityDataWrapper::new(player_entity)),
+    ));
 
     let (mut player_collision_layer, flag_carrier) =
         player.get_mut(player_entity).expect("Player not found");
