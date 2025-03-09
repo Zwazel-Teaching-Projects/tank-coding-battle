@@ -102,10 +102,6 @@ pub fn check_if_lobby_should_start(
             let mut client = clients.get_mut(client).expect("Failed to get client");
             client.assigned_spawn_point = Some(*spawn_point);
             taken_points.push(*spawn_point);
-            info!(
-                "Assigned spawn point {:?} to player {:?}",
-                *spawn_point, client.name
-            );
         }
     }
 
@@ -134,10 +130,6 @@ pub fn check_if_lobby_should_start(
                     .find(|spawn_point| !taken_points.contains(spawn_point))
                     .unwrap_or(&spawn_points[0]);
 
-                info!(
-                    "Assigned spawn point {:?} to dummy {:?}",
-                    *spawn_point, dummy_name
-                );
                 let mut dummy_client = MyNetworkClient::new_dummy(dummy_name.clone());
                 dummy_client.assigned_spawn_point = Some(*spawn_point);
                 taken_points.push(*spawn_point);

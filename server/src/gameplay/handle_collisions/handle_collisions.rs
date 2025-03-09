@@ -12,7 +12,6 @@ use crate::gameplay::triggers::{CheckForCollisionsTrigger, DespawnOutOfBoundsPro
 
 const STEP_SIZE: f32 = 0.05;
 
-// TODO: Handle the case where entities are on layer NO_COLLISION, so they don't collide with anything.
 pub fn unified_collision_system(
     trigger: Trigger<CheckForCollisionsTrigger>,
     lobby: Query<&MyLobby>,
