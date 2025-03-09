@@ -11,7 +11,9 @@ use crate::{
 };
 
 use super::message_data::{
+    entity_data::EntityDataWrapper,
     first_contact::FirstContactData,
+    flag_event_data::{FlagEventDataWrapper, FlagSimpleEventDataWrapper},
     game_starts::GameStarts,
     game_state::GameState,
     message_error_types::ErrorMessageTypes,
@@ -109,6 +111,16 @@ use super::message_data::{
             ShootCommand(ShootCommand),
             GotHit(GotHitMessageData),
             Hit(HitMessageData),
+            PlayerDied(EntityDataWrapper),
+            PlayerRespawned(EntityDataWrapper),
+            #[serde(rename = "FlagGotDropped")]
+            FlagGotDropped(FlagEventDataWrapper),
+            #[serde(rename = "FlagGotPickedUp")]
+            FlagGotPickedUp(FlagEventDataWrapper),
+            #[serde(rename = "FlagGotCaptured")]
+            FlagGotCaptured(FlagSimpleEventDataWrapper),
+            #[serde(rename = "FlagGotReturned")]
+            FlagGotReturned(FlagSimpleEventDataWrapper),
         }
     }
 )]
