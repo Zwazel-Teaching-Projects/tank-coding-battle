@@ -7,6 +7,8 @@ use crate::game::game_state::{ClientState, FlagBaseState, FlagGameState, Project
 #[serde(rename_all = "camelCase")]
 pub struct GameState {
     pub tick: u64,
+    /// The score of each team.
+    pub score: HashMap<String, u32>,
     #[serde(
         serialize_with = "serialize_hashmap",
         deserialize_with = "deserialize_hashmap"

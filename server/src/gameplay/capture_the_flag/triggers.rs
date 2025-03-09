@@ -1,5 +1,10 @@
 use bevy::prelude::*;
 
+#[derive(Debug, Clone, Reflect, Event)]
+pub struct TeamScoredTrigger {
+    pub scorer: Entity,
+}
+
 #[derive(Debug, Clone, Default, Reflect, Event)]
 pub struct InitAllFlagsTrigger;
 

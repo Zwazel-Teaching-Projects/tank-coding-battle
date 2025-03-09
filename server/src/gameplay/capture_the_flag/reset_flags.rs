@@ -9,7 +9,6 @@ use shared::{
 
 use super::triggers::ResetFlagTrigger;
 
-// TODO: Send out network message for flag reset(?)
 pub fn reset_flag(
     trigger: Trigger<ResetFlagTrigger>,
     my_lobby: Query<&MyLobby>,

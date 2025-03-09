@@ -8,7 +8,9 @@ use shared::{
     networking::lobby_management::{InLobby, InTeam},
 };
 
-use super::triggers::{FlagGotDroppedTrigger, FlagGotPickedUpTrigger, ResetFlagTrigger};
+use super::triggers::{
+    FlagGotDroppedTrigger, FlagGotPickedUpTrigger, ResetFlagTrigger, TeamScoredTrigger,
+};
 
 /// Handles the collision between a flag and a tank.
 pub fn handle_collision_with_flag(
@@ -108,6 +110,12 @@ pub fn handle_collision_with_flag_base(
                     **flag_in_lobby,
                 );
                 commands.trigger_targets(ResetFlagTrigger, collider_entity);
+                commands.trigger_targets(
+                    TeamScoredTrigger {
+                        scorer: carrier_entity,
+                    },
+                    **flag_in_lobby,
+                );
             }
             _ => {
                 warn!("Flag {:?} collided with a flag base while the flag was not carried, this should never happen", collider_entity);

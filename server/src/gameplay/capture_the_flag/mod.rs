@@ -8,6 +8,7 @@ pub mod collision_handler;
 pub mod follow_carrier;
 pub mod handle_flag_dropped;
 pub mod handle_flag_picked_up;
+pub mod handle_scoring;
 pub mod reset_flags;
 pub mod triggers;
 
@@ -26,7 +27,8 @@ fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Comman
         .entity(trigger.entity())
         .observe(follow_carrier::follow_carrier)
         .observe(handle_flag_dropped::flag_dropped)
-        .observe(handle_flag_picked_up::flag_picked_up);
+        .observe(handle_flag_picked_up::flag_picked_up)
+        .observe(handle_scoring::handle_scoring);
 }
 
 fn add_observers_to_flag(trigger: Trigger<OnAdd, FlagMarker>, mut commands: Commands) {

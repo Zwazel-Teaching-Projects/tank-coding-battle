@@ -12,16 +12,28 @@ use super::player_handling::PlayerState;
 #[serde(rename_all = "camelCase")]
 pub struct LobbyGameState {
     pub tick: u64,
+    /// The scores of the teams
+    pub score: HashMap<String, u32>,
     pub client_states: HashMap<Entity, ClientState>,
     pub projectiles: HashMap<Entity, ProjectileState>,
     pub flags: HashMap<Entity, FlagGameState>,
     pub flag_bases: HashMap<Entity, FlagBaseState>,
 }
 
+impl LobbyGameState {
+    pub fn setup_score(&mut self, teams: Vec<String>) {
+        self.score.clear();
+        for team in teams {
+            self.score.insert(team, 0);
+        }
+    }
+}
+
 impl From<LobbyGameState> for GameState {
     fn from(lobby_game_state: LobbyGameState) -> Self {
         GameState {
             tick: lobby_game_state.tick,
+            score: lobby_game_state.score,
             client_states: lobby_game_state
                 .client_states
                 .into_iter()
@@ -41,6 +53,7 @@ impl From<LobbyGameState> for GameState {
 #[serde(rename_all = "camelCase")]
 pub struct PersonalizedClientGameState {
     pub tick: u64,
+    pub score: HashMap<String, u32>,
     pub personal_state: ClientState,
     pub other_client_states: HashMap<Entity, Option<ClientState>>,
     pub projectiles: HashMap<Entity, ProjectileState>,
@@ -75,6 +88,7 @@ impl From<PersonalizedClientGameState> for GameState {
 
         GameState {
             tick: personalized_client_game_state.tick,
+            score: personalized_client_game_state.score,
             client_states,
             projectile_states: personalized_client_game_state.projectiles,
             flag_states: personalized_client_game_state.flags,

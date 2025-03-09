@@ -190,19 +190,18 @@ pub fn start_lobby(
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let (_, lobby, _) = lobby_management
-        .get_lobby(lobby_entity)
-        .expect("Failed to get lobby");
-    let map = &lobby
-        .map_config
-        .as_ref()
-        .expect("Failed to get map config")
-        .map;
-    let team_configs = &lobby
-        .map_config
-        .as_ref()
-        .expect("Failed to get map config")
-        .teams;
+    let map;
+    let team_configs;
+    {
+        let (_, lobby, mut lobby_state) = lobby_management
+            .get_lobby_mut(lobby_entity)
+            .expect("Failed to get lobby");
+        let map_config = lobby.map_config.as_ref().expect("Failed to get map config");
+        map = map_config.map.clone();
+        team_configs = map_config.teams.clone();
+        let team_names = team_configs.keys().cloned().collect::<Vec<_>>();
+        lobby_state.setup_score(team_names);
+    }
 
     commands.trigger_targets(InitAllFlagsTrigger, lobby_entity);
 
