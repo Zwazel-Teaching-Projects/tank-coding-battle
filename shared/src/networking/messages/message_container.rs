@@ -25,6 +25,7 @@ use super::message_data::{
         rotate_tank_turret::RotateTankTurretCommand,
         shoot::ShootCommand,
     },
+    team_scored::TeamScoredData,
     text_data::TextDataWrapper,
 };
 
@@ -119,8 +120,7 @@ use super::message_data::{
             FlagGotPickedUp(FlagEventDataWrapper),
             #[serde(rename = "FlagGotCaptured")]
             FlagGotCaptured(FlagSimpleEventDataWrapper),
-            #[serde(rename = "FlagGotReturned")]
-            FlagGotReturned(FlagSimpleEventDataWrapper),
+            TeamScored(TeamScoredData),
         }
     }
 )]

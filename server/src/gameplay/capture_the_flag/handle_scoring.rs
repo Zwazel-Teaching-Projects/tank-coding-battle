@@ -3,7 +3,11 @@ use shared::{
     game::game_state::LobbyGameState,
     networking::{
         lobby_management::{InLobby, InTeam, MyLobby},
-        messages::message_queue::OutMessageQueue,
+        messages::{
+            message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+            message_data::team_scored::TeamScoredData,
+            message_queue::OutMessageQueue,
+        },
     },
 };
 
@@ -31,6 +35,15 @@ pub fn handle_scoring(
                 .score
                 .entry(team.clone())
                 .and_modify(|score| *score += 1);
+
+            lobby_message_queue.push_back(MessageContainer::new(
+                MessageTarget::AllInLobby,
+                NetworkMessageType::TeamScored(TeamScoredData {
+                    score: lobby_state.score.get(team).unwrap().clone(),
+                    team: team.clone(),
+                    scorer,
+                }),
+            ));
         } else {
             warn!("Failed to get lobby state and message queue");
         }

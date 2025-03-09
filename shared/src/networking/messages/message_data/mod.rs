@@ -8,6 +8,7 @@ pub mod game_state;
 pub mod message_error_types;
 pub mod start_game_config;
 pub mod tank_messages;
+pub mod team_scored;
 pub mod text_data;
 
 pub struct MySharedMessageDataPlugin;
@@ -25,6 +26,7 @@ impl Plugin for MySharedMessageDataPlugin {
             .register_type::<flag_event_data::FlagEventDataWrapper>()
             .register_type::<flag_event_data::FlagSimpleEventDataWrapper>()
             .register_type::<entity_data::EntityDataWrapper>()
+            .register_type::<team_scored::TeamScoredData>()
             .add_plugins((tank_messages::MyTankMessagesPlugin,));
     }
 }
