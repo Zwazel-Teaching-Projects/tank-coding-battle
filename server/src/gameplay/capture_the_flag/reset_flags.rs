@@ -4,14 +4,21 @@ use shared::{
         collision_handling::components::{CollisionLayer, WantedTransform},
         flag::{FlagBaseMarker, FlagMarker, FlagState},
     },
-    networking::lobby_management::{InLobby, InTeam, MyLobby},
+    networking::{
+        lobby_management::{InLobby, InTeam, MyLobby},
+        messages::{
+            message_container::{MessageContainer, MessageTarget, NetworkMessageType},
+            message_data::flag_event_data::FlagSimpleEventDataWrapper,
+            message_queue::OutMessageQueue,
+        },
+    },
 };
 
 use super::triggers::ResetFlagTrigger;
 
 pub fn reset_flag(
     trigger: Trigger<ResetFlagTrigger>,
-    my_lobby: Query<&MyLobby>,
+    mut my_lobby: Query<(&MyLobby, &mut OutMessageQueue)>,
     mut flags: Query<
         (
             &mut WantedTransform,
@@ -38,7 +45,14 @@ pub fn reset_flag(
         in_team,
     ) = flags.get_mut(flag_entity).expect("Flag not found");
 
-    let lobby = my_lobby.get(**in_lobby).expect("Lobby not found");
+    let (lobby, mut lobby_message_queue) = my_lobby.get_mut(**in_lobby).expect("Lobby not found");
+
+    lobby_message_queue.push_back(MessageContainer::new(
+        MessageTarget::AllInLobby,
+        NetworkMessageType::FlagReturnedInBase(FlagSimpleEventDataWrapper {
+            flag_id: flag_entity,
+        }),
+    ));
 
     if let Some(map_config) = &lobby.map_config {
         let team_members = &map_config
