@@ -146,4 +146,6 @@ pub fn update_client_states(
 
     // Updating the tick
     client_state.tick = lobby_state.tick;
+    // Updating the score
+    client_state.score = lobby_state.score.clone();
 }
