@@ -114,12 +114,15 @@ use super::message_data::{
             Hit(HitMessageData),
             PlayerDied(EntityDataWrapper),
             PlayerRespawned(EntityDataWrapper),
+            /// Sent when a flag that was carried by a player got dropped
             #[serde(rename = "FlagGotDropped")]
             FlagGotDropped(FlagEventDataWrapper),
+            /// Sent when a flag got picked up by a player, and is now carried by them
             #[serde(rename = "FlagGotPickedUp")]
             FlagGotPickedUp(FlagEventDataWrapper),
-            #[serde(rename = "FlagGotCaptured")]
-            FlagGotCaptured(FlagSimpleEventDataWrapper),
+            /// Sent when a flag was returned to its base
+            #[serde(rename = "FlagReturnedInBase")]
+            FlagReturnedInBase(FlagSimpleEventDataWrapper),
             TeamScored(TeamScoredData),
         }
     }
