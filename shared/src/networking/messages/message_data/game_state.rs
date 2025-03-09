@@ -1,12 +1,14 @@
 use bevy::{prelude::*, utils::HashMap};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::game::game_state::{ClientState, ProjectileState};
+use crate::game::game_state::{ClientState, FlagBaseState, FlagGameState, ProjectileState};
 
 #[derive(Debug, Serialize, Deserialize, Reflect, Clone, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct GameState {
     pub tick: u64,
+    /// The score of each team.
+    pub score: HashMap<String, u32>,
     #[serde(
         serialize_with = "serialize_hashmap",
         deserialize_with = "deserialize_hashmap"
@@ -17,6 +19,16 @@ pub struct GameState {
         deserialize_with = "deserialize_hashmap"
     )]
     pub projectile_states: HashMap<Entity, ProjectileState>,
+    #[serde(
+        serialize_with = "serialize_hashmap",
+        deserialize_with = "deserialize_hashmap"
+    )]
+    pub flag_states: HashMap<Entity, FlagGameState>,
+    #[serde(
+        serialize_with = "serialize_hashmap",
+        deserialize_with = "deserialize_hashmap"
+    )]
+    pub flag_base_states: HashMap<Entity, FlagBaseState>,
 }
 
 fn serialize_hashmap<S, V>(map: &HashMap<Entity, V>, serializer: S) -> Result<S::Ok, S::Error>

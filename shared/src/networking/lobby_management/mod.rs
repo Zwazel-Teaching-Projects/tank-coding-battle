@@ -105,6 +105,8 @@ pub struct MyLobby {
     pub players: Vec<(String, Entity, ClientType)>,
     pub spectators: Vec<Entity>,
     pub projectiles: Vec<Entity>,
+    pub flags: Vec<Entity>,
+    pub flag_bases: Vec<Entity>,
 
     pub map_name: String,
     pub map_config: Option<MapConfig>,
@@ -128,6 +130,8 @@ impl MyLobby {
             players: Vec::new(),
             spectators: Vec::new(),
             projectiles: Vec::new(),
+            flags: Vec::new(),
+            flag_bases: Vec::new(),
 
             map_name,
             map_config: None,
@@ -204,7 +208,7 @@ fn adding_player_to_lobby(
         player_name,
     } = trigger.event();
 
-    if let Ok(mut lobby) = lobby_management.get_lobby_mut(*lobby_entity) {
+    if let Ok((_, mut lobby, _)) = lobby_management.get_lobby_mut(*lobby_entity) {
         let mut queue = player_immediate_message_queues.get_mut(*player).unwrap();
 
         match lobby.state {
@@ -248,7 +252,7 @@ fn adding_player_to_lobby(
 
                             queue.push_back(MessageContainer::new(
                                 MessageTarget::Client(*player),
-                                NetworkMessageType::SuccessFullyJoinedLobby(TextDataWrapper::new(
+                                NetworkMessageType::SuccessfullyJoinedLobby(TextDataWrapper::new(
                                     format!("Successfully joined lobby on team {}", team_name),
                                 )),
                             ));
@@ -295,7 +299,7 @@ fn finish_setting_up_lobby(
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let mut lobby = lobby_management.get_lobby_mut(lobby_entity).unwrap();
+    let (_, mut lobby, _) = lobby_management.get_lobby_mut(lobby_entity).unwrap();
     if lobby.map_config.is_none() {
         if let Some(map_config) = map_config.get_map_config_from_name(&lobby.map_name) {
             info!(

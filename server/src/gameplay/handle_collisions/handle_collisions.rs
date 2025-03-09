@@ -63,6 +63,8 @@ pub fn unified_collision_system(
         world_safe: Transform,
         // The earliest entity collision time (default 1.0 means no collision).
         entity_collision_time: f32,
+        // New: true if this entity's collision layer is NO_COLLISION.
+        no_collision: bool,
     }
 
     let mut sim_entities = Vec::new();
@@ -79,6 +81,7 @@ pub fn unified_collision_system(
             world_collision_time: None,
             world_safe: *transform,
             entity_collision_time: 1.0,
+            no_collision: collision_layer.contains(CollisionLayer::NO_COLLISION),
         });
     }
 
@@ -87,6 +90,12 @@ pub fn unified_collision_system(
 
     // === Phase 1: World Collision Check ===
     for sim in sim_entities.iter_mut() {
+        if sim.no_collision {
+            sim.world_collision_time = Some(1.0);
+            sim.world_safe = sim.wanted;
+            continue;
+        }
+
         let delta = sim.wanted.translation - sim.original.translation;
         let total_distance = delta.length();
         let steps = if total_distance == 0.0 {
@@ -207,6 +216,10 @@ pub fn unified_collision_system(
         // Check each pair for collision.
         for i in 0..sim_entities.len() {
             for j in (i + 1)..sim_entities.len() {
+                if sim_entities[i].no_collision || sim_entities[j].no_collision {
+                    continue;
+                }
+
                 // Skip if collision layers do not intersect or if either ignores the other.
                 if !sim_entities[i]
                     .collision_layer
@@ -260,7 +273,9 @@ pub fn unified_collision_system(
         let world_t = sim.world_collision_time.unwrap_or(1.0);
         let effective_t = world_t.min(sim.entity_collision_time);
 
-        let final_transform = if effective_t < 1.0 {
+        let final_transform = if sim.no_collision {
+            sim.wanted
+        } else if effective_t < 1.0 {
             // A collision occurred—do not climb beyond what was safe.
             sim.world_safe
         } else {

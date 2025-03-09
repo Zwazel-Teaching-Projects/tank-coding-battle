@@ -19,7 +19,7 @@ pub fn update_client_states(
     let mut client_state = states
         .get_mut(client_entity)
         .expect("Failed to get client state");
-    let my_lobby = lobby_management
+    let (_, my_lobby, _) = lobby_management
         .get_lobby(**in_lobby)
         .expect("Failed to get lobby");
     // Get all teammates, filtering out myself
@@ -55,6 +55,15 @@ pub fn update_client_states(
                 return;
             }
         });
+    lobby_state.projectiles.iter().for_each(|(entity, state)| {
+        client_state.projectiles.insert(*entity, state.clone());
+    });
+    lobby_state.flags.iter().for_each(|(entity, state)| {
+        client_state.flags.insert(*entity, state.clone());
+    });
+    lobby_state.flag_bases.iter().for_each(|(entity, state)| {
+        client_state.flag_bases.insert(*entity, state.clone());
+    });
 
     // Copying the states of our teammates from the lobby state to the client state
     team_players.iter().for_each(|entity| {
@@ -66,6 +75,30 @@ pub fn update_client_states(
                     client_state
                         .other_client_states
                         .insert(**entity, Some(state.clone()));
+                    return;
+                }
+            });
+        lobby_state
+            .projectiles
+            .iter()
+            .for_each(|(state_entity, state)| {
+                if state_entity == *entity {
+                    client_state.projectiles.insert(**entity, state.clone());
+                    return;
+                }
+            });
+        lobby_state.flags.iter().for_each(|(state_entity, state)| {
+            if state_entity == *entity {
+                client_state.flags.insert(**entity, state.clone());
+                return;
+            }
+        });
+        lobby_state
+            .flag_bases
+            .iter()
+            .for_each(|(state_entity, state)| {
+                if state_entity == *entity {
+                    client_state.flag_bases.insert(**entity, state.clone());
                     return;
                 }
             });
@@ -85,8 +118,34 @@ pub fn update_client_states(
                     return;
                 }
             });
+        lobby_state
+            .projectiles
+            .iter()
+            .for_each(|(state_entity, state)| {
+                if state_entity == entity {
+                    client_state.projectiles.insert(*entity, state.clone());
+                    return;
+                }
+            });
+        lobby_state.flags.iter().for_each(|(state_entity, state)| {
+            if state_entity == entity {
+                client_state.flags.insert(*entity, state.clone());
+                return;
+            }
+        });
+        lobby_state
+            .flag_bases
+            .iter()
+            .for_each(|(state_entity, state)| {
+                if state_entity == entity {
+                    client_state.flag_bases.insert(*entity, state.clone());
+                    return;
+                }
+            });
     });
 
     // Updating the tick
     client_state.tick = lobby_state.tick;
+    // Updating the score
+    client_state.score = lobby_state.score.clone();
 }

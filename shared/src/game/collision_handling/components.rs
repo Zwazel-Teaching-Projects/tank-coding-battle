@@ -21,11 +21,18 @@ impl Collider {
 #[reflect(Component)]
 pub struct CollisionLayer {
     pub mask: u32,
-    // Collection of entities that this entity should ignore collisions with.
+    /// Collection of entities that this entity should ignore collisions with.
     pub ignore: EntityHashSet,
 }
 
 impl CollisionLayer {
+    pub const ALL: u32 = u32::MAX;
+
+    pub const NO_COLLISION: u32 = 0;
+    pub const PLAYER: u32 = 1;
+    pub const FLAG: u32 = 2;
+    pub const FLAG_BASE: u32 = 3;
+
     /// Create a collision layer from a list of layer indices.
     /// Each index in the list will be set as a bit in the mask.
     pub fn new(layers: &[u32]) -> Self {
@@ -36,8 +43,35 @@ impl CollisionLayer {
         }
     }
 
+    /// Create a collision layer for flag
+    pub fn flag() -> Self {
+        Self::new(&[Self::FLAG])
+    }
+
+    /// Create a collision layer for flag base
+    pub fn flag_base() -> Self {
+        Self::new(&[Self::FLAG_BASE])
+    }
+
+    /// Create a collision layer for player
+    pub fn player() -> Self {
+        Self::new(&[Self::PLAYER])
+    }
+
+    pub fn none() -> Self {
+        Self::new(&[Self::NO_COLLISION])
+    }
+
     pub fn with_ignore(mut self, ignore: EntityHashSet) -> Self {
         self.ignore = ignore;
+        self
+    }
+
+    pub fn with_additional_layers(mut self, layers: &[u32]) -> Self {
+        let mask = layers
+            .iter()
+            .fold(self.mask, |acc, &layer| acc | (1 << layer));
+        self.mask = mask;
         self
     }
 
@@ -59,6 +93,11 @@ impl CollisionLayer {
     /// Check if there is any overlapping layer between two CollisionLayers.
     pub fn intersects(&self, other: &Self) -> bool {
         (self.mask & other.mask) != 0
+    }
+
+    /// Gets all layers that are set in the mask.
+    pub fn layers(&self) -> Vec<u32> {
+        (0..32).filter(|&i| self.contains(i)).collect()
     }
 }
 

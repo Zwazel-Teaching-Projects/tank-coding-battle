@@ -23,8 +23,9 @@ use shared::{
 
 use crate::networking::handle_clients::lib::MyNetworkClient;
 
-use super::handle_players::{
-    dummy_handling::DummyClientMarker, handle_spawning::RespawnPlayerTrigger,
+use super::{
+    capture_the_flag::triggers::InitAllFlagsTrigger,
+    handle_players::{dummy_handling::DummyClientMarker, handle_spawning::RespawnPlayerTrigger},
 };
 
 #[derive(Debug, Event)]
@@ -101,10 +102,6 @@ pub fn check_if_lobby_should_start(
             let mut client = clients.get_mut(client).expect("Failed to get client");
             client.assigned_spawn_point = Some(*spawn_point);
             taken_points.push(*spawn_point);
-            info!(
-                "Assigned spawn point {:?} to player {:?}",
-                *spawn_point, client.name
-            );
         }
     }
 
@@ -133,10 +130,6 @@ pub fn check_if_lobby_should_start(
                     .find(|spawn_point| !taken_points.contains(spawn_point))
                     .unwrap_or(&spawn_points[0]);
 
-                info!(
-                    "Assigned spawn point {:?} to dummy {:?}",
-                    *spawn_point, dummy_name
-                );
                 let mut dummy_client = MyNetworkClient::new_dummy(dummy_name.clone());
                 dummy_client.assigned_spawn_point = Some(*spawn_point);
                 taken_points.push(*spawn_point);
@@ -197,19 +190,20 @@ pub fn start_lobby(
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let lobby = lobby_management
-        .get_lobby(lobby_entity)
-        .expect("Failed to get lobby");
-    let map = &lobby
-        .map_config
-        .as_ref()
-        .expect("Failed to get map config")
-        .map;
-    let team_configs = &lobby
-        .map_config
-        .as_ref()
-        .expect("Failed to get map config")
-        .teams;
+    let map;
+    let team_configs;
+    {
+        let (_, lobby, mut lobby_state) = lobby_management
+            .get_lobby_mut(lobby_entity)
+            .expect("Failed to get lobby");
+        let map_config = lobby.map_config.as_ref().expect("Failed to get map config");
+        map = map_config.map.clone();
+        team_configs = map_config.teams.clone();
+        let team_names = team_configs.keys().cloned().collect::<Vec<_>>();
+        lobby_state.setup_score(team_names);
+    }
+
+    commands.trigger_targets(InitAllFlagsTrigger, lobby_entity);
 
     let server_config = server_config.server_config();
     let tank_configs = tank_config.tank_configs();
@@ -249,6 +243,7 @@ pub fn start_lobby(
             lobby_management
                 .get_lobby_mut(lobby_entity)
                 .expect("Failed to get lobby")
+                .1
                 .state = LobbyState::InProgress;
         }
         Err(err) => error!("Failed to get players in lobby: {}", err),
@@ -262,7 +257,7 @@ fn get_connected_configs_in_lobby(
 ) -> Vec<ConnectedClientConfig> {
     lobby_management
         .get_lobby(lobby_entity)
-        .map(|lobby| {
+        .map(|(_, lobby, _)| {
             let map_config = lobby.map_config.as_ref().unwrap();
 
             let mut connected_configs = Vec::new();

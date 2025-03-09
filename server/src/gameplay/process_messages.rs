@@ -30,6 +30,7 @@ pub fn process_lobby_messages(
     let messages_to_process = lobby_management
         .get_lobby_mut(lobby_entity)
         .expect("Lobby not found")
+        .1
         .messages
         .drain(..)
         .collect::<Vec<_>>();

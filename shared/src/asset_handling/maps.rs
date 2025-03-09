@@ -90,6 +90,10 @@ impl MapConfig {
         }
         None
     }
+
+    pub fn get_team_names(&self) -> Vec<String> {
+        self.teams.keys().cloned().collect()
+    }
 }
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
@@ -391,7 +395,8 @@ pub enum MarkerType {
         spawn_number: usize,
         look_direction: LookDirection,
     },
-    FlagBase,
+    #[serde(rename_all = "camelCase")]
+    FlagBase { flag_number: usize },
 }
 
 impl Default for MarkerType {

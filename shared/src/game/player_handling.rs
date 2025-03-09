@@ -21,9 +21,10 @@ pub enum PlayerState {
 #[reflect(Component)]
 pub struct RespawnTimer(pub u32);
 
-#[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
+#[derive(Debug, Component, Reflect, Clone, PartialEq, Default, Deref, DerefMut)]
 #[reflect(Component)]
 pub struct Health {
+    #[deref]
     pub health: f32,
     pub max_health: f32,
 }
@@ -86,7 +87,7 @@ pub fn setup_tank_body(
             half_size: tank_config.size / 2.0,
             max_slope: tank_config.max_slope,
         },
-        CollisionLayer::new(&[0]),
+        CollisionLayer::player().with_additional_layers(&[CollisionLayer::FLAG]),
         ShootCooldown {
             ticks_left: 0,
             ticks_cooldown: tank_config.shoot_cooldown,

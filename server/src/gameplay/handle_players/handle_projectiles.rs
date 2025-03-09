@@ -8,7 +8,7 @@ use shared::{
             triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
         },
         common_components::TickBasedDespawnTimer,
-        player_handling::{Health, PlayerState, RespawnTimer, TankBodyMarker},
+        player_handling::{Health, PlayerState, TankBodyMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
     },
@@ -25,9 +25,8 @@ use shared::{
 use crate::gameplay::{
     lobby_cleanup::CleanupNextTick,
     triggers::{
-        CheckForCollisionsTrigger, DespawnOutOfBoundsProjectilesTrigger,
+        CheckForCollisionsTrigger, CheckHealthTrigger, DespawnOutOfBoundsProjectilesTrigger,
         MovePorjectilesSimulationStepTrigger, StartNextTickProcessingTrigger,
-        UpdateLobbyGameStateTrigger,
     },
 };
 
@@ -37,12 +36,10 @@ pub fn colliding_with_entity(
     tank_configs: TankConfigSystemParam,
     mut players: Query<
         (
-            Entity,
             &Transform,
             &Collider,
             &TankType,
-            Has<RespawnTimer>,
-            &mut PlayerState,
+            &PlayerState,
             &mut Health,
             &mut OutMessageQueue,
         ),
@@ -59,84 +56,70 @@ pub fn colliding_with_entity(
     let mut hit_a_tank = false;
     let mut hit_side = Side::default();
     let mut damage_dealt = 0.0;
-    if let Ok((
-        player_entity,
-        body_transform,
-        body_collider,
-        tank_type,
-        is_respawning,
-        mut player_state,
-        mut health,
-        mut message_queue,
-    )) = players.get_mut(collided_with)
+    if let Ok((body_transform, body_collider, tank_type, state, mut health, mut message_queue)) =
+        players.get_mut(collided_with)
     {
-        hit_a_tank = true;
-        let tank_config = tank_configs
-            .get_tank_type_config(tank_type)
-            .expect("Failed to get tank config");
-        let body_half_size = body_collider.half_size;
+        if state == &PlayerState::Alive {
+            hit_a_tank = true;
+            let tank_config = tank_configs
+                .get_tank_type_config(tank_type)
+                .expect("Failed to get tank config");
+            let body_half_size = body_collider.half_size;
 
-        // Get the relative vector from the body to the projectile in world space.
-        let relative = projectile_transform.translation - body_transform.translation;
+            // Get the relative vector from the body to the projectile in world space.
+            let relative = projectile_transform.translation - body_transform.translation;
 
-        // Transform the relative vector into the body's local space.
-        let local_pos = body_transform.rotation.inverse() * relative;
+            // Transform the relative vector into the body's local space.
+            let local_pos = body_transform.rotation.inverse() * relative;
 
-        let face_dx = body_half_size.x - local_pos.x.abs();
-        let face_dy = body_half_size.y - local_pos.y.abs();
-        let face_dz = body_half_size.z - local_pos.z.abs();
+            let face_dx = body_half_size.x - local_pos.x.abs();
+            let face_dy = body_half_size.y - local_pos.y.abs();
+            let face_dz = body_half_size.z - local_pos.z.abs();
 
-        hit_side = if face_dx < face_dy && face_dx < face_dz {
-            // Collision on x-axis (left or right)
-            if local_pos.x > 0.0 {
-                Side::Left
+            hit_side = if face_dx < face_dy && face_dx < face_dz {
+                // Collision on x-axis (left or right)
+                if local_pos.x > 0.0 {
+                    Side::Left
+                } else {
+                    Side::Right
+                }
+            } else if face_dy < face_dx && face_dy < face_dz {
+                // Collision on y-axis (top or bottom)
+                if local_pos.y > 0.0 {
+                    Side::Top
+                } else {
+                    Side::Bottom
+                }
             } else {
-                Side::Right
-            }
-        } else if face_dy < face_dx && face_dy < face_dz {
-            // Collision on y-axis (top or bottom)
-            if local_pos.y > 0.0 {
-                Side::Top
-            } else {
-                Side::Bottom
-            }
-        } else {
-            // Collision on z-axis (front or back)
-            if local_pos.z > 0.0 {
-                Side::Front
-            } else {
-                Side::Back
-            }
-        };
+                // Collision on z-axis (front or back)
+                if local_pos.z > 0.0 {
+                    Side::Front
+                } else {
+                    Side::Back
+                }
+            };
 
-        let armor = tank_config
-            .armor
-            .get(&hit_side)
-            .expect(format!("Failed to get armor for side {:?}", hit_side).as_str());
-        damage_dealt = projectile.damage * (1.0 - armor);
-        health.health -= projectile.damage;
+            let armor = tank_config
+                .armor
+                .get(&hit_side)
+                .expect(format!("Failed to get armor for side {:?}", hit_side).as_str());
+            damage_dealt = projectile.damage * (1.0 - armor);
+            health.health -= projectile.damage;
 
-        if health.health <= 0.0 && !is_respawning {
-            *player_state = PlayerState::Dead;
-
-            commands
-                .entity(player_entity)
-                .insert(RespawnTimer(tank_config.respawn_timer));
+            message_queue.push_back(MessageContainer::new(
+                MessageTarget::Client(collided_with),
+                NetworkMessageType::GotHit(GotHitMessageData {
+                    damage_received: damage_dealt,
+                    hit_side,
+                    projectile_entity,
+                    shooter_entity: projectile.owner,
+                }),
+            ));
         }
-
-        message_queue.push_back(MessageContainer::new(
-            MessageTarget::Client(collided_with),
-            NetworkMessageType::GotHit(GotHitMessageData {
-                damage_received: damage_dealt,
-                hit_side,
-                projectile_entity,
-                shooter_entity: projectile.owner,
-            }),
-        ));
     }
 
     if hit_a_tank {
-        if let Ok((_, _, _, _, _, _, _, mut projectile_owner_message_queue)) =
+        if let Ok((_, _, _, _, _, mut projectile_owner_message_queue)) =
             players.get_mut(projectile.owner)
         {
             projectile_owner_message_queue.push_back(MessageContainer::new(
@@ -230,7 +213,7 @@ pub fn despawn_out_of_bounds(
         }
     }
 
-    commands.trigger_targets(UpdateLobbyGameStateTrigger, lobby_entity);
+    commands.trigger_targets(CheckHealthTrigger, lobby_entity);
 }
 
 pub fn despawn_projectile_on_collision_with_world(

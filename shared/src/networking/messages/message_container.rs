@@ -11,7 +11,9 @@ use crate::{
 };
 
 use super::message_data::{
+    entity_data::EntityDataWrapper,
     first_contact::FirstContactData,
+    flag_event_data::{FlagEventDataWrapper, FlagSimpleEventDataWrapper},
     game_starts::GameStarts,
     game_state::GameState,
     message_error_types::ErrorMessageTypes,
@@ -23,6 +25,7 @@ use super::message_data::{
         rotate_tank_turret::RotateTankTurretCommand,
         shoot::ShootCommand,
     },
+    team_scored::TeamScoredData,
     text_data::TextDataWrapper,
 };
 
@@ -70,8 +73,6 @@ use super::message_data::{
             /// A simple Text Message
             /// Can be sent to a single client, everyone in the team or everyone in the lobby
             /// The server does not do anything with this message, it only forwards it to the specified targets
-            /// We need to rename it, because we don't want it to be serialized as "TextDataWrapper"
-            #[serde(rename = "SimpleTextMessage")]
             #[target(Client, Team, AllInLobby)]
             #[behaviour(Forward)]
             SimpleTextMessage(TextDataWrapper),
@@ -89,9 +90,7 @@ use super::message_data::{
             StartGame(StartGameConfig),
             /// Sent to the client when they successfully joined a lobby
             /// Can not be sent by a client, only by the server
-            /// We need to rename it, because we don't want it to be serialized as "TextDataWrapper"
-            #[serde(rename = "SuccessfullyJoinedLobby")]
-            SuccessFullyJoinedLobby(TextDataWrapper),
+            SuccessfullyJoinedLobby(TextDataWrapper),
             /// Sent from the client to the server to move the tank
             /// Will only be sent by a client
             /// Can only be sent to itself on the server
@@ -109,6 +108,15 @@ use super::message_data::{
             ShootCommand(ShootCommand),
             GotHit(GotHitMessageData),
             Hit(HitMessageData),
+            PlayerDied(EntityDataWrapper),
+            PlayerRespawned(EntityDataWrapper),
+            /// Sent when a flag that was carried by a player got dropped
+            FlagGotDropped(FlagEventDataWrapper),
+            /// Sent when a flag got picked up by a player, and is now carried by them
+            FlagGotPickedUp(FlagEventDataWrapper),
+            /// Sent when a flag was returned to its base
+            FlagReturnedInBase(FlagSimpleEventDataWrapper),
+            TeamScored(TeamScoredData),
         }
     }
 )]

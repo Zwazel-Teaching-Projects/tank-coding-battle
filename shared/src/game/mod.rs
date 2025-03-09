@@ -9,6 +9,7 @@ use tank_types::TankType;
 pub mod collision_handling;
 pub mod common_components;
 pub mod common_systems;
+pub mod flag;
 pub mod game_state;
 pub mod player_handling;
 pub mod projectile_handling;
@@ -32,6 +33,10 @@ impl Plugin for MySharedGamePlugin {
             .register_type::<projectile_handling::ProjectileMarker>()
             .register_type::<common_components::DespawnTimer>()
             .register_type::<common_components::TickBasedDespawnTimer>()
+            .register_type::<flag::FlagMarker>()
+            .register_type::<flag::FlagState>()
+            .register_type::<flag::FlagBaseMarker>()
+            .register_type::<flag::FlagCarrier>()
             .add_plugins((MyCollisionHandlingPlugin,))
             .add_systems(
                 Update,

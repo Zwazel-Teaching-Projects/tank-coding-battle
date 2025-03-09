@@ -1,13 +1,17 @@
 use bevy::{prelude::*, utils::hashbrown::HashSet};
 use shared::{
     game::{
-        game_state::{ClientState, PersonalizedClientGameState, ProjectileState},
+        collision_handling::components::Collider,
+        flag::{FlagBaseMarker, FlagMarker, FlagState},
+        game_state::{
+            ClientState, FlagBaseState, FlagGameState, PersonalizedClientGameState, ProjectileState,
+        },
         player_handling::{Health, PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
     },
     networking::{
-        lobby_management::{lobby_management::LobbyManagementSystemParam, LobbyState},
+        lobby_management::{lobby_management::LobbyManagementSystemParam, InTeam, LobbyState},
         messages::{
             message_container::{MessageContainer, MessageTarget, NetworkMessageType},
             message_queue::OutMessageQueue,
@@ -33,7 +37,9 @@ pub fn update_lobby_state(
         &PlayerState,
     )>,
     turrets: Query<&Transform, With<TankTurretMarker>>,
-    projectiles: Query<(&Transform, &ProjectileMarker), With<ProjectileMarker>>,
+    projectiles: Query<(&Transform, &ProjectileMarker)>,
+    flags: Query<(&Transform, &FlagState, &InTeam, &FlagMarker, &Collider)>,
+    flag_bases: Query<(&Transform, &FlagBaseMarker, &Collider, &InTeam)>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
@@ -41,13 +47,31 @@ pub fn update_lobby_state(
     let player_entities = lobby_management
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby")
+        .1
         .players
         .iter()
         .map(|(_, entity, _)| *entity)
         .collect::<Vec<_>>();
+    let flag_entities = lobby_management
+        .get_lobby(lobby_entity)
+        .expect("Failed to get lobby")
+        .1
+        .flags
+        .iter()
+        .map(|entity| *entity)
+        .collect::<HashSet<_>>();
+    let flag_base_entities = lobby_management
+        .get_lobby(lobby_entity)
+        .expect("Failed to get lobby")
+        .1
+        .flag_bases
+        .iter()
+        .map(|entity| *entity)
+        .collect::<HashSet<_>>();
     let projectile_entities = lobby_management
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby")
+        .1
         .projectiles
         .iter()
         .map(|entity| *entity)
@@ -98,6 +122,57 @@ pub fn update_lobby_state(
             });
     }
 
+    // Updating states of all flags
+    lobby_game_state
+        .flags
+        .retain(|entity, _| flag_entities.contains(entity));
+    for flag_entity in flag_entities.iter() {
+        let (flag_transform, flag_state, in_team, flag_marker, flag_collider) =
+            flags.get(*flag_entity).expect("Failed to get flag");
+
+        lobby_game_state
+            .flags
+            .entry(*flag_entity)
+            .and_modify(|state| {
+                state.transform = flag_transform.clone();
+                state.state = flag_state.clone();
+            })
+            .or_insert_with(|| FlagGameState {
+                flag_id: *flag_entity,
+                transform: flag_transform.clone(),
+                state: flag_state.clone(),
+                team: in_team.0.clone(),
+                flag_base_id: flag_marker.base,
+                collider_size: flag_collider.half_size * 2.0,
+            });
+    }
+
+    // Updating states of all flag bases
+    lobby_game_state
+        .flag_bases
+        .retain(|entity, _| flag_base_entities.contains(entity));
+    for flag_base_entity in flag_base_entities.iter() {
+        let (flag_base_transform, flag_base_marker, flag_base_collider, in_team) = flag_bases
+            .get(*flag_base_entity)
+            .expect("Failed to get flag base");
+
+        lobby_game_state
+            .flag_bases
+            .entry(*flag_base_entity)
+            .and_modify(|state| {
+                state.transform = flag_base_transform.clone();
+                state.flag_in_base = flag_base_marker.flag_in_base;
+            })
+            .or_insert_with(|| FlagBaseState {
+                flag_in_base: flag_base_marker.flag_in_base,
+                collider_size: flag_base_collider.half_size * 2.0,
+                flag_id: flag_base_marker.my_flag,
+                flag_base_id: *flag_base_entity,
+                team: in_team.0.clone(),
+                transform: flag_base_transform.clone(),
+            });
+    }
+
     commands.trigger_targets(UpdateClientGameStatesTrigger, player_entities);
 }
 
@@ -142,7 +217,7 @@ pub fn add_current_game_state_to_message_queue(
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
-    let lobby = lobby_management
+    let (_, lobby, _) = lobby_management
         .get_lobby(lobby_entity)
         .expect("Failed to get lobby");
     let lobby_state = lobby_management
