@@ -74,7 +74,6 @@ use super::message_data::{
             /// Can be sent to a single client, everyone in the team or everyone in the lobby
             /// The server does not do anything with this message, it only forwards it to the specified targets
             /// We need to rename it, because we don't want it to be serialized as "TextDataWrapper"
-            #[serde(rename = "SimpleTextMessage")]
             #[target(Client, Team, AllInLobby)]
             #[behaviour(Forward)]
             SimpleTextMessage(TextDataWrapper),
@@ -92,9 +91,7 @@ use super::message_data::{
             StartGame(StartGameConfig),
             /// Sent to the client when they successfully joined a lobby
             /// Can not be sent by a client, only by the server
-            /// We need to rename it, because we don't want it to be serialized as "TextDataWrapper"
-            #[serde(rename = "SuccessfullyJoinedLobby")]
-            SuccessFullyJoinedLobby(TextDataWrapper),
+            SuccessfullyJoinedLobby(TextDataWrapper),
             /// Sent from the client to the server to move the tank
             /// Will only be sent by a client
             /// Can only be sent to itself on the server
@@ -115,13 +112,10 @@ use super::message_data::{
             PlayerDied(EntityDataWrapper),
             PlayerRespawned(EntityDataWrapper),
             /// Sent when a flag that was carried by a player got dropped
-            #[serde(rename = "FlagGotDropped")]
             FlagGotDropped(FlagEventDataWrapper),
             /// Sent when a flag got picked up by a player, and is now carried by them
-            #[serde(rename = "FlagGotPickedUp")]
             FlagGotPickedUp(FlagEventDataWrapper),
             /// Sent when a flag was returned to its base
-            #[serde(rename = "FlagReturnedInBase")]
             FlagReturnedInBase(FlagSimpleEventDataWrapper),
             TeamScored(TeamScoredData),
         }

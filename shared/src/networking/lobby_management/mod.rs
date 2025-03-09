@@ -252,7 +252,7 @@ fn adding_player_to_lobby(
 
                             queue.push_back(MessageContainer::new(
                                 MessageTarget::Client(*player),
-                                NetworkMessageType::SuccessFullyJoinedLobby(TextDataWrapper::new(
+                                NetworkMessageType::SuccessfullyJoinedLobby(TextDataWrapper::new(
                                     format!("Successfully joined lobby on team {}", team_name),
                                 )),
                             ));
