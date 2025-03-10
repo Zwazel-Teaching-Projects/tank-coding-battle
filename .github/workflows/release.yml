@@ -38,7 +38,7 @@ jobs:
         shell: cmd
 
       - name: Upload client artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: client-windows
           path: artifact/spectator_client.exe
@@ -75,7 +75,7 @@ jobs:
         shell: cmd
 
       - name: Upload server artifact (Windows)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: server-windows
           path: artifact/server.exe
@@ -109,8 +109,9 @@ jobs:
         run: |
           mkdir -p artifact
           cp target/server/release/server artifact/server
+
       - name: Upload server artifact (Linux)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: server-linux
           path: artifact/server
