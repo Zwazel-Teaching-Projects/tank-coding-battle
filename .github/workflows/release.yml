@@ -26,7 +26,6 @@ jobs:
           workspaces: ". -> target/client"
           cache-targets: "true"
           cache-all-crates: "false"
-          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build Spectator Client (Windows)
         run: cargo brc
@@ -63,16 +62,20 @@ jobs:
           workspaces: ". -> target/server"
           cache-targets: "true"
           cache-all-crates: "false"
-          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build Server (Windows)
         run: cargo brs
 
       - name: Prepare server artifact (Windows)
+        shell: powershell
         run: |
-          mkdir artifact
-          copy target\server\release\server.exe artifact\server.exe
-        shell: cmd
+          New-Item -ItemType Directory -Force -Path artifact
+          $exe = Get-ChildItem -Path target\server\release\*.exe | Select-Object -First 1
+          if (-not $exe) {
+            Write-Error "No executable found in target\server\release"
+            exit 1
+          }
+          Copy-Item $exe.FullName -Destination artifact\server.exe
 
       - name: Upload server artifact (Windows)
         uses: actions/upload-artifact@v4
@@ -100,7 +103,6 @@ jobs:
           workspaces: ". -> target/server"
           cache-targets: "true"
           cache-all-crates: "false"
-          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build Server (Linux)
         run: cargo brs
