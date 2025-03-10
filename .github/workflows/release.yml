@@ -1,126 +1,192 @@
-name: Build and Release
+name: Build and Release Rust App
 
 on:
   push:
     tags:
-      - '*'  # Trigger on every tag push
+      - '*'
 
 jobs:
-  build_windows:
-    name: Build on Windows
+  build_client_windows:
+    name: Build Spectator Client (Windows)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Install Rust stable
         run: rustup toolchain install stable --profile minimal
 
-      - name: Cache Rust Build (Windows)
+      - name: Restore Rust cache for client
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v0-rust"
-          shared-key: "windows-cargo-cache"
-          workspaces: ". -> target"
+          shared-key: "master"
+          key: windows-client-${{ hashFiles('**/Cargo.lock') }}
+          env-vars: "CARGO"
+          workspaces: ". -> target/client"
+          cache-targets: "true"
+          cache-all-crates: "false"
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
-      - name: Build SERVER (Windows)
-        run: cargo brs
-
-      - name: Build SPECTATOR_CLIENT (Windows)
+      - name: Build Spectator Client (Windows)
         run: cargo brc
 
-      - name: Prepare Windows Release Artifact
-        shell: powershell
+      - name: Prepare client artifact
         run: |
-          mkdir output
-          # Copy the essential assets folder
-          Copy-Item -Recurse assets output
-          # Only transfer the .exe files—discarding your trivial, extraneous files
-          Copy-Item -Path target/server\*.exe -Destination output -ErrorAction SilentlyContinue
-          Copy-Item -Path target/client\*.exe -Destination output -ErrorAction SilentlyContinue
-          Compress-Archive -Path output\* -DestinationPath windows_release.zip
+          mkdir artifact
+          copy target\client\release\spectator_client.exe artifact\spectator_client.exe
+        shell: cmd
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload client artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: windows_release
-          path: windows_release.zip
+          name: client-windows
+          path: artifact/spectator_client.exe
 
-  build_linux:
-    name: Build on Linux
-    runs-on: ubuntu-latest
+  build_server_windows:
+    name: Build Server (Windows)
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Install Rust stable
         run: rustup toolchain install stable --profile minimal
 
-      - name: Cache Rust Build (Linux)
+      - name: Restore Rust cache for server (Windows)
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v0-rust"
-          shared-key: "linux-cargo-cache"
-          workspaces: ". -> target"
+          shared-key: "master"
+          key: windows-server-${{ hashFiles('**/Cargo.lock') }}
+          env-vars: "CARGO"
+          workspaces: ". -> target/server"
+          cache-targets: "true"
+          cache-all-crates: "false"
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
-      - name: Build SERVER (Linux)
+      - name: Build Server (Windows)
         run: cargo brs
 
-      - name: Prepare Linux Release Artifact
+      - name: Prepare server artifact (Windows)
         run: |
-          mkdir -p output
-          cp -r assets output/
-          # Extract only the executable(s) from the build—no surplus clutter for these foolish mortals
-          find target/server -maxdepth 1 -type f -executable -exec cp {} output/ \;
-          zip -r linux_release.zip output
+          mkdir artifact
+          copy target\server\release\server.exe artifact\server.exe
+        shell: cmd
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload server artifact (Windows)
+        uses: actions/upload-artifact@v3
         with:
-          name: linux_release
-          path: linux_release.zip
+          name: server-windows
+          path: artifact/server.exe
 
-  release:
-    name: Create GitHub Release
-    needs: [build_windows, build_linux]
+  build_server_linux:
+    name: Build Server (Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Download Windows Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: windows_release
-          path: .
+      - name: Install Rust stable
+        run: rustup toolchain install stable --profile minimal
 
-      - name: Download Linux Artifact
-        uses: actions/download-artifact@v4
+      - name: Restore Rust cache for server (Linux)
+        uses: Swatinem/rust-cache@v2
         with:
-          name: linux_release
-          path: .
+          prefix-key: "v0-rust"
+          shared-key: "master"
+          key: linux-server-${{ hashFiles('**/Cargo.lock') }}
+          env-vars: "CARGO"
+          workspaces: ". -> target/server"
+          cache-targets: "true"
+          cache-all-crates: "false"
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+
+      - name: Build Server (Linux)
+        run: cargo brs
+
+      - name: Prepare server artifact (Linux)
+        run: |
+          mkdir -p artifact
+          cp target/server/release/server artifact/server
+      - name: Upload server artifact (Linux)
+        uses: actions/upload-artifact@v3
+        with:
+          name: server-linux
+          path: artifact/server
+
+  assemble_release:
+    name: Assemble Artifacts and Create Release
+    needs:
+      - build_client_windows
+      - build_server_windows
+      - build_server_linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download client artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: client-windows
+
+      - name: Download server artifact (Windows)
+        uses: actions/download-artifact@v3
+        with:
+          name: server-windows
+
+      - name: Download server artifact (Linux)
+        uses: actions/download-artifact@v3
+        with:
+          name: server-linux
+
+      - name: Prepare release directories
+        run: |
+          mkdir -p release/windows release/linux
+          # Assemble Windows folder with spectator and server executables
+          cp client-windows/spectator_client.exe release/windows/
+          cp server-windows/server.exe release/windows/
+          # Assemble Linux folder with server executable
+          cp server-linux/server release/linux/
+          # Copy the assets folder into both release directories
+          cp -r assets release/windows/
+          cp -r assets release/linux/
+
+      - name: Create zip archives
+        run: |
+          cd release
+          zip -r windows.zip windows
+          zip -r linux.zip linux
 
       - name: Create GitHub Release
         id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          body: "Automated release with cunning patch notes—brought forth by my unholy genius."
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
 
       - name: Upload Windows Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref }}
-          asset_path: windows_release.zip
-          asset_name: windows_release.zip
-          asset_content_type: application/zip
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/windows.zip
+          asset_name: windows.zip
+          asset_content_type: application/zip
 
       - name: Upload Linux Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref }}
-          asset_path: linux_release.zip
-          asset_name: linux_release.zip
-          asset_content_type: application/zip
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/linux.zip
+          asset_name: linux.zip
+          asset_content_type: application/zip
