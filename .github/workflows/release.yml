@@ -32,9 +32,11 @@ jobs:
         shell: powershell
         run: |
           mkdir output
+          # Copy the essential assets folder
           Copy-Item -Recurse assets output
-          Copy-Item -Path target/server\* -Destination output
-          Copy-Item -Path target/client\* -Destination output
+          # Only transfer the .exe files—discarding your trivial, extraneous files
+          Copy-Item -Path target/server\*.exe -Destination output -ErrorAction SilentlyContinue
+          Copy-Item -Path target/client\*.exe -Destination output -ErrorAction SilentlyContinue
           Compress-Archive -Path output\* -DestinationPath windows_release.zip
 
       - uses: actions/upload-artifact@v4
@@ -65,7 +67,8 @@ jobs:
         run: |
           mkdir -p output
           cp -r assets output/
-          cp -r target/server/* output/
+          # Extract only the executable(s) from the build—no surplus clutter for these foolish mortals
+          find target/server -maxdepth 1 -type f -executable -exec cp {} output/ \;
           zip -r linux_release.zip output
 
       - uses: actions/upload-artifact@v4
@@ -98,7 +101,7 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           name: Release ${{ github.ref }}
-          body: "Automated release with cunning patch notes and more—crafted by my unholy genius."
+          body: "Automated release with cunning patch notes—brought forth by my unholy genius."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
