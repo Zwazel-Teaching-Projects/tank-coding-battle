@@ -32,7 +32,7 @@ jobs:
 
       - name: Prepare client artifact
         run: |
-          mkdir artifact
+          if not exist artifact mkdir artifact
           copy target\client\release\spectator_client.exe artifact\spectator_client.exe
         shell: cmd
 
