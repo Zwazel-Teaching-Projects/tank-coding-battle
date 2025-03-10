@@ -40,7 +40,7 @@
             turretPitchRotationSpeed: 0.2,
             turretMaxPitch: 0.5,
             turretMinPitch: -0.5,
-            maxSlope: 0.25,
+            maxSlope: 0.20,
             size: (
                 0.5,
                 0.5,
@@ -73,7 +73,7 @@
             turretPitchRotationSpeed: 0.15,
             turretMaxPitch: 0.8,
             turretMinPitch: -0.5,
-            maxSlope: 0.25,
+            maxSlope: 0.15,
             size: (
                 0.5,
                 0.5,
