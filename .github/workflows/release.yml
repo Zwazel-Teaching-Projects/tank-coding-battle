@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - '*'  # Trigger on every tag
+      - '*'  # Trigger on every tag push
 
 jobs:
   build_windows:
@@ -37,7 +37,7 @@ jobs:
           Copy-Item -Path target/client\* -Destination output
           Compress-Archive -Path output\* -DestinationPath windows_release.zip
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: windows_release
           path: windows_release.zip
@@ -68,7 +68,7 @@ jobs:
           cp target/server/* output/
           zip -r linux_release.zip output
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: linux_release
           path: linux_release.zip
@@ -81,13 +81,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download Windows Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: windows_release
           path: .
 
       - name: Download Linux Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: linux_release
           path: .
