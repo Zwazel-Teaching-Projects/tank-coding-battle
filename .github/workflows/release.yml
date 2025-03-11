@@ -39,7 +39,6 @@ jobs:
         run: |
           $clientDir = "build_client"
           New-Item -ItemType Directory -Force -Path $clientDir
-          # Recursively search for .exe files in the client release directory
           Get-ChildItem -Path "target/client/release" -Recurse -Filter *.exe | ForEach-Object {
             Copy-Item $_.FullName -Destination $clientDir -Force
           }
@@ -78,7 +77,6 @@ jobs:
         run: |
           $serverDir = "build_server"
           New-Item -ItemType Directory -Force -Path $serverDir
-          # Recursively search for .exe files in the server release directory
           Get-ChildItem -Path "target/server/release" -Recurse -Filter *.exe | ForEach-Object {
             Copy-Item $_.FullName -Destination $serverDir -Force
           }
@@ -115,13 +113,9 @@ jobs:
           $windowsDir = "windows_build"
           New-Item -ItemType Directory -Force -Path "$windowsDir\client"
           New-Item -ItemType Directory -Force -Path "$windowsDir\server"
-          # Extract the client artifact into the client folder
           Expand-Archive -Path "client_artifact\client-windows.zip" -DestinationPath "$windowsDir\client"
-          # Extract the server artifact into the server folder
           Expand-Archive -Path "server_artifact\server-windows.zip" -DestinationPath "$windowsDir\server"
-          # Copy the assets folder from the repository
           Copy-Item -Path assets -Destination "$windowsDir\assets" -Recurse
-          # Compress the entire windows_build folder
           Compress-Archive -Path "$windowsDir\*" -DestinationPath windows.zip
 
       - name: Upload Assembled Windows Artifact
@@ -157,7 +151,6 @@ jobs:
       - name: Prepare Linux Server Artifact
         run: |
           mkdir -p linux_server_build
-          # Recursively find executable files in the server release directory
           find target/server/release -type f -executable -exec cp {} linux_server_build/ \;
           zip -r server-linux.zip linux_server_build
 
@@ -184,7 +177,6 @@ jobs:
         run: |
           mkdir -p linux_build/server
           unzip server_artifact/server-linux.zip -d linux_build/server
-          # Copy the assets folder from the repository
           cp -r assets linux_build/
           zip -r linux.zip linux_build
 
@@ -203,55 +195,48 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Download Windows Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-zip
-          path: .
-
-      - name: Download Linux Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-zip
-          path: .
-
-      - name: Extract Version from Cargo.toml
-        id: get_version
+      - name: Determine Version Bump Scheme
+        id: determine_bump
         run: |
-          # Extract version in the form X.X.X from Cargo.toml
-          VERSION=$(grep '^version' Cargo.toml | head -n1 | sed 's/version *= *"\(.*\)"/\1/')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "::set-output name=version::$VERSION"
+          # Extract the Cargo.toml version (x.x.x)
+          cargo_version=$(grep '^version' Cargo.toml | head -n1 | sed 's/version *= *"\(.*\)"/\1/')
+          echo "Cargo version: $cargo_version"
+          # Get the latest git tag (assumed format vx.x.x); fall back to 0.0.0 if none exist
+          latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "0.0.0")
+          latest_tag=${latest_tag#v}
+          echo "Latest tag: $latest_tag"
+          # Split version numbers into major, minor, and patch
+          IFS='.' read -r cargo_major cargo_minor cargo_patch <<< "$cargo_version"
+          IFS='.' read -r tag_major tag_minor tag_patch <<< "$latest_tag"
+          # Determine bump scheme based on which segment has changed
+          if [ "$cargo_major" != "$tag_major" ]; then
+            bump=major
+          elif [ "$cargo_minor" != "$tag_minor" ]; then
+            bump=minor
+          elif [ "$cargo_patch" != "$tag_patch" ]; then
+            bump=patch
+          else
+            bump=patch
+          fi
+          echo "Determined bump scheme: $bump"
+          echo "BUMP_VERSION_SCHEME=$bump" >> $GITHUB_ENV
+          echo "::set-output name=bump::$bump"
 
-      - name: Create Git Tag for Release
-        env:
-          VERSION: ${{ env.VERSION }}
-        run: |
-          git config user.name "GitHub Action"
-          git config user.email "action@github.com"
-          # Create a tag with the prefix "v" (vX.X.X)
-          git tag -a "v$VERSION" -m "Release version v$VERSION"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} "v$VERSION"
-
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        id: release
+        uses: rymndhng/release-on-push-action@master
         with:
-          tag_name: "v${{ env.VERSION }}"
-          release_name: "Release v${{ env.VERSION }}"
-          body: "Auto-generated patch notes for version v${{ env.VERSION }}"
-          draft: false
-          prerelease: false
+          bump_version_scheme: ${{ env.BUMP_VERSION_SCHEME }}
+          tag_prefix: v
+          release_name: "Release <RELEASE_VERSION>"
+          use_github_release_notes: true
 
       - name: Upload Windows Artifact to Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: ./windows.zip
           asset_name: windows.zip
           asset_content_type: application/zip
@@ -261,7 +246,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: ./linux.zip
           asset_name: linux.zip
           asset_content_type: application/zip
