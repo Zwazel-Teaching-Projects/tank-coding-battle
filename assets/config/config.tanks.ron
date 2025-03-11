@@ -83,7 +83,7 @@
             ),
             shootCooldown: 3,
             projectileDamage: 100.0,
-            projectileSpeed: 2.0,
+            projectileSpeed: 20.0,
             projectileLifetime: 100,
             projectileSize: (
                 0.5,
