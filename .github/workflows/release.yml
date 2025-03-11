@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  build-windows:
+  build-client-windows:
     runs-on: windows-latest
     steps:
       - name: Checkout Repository
@@ -15,38 +15,110 @@ jobs:
       - name: Install Rust Toolchain
         run: rustup toolchain install stable --profile minimal
 
-      - name: Restore and Save Rust Cache (Windows)
+      - name: Restore and Save Rust Cache (Windows Client)
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v0-rust"
           shared-key: "master"
-          key: "windows-build"
+          key: "windows-client-build"
           workspaces: |
             . -> target/client
-            . -> target/server
           save-if: ${{ github.ref == 'refs/heads/master' }}
 
-      - name: Build Spectator Client (Windows)
+      - name: Build Client (Windows)
         run: cargo brc
+
+      - name: Prepare Windows Client Artifact
+        shell: pwsh
+        run: |
+          $clientDir = "build_client"
+          New-Item -ItemType Directory -Force -Path $clientDir
+          # Find all .exe files in the client release directory
+          Get-ChildItem -Path "target/client/release" -Recurse -Filter *.exe | ForEach-Object {
+            Copy-Item $_.FullName -Destination $clientDir -Force
+          }
+          Compress-Archive -Path "$clientDir\*" -DestinationPath client-windows.zip
+
+      - name: Upload Windows Client Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-windows-artifact
+          path: client-windows.zip
+
+  build-server-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Restore and Save Rust Cache (Windows Server)
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust"
+          shared-key: "master"
+          key: "windows-server-build"
+          workspaces: |
+            . -> target/server
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build Server (Windows)
         run: cargo brs
 
-      - name: Prepare Windows Artifacts
+      - name: Prepare Windows Server Artifact
+        shell: pwsh
+        run: |
+          $serverDir = "build_server"
+          New-Item -ItemType Directory -Force -Path $serverDir
+          # Find all .exe files in the server release directory
+          Get-ChildItem -Path "target/server/release" -Recurse -Filter *.exe | ForEach-Object {
+            Copy-Item $_.FullName -Destination $serverDir -Force
+          }
+          Compress-Archive -Path "$serverDir\*" -DestinationPath server-windows.zip
+
+      - name: Upload Windows Server Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-windows-artifact
+          path: server-windows.zip
+
+  assemble-windows:
+    runs-on: windows-latest
+    needs: [build-client-windows, build-server-windows]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Client Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: client-windows-artifact
+          path: client_artifact
+
+      - name: Download Server Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: server-windows-artifact
+          path: server_artifact
+
+      - name: Assemble Windows Build
         shell: pwsh
         run: |
           $windowsDir = "windows_build"
-          New-Item -ItemType Directory -Force -Path $windowsDir
-          # Recursively search for .exe files in both release directories
-          Get-ChildItem -Path "target/client/release", "target/server/release" -Recurse -Filter *.exe | ForEach-Object {
-            Copy-Item $_.FullName -Destination $windowsDir -Force
-          }
-          # Copy the assets folder
+          New-Item -ItemType Directory -Force -Path "$windowsDir\client"
+          New-Item -ItemType Directory -Force -Path "$windowsDir\server"
+          # Extract the client artifact into the client folder
+          Expand-Archive -Path "client_artifact\client-windows.zip" -DestinationPath "$windowsDir\client"
+          # Extract the server artifact into the server folder
+          Expand-Archive -Path "server_artifact\server-windows.zip" -DestinationPath "$windowsDir\server"
+          # Copy the assets folder from the repository
           Copy-Item -Path assets -Destination "$windowsDir\assets" -Recurse
-          # Compress the folder into a zip file
+          # Compress the entire windows_build folder
           Compress-Archive -Path "$windowsDir\*" -DestinationPath windows.zip
 
-      - name: Upload Windows Artifact
+      - name: Upload Assembled Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-zip
@@ -61,12 +133,12 @@ jobs:
       - name: Install Rust Toolchain
         run: rustup toolchain install stable --profile minimal
 
-      - name: Restore and Save Rust Cache (Linux)
+      - name: Restore and Save Rust Cache (Linux Server)
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v0-rust"
           shared-key: "master"
-          key: "linux-build"
+          key: "linux-server-build"
           workspaces: |
             . -> target/server
           save-if: ${{ github.ref == 'refs/heads/master' }}
@@ -74,14 +146,13 @@ jobs:
       - name: Build Server (Linux)
         run: cargo brs
 
-      - name: Prepare Linux Artifacts
+      - name: Prepare Linux Artifact
         run: |
           mkdir -p linux_build
           # Recursively find executable files in the server release directory
           find target/server/release -type f -executable -exec cp {} linux_build/ \;
           # Copy the assets folder
           cp -r assets linux_build/
-          # Compress the folder into a zip file
           zip -r linux.zip linux_build
 
       - name: Upload Linux Artifact
@@ -92,7 +163,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    needs: [build-windows, build-linux]
+    needs: [assemble-windows, build-linux]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -112,7 +183,7 @@ jobs:
       - name: Extract Version from Cargo.toml
         id: get_version
         run: |
-          # Extract version in the form X.X.X
+          # Extract version in the form X.X.X from Cargo.toml
           VERSION=$(grep '^version' Cargo.toml | head -n1 | sed 's/version *= *"\(.*\)"/\1/')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "::set-output name=version::$VERSION"
@@ -123,7 +194,7 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          # Forge a tag with the prefix "v" to yield vX.X.X
+          # Create a tag with the prefix "v" (vX.X.X)
           git tag -a "v$VERSION" -m "Release version v$VERSION"
           git push origin "v$VERSION"
 
