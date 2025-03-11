@@ -1,5 +1,9 @@
 name: Build, Cache & Release
 
+permissions:
+  contents: write
+  pull-requests: read
+
 on:
   push:
     branches:
@@ -33,13 +37,13 @@ jobs:
       - name: Prepare Windows Client Artifact
         shell: pwsh
         run: |
-          $clientDir = "build_client"
-          New-Item -ItemType Directory -Force -Path $clientDir
-          # Recursively search for .exe files in the client release directory
-          Get-ChildItem -Path "target/client/release" -Recurse -Filter *.exe | ForEach-Object {
-            Copy-Item $_.FullName -Destination $clientDir -Force
+          $clientExe = Get-ChildItem -Path "target/client/release" -Recurse -Filter "tank-coding-battle.exe" | Select-Object -First 1
+          if ($null -eq $clientExe) {
+            Write-Error "tank-coding-battle.exe not found in client build"
+            exit 1
           }
-          Compress-Archive -Path "$clientDir\*" -DestinationPath client-windows.zip
+          Copy-Item $clientExe.FullName -Destination "./tank-coding-battle-win-client.exe" -Force
+          Compress-Archive -Path "tank-coding-battle-win-client.exe" -DestinationPath client-windows.zip
 
       - name: Upload Windows Client Artifact
         uses: actions/upload-artifact@v4
@@ -72,13 +76,13 @@ jobs:
       - name: Prepare Windows Server Artifact
         shell: pwsh
         run: |
-          $serverDir = "build_server"
-          New-Item -ItemType Directory -Force -Path $serverDir
-          # Recursively search for .exe files in the server release directory
-          Get-ChildItem -Path "target/server/release" -Recurse -Filter *.exe | ForEach-Object {
-            Copy-Item $_.FullName -Destination $serverDir -Force
+          $serverExe = Get-ChildItem -Path "target/server/release" -Recurse -Filter "tank-coding-battle.exe" | Select-Object -First 1
+          if ($null -eq $serverExe) {
+            Write-Error "tank-coding-battle.exe not found in server build"
+            exit 1
           }
-          Compress-Archive -Path "$serverDir\*" -DestinationPath server-windows.zip
+          Copy-Item $serverExe.FullName -Destination "./tank-coding-battle-win-server.exe" -Force
+          Compress-Archive -Path "tank-coding-battle-win-server.exe" -DestinationPath server-windows.zip
 
       - name: Upload Windows Server Artifact
         uses: actions/upload-artifact@v4
@@ -108,17 +112,13 @@ jobs:
       - name: Assemble Windows Build
         shell: pwsh
         run: |
-          $windowsDir = "windows_build"
-          New-Item -ItemType Directory -Force -Path "$windowsDir\client"
-          New-Item -ItemType Directory -Force -Path "$windowsDir\server"
-          # Extract the client artifact into the client folder
-          Expand-Archive -Path "client_artifact\client-windows.zip" -DestinationPath "$windowsDir\client"
-          # Extract the server artifact into the server folder
-          Expand-Archive -Path "server_artifact\server-windows.zip" -DestinationPath "$windowsDir\server"
-          # Copy the assets folder from the repository
-          Copy-Item -Path assets -Destination "$windowsDir\assets" -Recurse
-          # Compress the entire windows_build folder
-          Compress-Archive -Path "$windowsDir\*" -DestinationPath windows.zip
+          Expand-Archive -Path "client_artifact\client-windows.zip" -DestinationPath .
+          Expand-Archive -Path "server_artifact\server-windows.zip" -DestinationPath .
+          if (-Not (Test-Path -Path "assets")) {
+            Write-Error "assets folder not found in repository"
+            exit 1
+          }
+          Compress-Archive -Path "tank-coding-battle-win-client.exe", "tank-coding-battle-win-server.exe", "assets" -DestinationPath windows.zip
 
       - name: Upload Assembled Windows Artifact
         uses: actions/upload-artifact@v4
@@ -152,10 +152,13 @@ jobs:
 
       - name: Prepare Linux Server Artifact
         run: |
-          mkdir -p linux_server_build
-          # Recursively find executable files in the server release directory
-          find target/server/release -type f -executable -exec cp {} linux_server_build/ \;
-          zip -r server-linux.zip linux_server_build
+          server_exe=$(find target/server/release -type f -executable -name "tank-coding-battle" | head -n 1)
+          if [ -z "$server_exe" ]; then
+            echo "tank-coding-battle not found in server build" >&2
+            exit 1
+          fi
+          cp "$server_exe" ./tank-coding-battle-linux
+          zip server-linux.zip tank-coding-battle-linux
 
       - name: Upload Linux Server Artifact
         uses: actions/upload-artifact@v4
@@ -178,11 +181,12 @@ jobs:
 
       - name: Assemble Linux Build
         run: |
-          mkdir -p linux_build/server
-          unzip server_artifact/server-linux.zip -d linux_build/server
-          # Copy the assets folder from the repository
-          cp -r assets linux_build/
-          zip -r linux.zip linux_build
+          unzip server_artifact/server-linux.zip -d .
+          if [ ! -d "assets" ]; then
+            echo "assets folder not found in repository" >&2
+            exit 1
+          fi
+          zip -r linux.zip tank-coding-battle-linux assets
 
       - name: Upload Assembled Linux Artifact
         uses: actions/upload-artifact@v4
@@ -214,7 +218,6 @@ jobs:
       - name: Extract Version from Cargo.toml
         id: get_version
         run: |
-          # Extract version in the form X.X.X from Cargo.toml
           VERSION=$(grep '^version' Cargo.toml | head -n1 | sed 's/version *= *"\(.*\)"/\1/')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -224,7 +227,6 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          # Create a tag with the prefix "v" (vX.X.X)
           TAG_NAME="v${{ env.VERSION }}"
           git tag $TAG_NAME
           git push origin $TAG_NAME
@@ -237,7 +239,7 @@ jobs:
         with:
           tag_name: "v${{ env.VERSION }}"
           release_name: "Release v${{ env.VERSION }}"
-          body: "Auto-generated patch notes for version v${{ env.VERSION }}"
+          generate_release_notes: true
           draft: false
           prerelease: false
 
