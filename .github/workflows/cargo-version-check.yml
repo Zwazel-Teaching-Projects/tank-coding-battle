@@ -1,4 +1,4 @@
-name: Check Cargo Version on PR to master
+name: Check Cargo Version on PR to master!
 
 on:
   pull_request:
