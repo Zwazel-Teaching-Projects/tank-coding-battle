@@ -1,7 +1,7 @@
 name: Check Cargo Version on PR to master
 
 on:
-  pull_request:
+  pull_request_target:
     branches:
       - master
 
@@ -12,8 +12,10 @@ jobs:
   check-version:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout PR head code
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Get latest tag
         id: get_latest_tag
@@ -50,9 +52,8 @@ jobs:
           
       - name: Comment on PR if version check failed
         if: ${{ steps.compare_versions.outcome == 'failure' }}
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             **Error:** The version in `Cargo.toml` (v${{ steps.get_cargo_version.outputs.version }}) is not higher than the latest tag (v${{ steps.get_latest_tag.outputs.tag }}).
