@@ -112,11 +112,13 @@ jobs:
       - name: Assemble Windows Build
         shell: pwsh
         run: |
-          # Extract artifacts directly into the workspace root
+          # Extract the executables directly into the workspace root
           Expand-Archive -Path "client_artifact\client-windows.zip" -DestinationPath .
           Expand-Archive -Path "server_artifact\server-windows.zip" -DestinationPath .
-          # Package the executables directly at the root of the zip
-          Compress-Archive -Path "tank-coding-battle-win-client.exe", "tank-coding-battle-win-server.exe" -DestinationPath windows.zip
+          # Copy the assets folder into the root
+          Copy-Item -Path assets -Destination . -Recurse
+          # Package the executables and assets together at the root
+          Compress-Archive -Path "tank-coding-battle-win-client.exe", "tank-coding-battle-win-server.exe", "assets" -DestinationPath windows.zip
 
       - name: Upload Assembled Windows Artifact
         uses: actions/upload-artifact@v4
@@ -179,10 +181,12 @@ jobs:
 
       - name: Assemble Linux Build
         run: |
-          # Extract the Linux artifact directly into the workspace root
+          # Extract the Linux executable directly into the workspace root
           unzip server_artifact/server-linux.zip -d .
-          # Create a zip with the executable at its root
-          zip linux.zip tank-coding-battle-linux
+          # Copy the assets folder into the root
+          cp -r assets .
+          # Package the executable and assets at the root of the zip
+          zip -r linux.zip tank-coding-battle-linux assets
 
       - name: Upload Assembled Linux Artifact
         uses: actions/upload-artifact@v4
@@ -227,13 +231,17 @@ jobs:
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
-      - name: Create GitHub Release with Auto-generated Notes
+      - name: Create GitHub Release
         id: create_release
-        uses: ncipollo/release-action@v1
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag: "v${{ env.VERSION }}"
-          name: "Release v${{ env.VERSION }}"
-          generateReleaseNotes: true
+          tag_name: "v${{ env.VERSION }}"
+          release_name: "Release v${{ env.VERSION }}"
+          generate_release_notes: true
+          draft: false
+          prerelease: false
 
       - name: Upload Windows Artifact to Release
         uses: actions/upload-release-asset@v1
