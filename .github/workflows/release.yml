@@ -128,41 +128,6 @@ jobs:
 
   ## LINUX BUILDS
 
-  build-client-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust Toolchain
-        run: rustup toolchain install stable --profile minimal
-
-      - name: Restore and Save Rust Cache (Linux Client)
-        uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: "v0-rust"
-          shared-key: "master"
-          key: "linux-client-build"
-          workspaces: |
-            . -> target/client
-          save-if: ${{ github.ref == 'refs/heads/master' }}
-
-      - name: Build Client (Linux)
-        run: cargo brc
-
-      - name: Prepare Linux Client Artifact
-        run: |
-          mkdir -p linux_client_build
-          # Recursively find executable files in the client release directory
-          find target/client/release -type f -executable -exec cp {} linux_client_build/ \;
-          zip -r client-linux.zip linux_client_build
-
-      - name: Upload Linux Client Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: client-linux-artifact
-          path: client-linux.zip
-
   build-server-linux:
     runs-on: ubuntu-latest
     steps:
@@ -188,6 +153,7 @@ jobs:
       - name: Prepare Linux Server Artifact
         run: |
           mkdir -p linux_server_build
+          # Recursively find executable files in the server release directory
           find target/server/release -type f -executable -exec cp {} linux_server_build/ \;
           zip -r server-linux.zip linux_server_build
 
@@ -199,16 +165,10 @@ jobs:
 
   assemble-linux:
     runs-on: ubuntu-latest
-    needs: [build-client-linux, build-server-linux]
+    needs: [build-server-linux]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Download Linux Client Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: client-linux-artifact
-          path: client_artifact
 
       - name: Download Linux Server Artifact
         uses: actions/download-artifact@v4
@@ -218,9 +178,7 @@ jobs:
 
       - name: Assemble Linux Build
         run: |
-          mkdir -p linux_build/client
           mkdir -p linux_build/server
-          unzip client_artifact/client-linux.zip -d linux_build/client
           unzip server_artifact/server-linux.zip -d linux_build/server
           # Copy the assets folder from the repository
           cp -r assets linux_build/
