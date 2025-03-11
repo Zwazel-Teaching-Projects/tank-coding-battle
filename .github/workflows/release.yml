@@ -37,7 +37,7 @@ jobs:
         run: |
           $windowsDir = "windows_build"
           New-Item -ItemType Directory -Force -Path $windowsDir
-          # Recursively search target release directories for .exe files
+          # Recursively search for .exe files in both release directories
           Get-ChildItem -Path "target/client/release", "target/server/release" -Recurse -Filter *.exe | ForEach-Object {
             Copy-Item $_.FullName -Destination $windowsDir -Force
           }
@@ -77,7 +77,7 @@ jobs:
       - name: Prepare Linux Artifacts
         run: |
           mkdir -p linux_build
-          # Recursively search the server release directory for executable files
+          # Recursively find executable files in the server release directory
           find target/server/release -type f -executable -exec cp {} linux_build/ \;
           # Copy the assets folder
           cp -r assets linux_build/
@@ -112,6 +112,7 @@ jobs:
       - name: Extract Version from Cargo.toml
         id: get_version
         run: |
+          # Extract version in the form X.X.X
           VERSION=$(grep '^version' Cargo.toml | head -n1 | sed 's/version *= *"\(.*\)"/\1/')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "::set-output name=version::$VERSION"
@@ -122,7 +123,8 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git tag -a "v$VERSION" -m "Release version $VERSION"
+          # Forge a tag with the prefix "v" to yield vX.X.X
+          git tag -a "v$VERSION" -m "Release version v$VERSION"
           git push origin "v$VERSION"
 
       - name: Create GitHub Release
@@ -133,7 +135,7 @@ jobs:
         with:
           tag_name: "v${{ env.VERSION }}"
           release_name: "Release v${{ env.VERSION }}"
-          body: "Auto-generated patch notes for version ${{ env.VERSION }}"
+          body: "Auto-generated patch notes for version v${{ env.VERSION }}"
           draft: false
           prerelease: false
 
