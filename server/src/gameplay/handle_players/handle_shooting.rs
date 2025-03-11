@@ -3,6 +3,7 @@ use shared::{
     asset_handling::config::TankConfigSystemParam,
     game::{
         collision_handling::components::{CollisionLayer, WantedTransform},
+        common_components::{Gravity, Velocity},
         player_handling::{ShootCooldown, TankBodyMarker, TankTurretMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
@@ -42,6 +43,7 @@ pub fn handle_tank_shooting_command(
 
         let bullet_spawn_position = turret_transform.translation();
         let bullet_spawn_rotation = turret_transform.rotation();
+        let gravity = tank_config.projectile_gravity;
 
         let transform =
             Transform::from_translation(bullet_spawn_position).with_rotation(bullet_spawn_rotation);
@@ -59,8 +61,13 @@ pub fn handle_tank_shooting_command(
                 CollisionLayer::player()
                     .with_ignore(EntityHashSet::from_iter(vec![client_entity, turret_entity])),
                 in_lobby.clone(),
+                Velocity::default(),
             ))
             .id();
+
+        if gravity != 0.0 {
+            commands.entity(bullet).insert(Gravity { gravity });
+        }
 
         lobby.projectiles.push(bullet);
 

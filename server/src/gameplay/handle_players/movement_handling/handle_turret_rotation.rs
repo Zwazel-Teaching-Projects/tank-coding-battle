@@ -49,9 +49,9 @@ pub fn handle_tank_turret_rotation(
     let new_yaw = new_yaw.rem_euclid(std::f32::consts::TAU);
 
     // Clamp pitch to prevent the turret from rotating upside down.
-    let max_pitch = tank_config.turret_max_pitch;
-    let min_pitch = tank_config.turret_min_pitch;
-    let new_pitch = new_pitch.clamp(min_pitch, max_pitch);
+    let max_pitch = tank_config.turret_max_pitch; // Max is negative number
+    let min_pitch = tank_config.turret_min_pitch; // Min is positive number
+    let new_pitch = new_pitch.clamp(max_pitch, min_pitch);
 
     // Construct a new rotation with roll forcibly set to zero.
     turret_transform.rotation = Quat::from_euler(EulerRot::YXZ, new_yaw, new_pitch, 0.0);

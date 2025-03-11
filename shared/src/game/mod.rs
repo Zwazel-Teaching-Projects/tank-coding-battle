@@ -33,6 +33,8 @@ impl Plugin for MySharedGamePlugin {
             .register_type::<projectile_handling::ProjectileMarker>()
             .register_type::<common_components::DespawnTimer>()
             .register_type::<common_components::TickBasedDespawnTimer>()
+            .register_type::<common_components::Gravity>()
+            .register_type::<common_components::Velocity>()
             .register_type::<flag::FlagMarker>()
             .register_type::<flag::FlagState>()
             .register_type::<flag::FlagBaseMarker>()
