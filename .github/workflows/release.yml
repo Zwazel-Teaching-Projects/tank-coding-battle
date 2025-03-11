@@ -112,12 +112,12 @@ jobs:
       - name: Assemble Windows Build
         shell: pwsh
         run: |
-          # Extract the executables directly into the workspace root
           Expand-Archive -Path "client_artifact\client-windows.zip" -DestinationPath .
           Expand-Archive -Path "server_artifact\server-windows.zip" -DestinationPath .
-          # Copy the assets folder into the root
-          Copy-Item -Path assets -Destination . -Recurse
-          # Package the executables and assets together at the root
+          if (-Not (Test-Path -Path "assets")) {
+            Write-Error "assets folder not found in repository"
+            exit 1
+          }
           Compress-Archive -Path "tank-coding-battle-win-client.exe", "tank-coding-battle-win-server.exe", "assets" -DestinationPath windows.zip
 
       - name: Upload Assembled Windows Artifact
@@ -181,11 +181,11 @@ jobs:
 
       - name: Assemble Linux Build
         run: |
-          # Extract the Linux executable directly into the workspace root
           unzip server_artifact/server-linux.zip -d .
-          # Copy the assets folder into the root
-          cp -r assets .
-          # Package the executable and assets at the root of the zip
+          if [ ! -d "assets" ]; then
+            echo "assets folder not found in repository" >&2
+            exit 1
+          fi
           zip -r linux.zip tank-coding-battle-linux assets
 
       - name: Upload Assembled Linux Artifact
