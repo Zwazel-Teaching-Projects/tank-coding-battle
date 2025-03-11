@@ -54,9 +54,10 @@ jobs:
         if: ${{ steps.compare_versions.outcome == 'failure' }}
         uses: peter-evans/create-or-update-comment@v4
         with:
+          token: ${{ secrets.PAT_TOKEN_FOR_COMMENTS }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            **Error:** The version in `Cargo.toml` (v${{ steps.get_cargo_version.outputs.version }}) is not higher than the latest tag (v${{ steps.get_latest_tag.outputs.tag }}).
+            **Error:** The version in `Cargo.toml` (v${{ steps.get_cargo_version.outputs.version }}) is not higher than the latest tag (${{ steps.get_latest_tag.outputs.tag }}).
             Update your version, foolish mortal, or face the consequences of warp-infused failure.
             
       - name: Fail job if version check failed
