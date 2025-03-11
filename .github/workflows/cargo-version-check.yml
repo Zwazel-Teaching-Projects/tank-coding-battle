@@ -1,0 +1,60 @@
+name: Check Cargo Version on PR to master
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          # Fetch all tags following pattern vX.X.X
+          git fetch --tags
+          LATEST_TAG=$(git tag --list "v*" | sort -V | tail -n 1)
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          echo "::set-output name=tag::$LATEST_TAG"
+          
+      - name: Extract Cargo version
+        id: get_cargo_version
+        run: |
+          # Extract version from Cargo.toml (assumes format: version = "x.x.x")
+          CARGO_VERSION=$(grep '^version' Cargo.toml | head -n 1 | sed 's/.*= "\(.*\)"/\1/')
+          echo "CARGO_VERSION=$CARGO_VERSION" >> $GITHUB_ENV
+          echo "::set-output name=version::$CARGO_VERSION"
+          
+      - name: Compare versions
+        id: compare_versions
+        continue-on-error: true
+        run: |
+          echo "Warpstone calculation: comparing Cargo version ($CARGO_VERSION) with latest tag ($LATEST_TAG)"
+          # Remove the 'v' prefix from tag version
+          TAG_VERSION=${LATEST_TAG#v}
+          # Compare versions using sort -V
+          lower=$(printf '%s\n' "$TAG_VERSION" "$CARGO_VERSION" | sort -V | head -n1)
+          if [ "$lower" = "$TAG_VERSION" ] && [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
+            echo "Cargo version is superior to the latest tag."
+          else
+            echo "Error: Cargo version ($CARGO_VERSION) is not higher than latest tag ($LATEST_TAG)."
+            exit 1
+          fi
+          
+      - name: Comment on PR if version check failed
+        if: ${{ steps.compare_versions.outcome == 'failure' }}
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            **Error:** The version in `Cargo.toml` (v${{ steps.get_cargo_version.outputs.version }}) is not higher than the latest tag (v${{ steps.get_latest_tag.outputs.tag }}).
+            Update your version, foolish mortal, or face the consequences of warp-infused failure.
+            
+      - name: Fail job if version check failed
+        if: ${{ steps.compare_versions.outcome == 'failure' }}
+        run: exit 1
