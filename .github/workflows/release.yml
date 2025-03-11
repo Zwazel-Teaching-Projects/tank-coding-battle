@@ -1,13 +1,13 @@
 name: Build, Cache & Release
 
-permissions:
-  contents: write
-  pull-requests: read
-
 on:
   push:
     branches:
       - master
+
+permissions:
+  contents: write
+  pull-requests: read
 
 jobs:
   ## WINDOWS BUILDS
