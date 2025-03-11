@@ -16,7 +16,7 @@
             projectileGravity: 0.0,
             shootCooldown: 5,
             projectileDamage: 10.0,
-            projectileSpeed: 3.0,
+            projectileSpeed: 5.0,
             projectileLifetime: 100,
             projectileSize: (
                 0.1,
@@ -49,7 +49,7 @@
             ),
             shootCooldown: 15,
             projectileDamage: 30.0,
-            projectileSpeed: 3.0,
+            projectileSpeed: 6.0,
             projectileLifetime: 100,
             projectileSize: (
                 0.15,
@@ -73,8 +73,8 @@
             bodyRotationSpeed: 0.2,
             turretYawRotationSpeed: 0.0,
             turretPitchRotationSpeed: 0.2,
-            turretMaxPitch: -0.9,
-            turretMinPitch: 0.5,
+            turretMaxPitch: -0.99,
+            turretMinPitch: 0.99,
             maxSlope: 0.15,
             size: (
                 0.6,
@@ -90,7 +90,7 @@
                 0.5,
                 0.5,
             ),
-            projectileGravity: 9.8,
+            projectileGravity: 20.0,
             maxHealth: 100,
             armor: {
                 TOP: 0.0,
