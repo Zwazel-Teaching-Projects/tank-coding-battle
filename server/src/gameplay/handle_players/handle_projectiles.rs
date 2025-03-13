@@ -1,13 +1,13 @@
 use bevy::prelude::*;
 use shared::{
-    asset_handling::config::TankConfigSystemParam,
+    asset_handling::config::{ServerConfigSystemParam, TankConfigSystemParam},
     game::{
         collision_handling::{
             components::{Collider, WantedTransform},
             structs::Side,
             triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
         },
-        common_components::TickBasedDespawnTimer,
+        common_components::{Gravity, TickBasedDespawnTimer, Velocity},
         player_handling::{Health, PlayerState, TankBodyMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
@@ -164,25 +164,40 @@ pub fn handle_despawn_timer(
 pub fn move_projectiles(
     trigger: Trigger<MovePorjectilesSimulationStepTrigger>,
     lobby: Query<&MyLobby>,
-    mut projectiles: Query<(&mut WantedTransform, &mut ProjectileMarker)>,
+    server_config: ServerConfigSystemParam,
+    mut projectiles: Query<(
+        &mut WantedTransform,
+        &mut ProjectileMarker,
+        &mut Velocity,
+        Option<&Gravity>,
+    )>,
     mut commands: Commands,
 ) {
     let lobby_entity = trigger.entity();
+    let tick_rate = server_config.server_config().tick_rate;
+    let dt = 1.0 / tick_rate as f32;
 
     let lobby = lobby.get(lobby_entity).expect("Failed to get lobby");
 
     for projectile in lobby.projectiles.iter() {
-        let (mut transform, mut projectile) = projectiles
+        let (mut transform, mut projectile, mut velocity, gravity) = projectiles
             .get_mut(*projectile)
             .expect("Failed to get projectile");
 
         if projectile.just_spawned {
             projectile.just_spawned = false;
+            // Initialize velocity from the projectile's current rotation and speed.
+            velocity.velocity = transform.rotation * Vec3::new(0.0, 0.0, projectile.speed);
             continue;
         }
 
-        let rotation = transform.rotation;
-        transform.translation += rotation * Vec3::new(0.0, 0.0, projectile.speed);
+        // If gravity is present, apply gravitational acceleration to the vertical velocity component.
+        if let Some(gravity) = gravity {
+            velocity.y -= gravity.gravity * dt;
+        }
+
+        // Update the projectile's position using its current velocity.
+        transform.translation += velocity.velocity * dt;
     }
 
     commands.trigger_targets(CheckForCollisionsTrigger, lobby_entity);
