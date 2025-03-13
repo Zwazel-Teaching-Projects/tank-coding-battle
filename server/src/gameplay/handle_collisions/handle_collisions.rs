@@ -72,6 +72,7 @@ pub fn unified_collision_system(
         if in_lobby.0 != my_lobby_entity {
             continue;
         }
+
         sim_entities.push(SimEntity {
             entity,
             original: *transform,

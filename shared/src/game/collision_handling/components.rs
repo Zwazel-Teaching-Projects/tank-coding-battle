@@ -6,13 +6,15 @@ use bevy::{ecs::entity::EntityHashSet, prelude::*};
 pub struct Collider {
     pub half_size: Vec3,
     pub max_slope: f32,
+    pub height_offset: f32,
 }
 
 impl Collider {
-    pub fn new(half_size: Vec3, max_slope: f32) -> Self {
+    pub fn new(half_size: Vec3, max_slope: f32, height_offset: f32) -> Self {
         Self {
             half_size,
             max_slope,
+            height_offset,
         }
     }
 }
