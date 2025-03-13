@@ -286,8 +286,7 @@ pub fn unified_collision_system(
                 Transform {
                     translation: Vec3::new(
                         sim.wanted.translation.x,
-                        // In y we need to subtract the half size of the collider to get the correct height.
-                        sim.world_safe.translation.y - sim.collider.half_size.y,
+                        sim.world_safe.translation.y,
                         sim.wanted.translation.z,
                     ),
                     rotation: sim.wanted.rotation,
