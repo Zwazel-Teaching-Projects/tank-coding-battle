@@ -232,19 +232,19 @@ impl MapDefinition {
         })
     }
 
-    pub fn get_closest_tile(&self, position: Vec3) -> Option<TileDefinition> {
-        if position.y < 0.0 {
+    pub fn get_closest_tile(&self, real_world_position: Vec3) -> Option<TileDefinition> {
+        if real_world_position.y < 0.0 {
             return None;
         }
 
         const CELL_SIZE: f32 = 1.0;
-        let (x, y) = (position.x, position.z);
+        let (real_world_x, real_world_z) = (real_world_position.x, real_world_position.z);
 
         let real_world_grid = self.grid_in_real_world();
         let mut closest_tile = None;
 
-        for (i, pos) in real_world_grid.iter().enumerate() {
-            let distance = (pos.x - x).abs() + (pos.z - y).abs();
+        for (i, real_world_tile_pos) in real_world_grid.iter().enumerate() {
+            let distance = (real_world_tile_pos.x - real_world_x).abs() + (real_world_tile_pos.z - real_world_z).abs();
             if distance < CELL_SIZE / 2.0 {
                 return Some(TileDefinition {
                     x: i % self.width,
