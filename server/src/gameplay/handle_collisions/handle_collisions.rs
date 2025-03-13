@@ -185,7 +185,7 @@ pub fn unified_collision_system(
                 safe_transform = Transform {
                     translation: Vec3::new(
                         candidate.translation.x,
-                        candidate_max_floor + sim.collider.half_size.y,
+                        candidate_max_floor,
                         candidate.translation.z,
                     ),
                     rotation: candidate.rotation,
@@ -286,7 +286,8 @@ pub fn unified_collision_system(
                 Transform {
                     translation: Vec3::new(
                         sim.wanted.translation.x,
-                        sim.world_safe.translation.y,
+                        // In y we need to subtract the half size of the collider to get the correct height.
+                        sim.world_safe.translation.y - sim.collider.half_size.y,
                         sim.wanted.translation.z,
                     ),
                     rotation: sim.wanted.rotation,
