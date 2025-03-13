@@ -348,6 +348,15 @@ impl From<(usize, usize)> for TileDefinition {
     }
 }
 
+impl From<(i32, i32)> for TileDefinition {
+    fn from((x, y): (i32, i32)) -> Self {
+        TileDefinition {
+            x: x as usize,
+            y: y as usize,
+        }
+    }
+}
+
 impl From<TileDefinition> for (usize, usize) {
     fn from(TileDefinition { x, y }: TileDefinition) -> Self {
         (x, y)

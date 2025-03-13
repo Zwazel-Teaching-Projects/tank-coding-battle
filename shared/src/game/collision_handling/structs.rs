@@ -29,8 +29,9 @@ impl Obb3d {
     pub fn from_transform(transform: &Transform, collider: &Collider) -> Self {
         let rotation_matrix = Mat3::from_quat(transform.rotation);
         let half_size = collider.half_size * transform.scale;
+        let height_offset = collider.height_offset * transform.scale.y;
         Obb3d {
-            center: transform.translation.into(),
+            center: (transform.translation + Vec3::new(0.0, height_offset, 0.0)).into(),
             basis: rotation_matrix.into(),
             half_size: half_size.into(),
         }

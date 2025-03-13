@@ -24,7 +24,7 @@ pub fn insert_turret(
         .spawn((
             Name::new("Turret"),
             TankTurretMarker { body: new_tank },
-            Transform::from_translation(Vec3::new(0.0, tank_config.size.y / 2.0, 0.0)),
+            Transform::from_translation(Vec3::new(0.0, tank_config.size.y, 0.0)),
         ))
         .id();
     tank_body.turret = Some(turret);

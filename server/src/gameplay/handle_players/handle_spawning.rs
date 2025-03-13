@@ -1,10 +1,8 @@
 use bevy::prelude::*;
 use shared::{
-    asset_handling::config::TankConfigSystemParam,
     game::{
         collision_handling::components::{CollisionLayer, WantedTransform},
         player_handling::{Health, PlayerState, RespawnTimer, TankBodyMarker, TankTurretMarker},
-        tank_types::TankType,
     },
     networking::{
         lobby_management::{
@@ -57,11 +55,9 @@ pub fn respawn_player(
         &MyNetworkClient,
         &InTeam,
         &InLobby,
-        &TankType,
         &TankBodyMarker,
     )>,
     mut turret_query: Query<&mut Transform, (With<TankTurretMarker>, Without<TankBodyMarker>)>,
-    tank_configs: TankConfigSystemParam,
     mut commands: Commands,
 ) {
     let entity_to_respawn = trigger.entity();
@@ -75,7 +71,6 @@ pub fn respawn_player(
         client,
         client_team,
         client_in_lobby,
-        tank_type,
         tank_body_marker,
     )) = body_query.get_mut(entity_to_respawn)
     {
@@ -111,11 +106,7 @@ pub fn respawn_player(
         let spawn_point_rotation = map.get_spawn_point_rotation(client_team, spawn_point);
 
         if let Some(spawn_point_position) = spawn_point_position {
-            let tank_config = tank_configs
-                .get_tank_type_config(tank_type)
-                .expect("Failed to get tank config");
-            tank_transform.translation =
-                spawn_point_position + Vec3::new(0.0, tank_config.size.y / 2.0, 0.0);
+            tank_transform.translation = spawn_point_position;
             wanted_transform.translation = tank_transform.translation;
         } else {
             error!(

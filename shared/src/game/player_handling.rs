@@ -86,6 +86,7 @@ pub fn setup_tank_body(
         Collider {
             half_size: tank_config.size / 2.0,
             max_slope: tank_config.max_slope,
+            height_offset: tank_config.size.y / 2.0,
         },
         CollisionLayer::player().with_additional_layers(&[CollisionLayer::FLAG]),
         ShootCooldown {

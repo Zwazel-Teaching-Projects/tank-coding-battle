@@ -72,6 +72,7 @@ pub fn unified_collision_system(
         if in_lobby.0 != my_lobby_entity {
             continue;
         }
+
         sim_entities.push(SimEntity {
             entity,
             original: *transform,
@@ -184,7 +185,7 @@ pub fn unified_collision_system(
                 safe_transform = Transform {
                     translation: Vec3::new(
                         candidate.translation.x,
-                        candidate_max_floor + sim.collider.half_size.y,
+                        candidate_max_floor,
                         candidate.translation.z,
                     ),
                     rotation: candidate.rotation,

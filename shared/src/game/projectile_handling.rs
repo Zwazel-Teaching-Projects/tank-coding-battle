@@ -45,6 +45,7 @@ pub fn setup_projectile(
         Collider {
             half_size: tank_config.projectile_size / 2.0,
             max_slope: 0.0,
+            height_offset: 0.0,
         },
     ));
 }

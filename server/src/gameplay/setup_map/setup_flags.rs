@@ -57,6 +57,7 @@ pub fn setup_flags(
                         Collider {
                             half_size: FLAG_BASE_HALF_SIZE,
                             max_slope: 0.0,
+                            height_offset: FLAG_BASE_HALF_SIZE.y,
                         },
                         InTeam(my_team.clone()),
                         InLobby(lobby_id),
@@ -76,6 +77,7 @@ pub fn setup_flags(
                         Collider {
                             half_size: FLAG_HALF_SIZE,
                             max_slope: 0.0,
+                            height_offset: FLAG_HALF_SIZE.y,
                         },
                         // At start, it's considered to be in base, so teammembers should not collide with it
                         CollisionLayer::flag()

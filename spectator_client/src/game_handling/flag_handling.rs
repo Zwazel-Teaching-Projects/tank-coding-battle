@@ -84,6 +84,7 @@ pub fn update_flag_state_on_game_state_update(
                         Collider {
                             half_size: flag_size / 2.0,
                             max_slope: 0.0,
+                            height_offset: flag_size.y / 2.0,
                         },
                     ))
                     .id();
