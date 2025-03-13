@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use shared::{
     game::{
-        collision_handling::components::WantedTransform,
+        collision_handling::components::{Collider, WantedTransform},
         player_handling::{Health, PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker},
     },
     networking::messages::message_container::GameStateTrigger,
@@ -20,6 +20,7 @@ pub fn update_player_state_on_game_state_update(
             &mut ShootCooldown,
             &mut PlayerState,
             &TankBodyMarker,
+            &Collider,
         ),
         Without<TankTurretMarker>,
     >,
@@ -37,6 +38,7 @@ pub fn update_player_state_on_game_state_update(
                 mut shoot_cooldown,
                 mut player_state,
                 tank_body,
+                tank_body_collider,
             )) = tank_body.get_mut(client_side_entity)
             {
                 health.health = server_side_client_state
@@ -68,7 +70,8 @@ pub fn update_player_state_on_game_state_update(
                 current_body_transform.rotation = next_target_body_transform.rotation;
 
                 // Setting the next target body transform to the new body transform, so we can interpolate to it
-                next_target_body_transform.translation = new_body_transform.translation;
+                next_target_body_transform.translation = new_body_transform.translation
+                    + Vec3::new(0.0, tank_body_collider.height_offset, 0.0);
                 next_target_body_transform.rotation = new_body_transform.rotation;
 
                 let new_turret_transform = server_side_client_state
@@ -84,7 +87,8 @@ pub fn update_player_state_on_game_state_update(
                 current_turret_transform.translation = next_target_turret_transform.translation;
                 current_turret_transform.rotation = next_target_turret_transform.rotation;
 
-                next_target_turret_transform.translation = new_turret_transform.translation;
+                next_target_turret_transform.translation = new_turret_transform.translation
+                    - Vec3::new(0.0, tank_body_collider.height_offset, 0.0);
                 next_target_turret_transform.rotation = new_turret_transform.rotation;
             } else {
                 warn!(
