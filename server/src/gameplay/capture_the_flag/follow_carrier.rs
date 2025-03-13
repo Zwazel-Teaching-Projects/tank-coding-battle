@@ -8,7 +8,10 @@ use shared::{
     networking::lobby_management::MyLobby,
 };
 
-use crate::gameplay::triggers::{MoveFlagsSimulationStepTrigger, UpdateLobbyGameStateTrigger};
+use crate::gameplay::{
+    capture_the_flag::triggers::FlagGotDroppedTrigger,
+    triggers::{MoveFlagsSimulationStepTrigger, UpdateLobbyGameStateTrigger},
+};
 
 pub fn follow_carrier(
     trigger: Trigger<MoveFlagsSimulationStepTrigger>,
@@ -29,11 +32,20 @@ pub fn follow_carrier(
 
         match flag_state {
             FlagState::Carried(carrier_entity) => {
-                let carrier_transform = tanks.get(*carrier_entity).expect("Carrier not found");
-
-                transform.translation = carrier_transform.translation;
-                transform.rotation = carrier_transform.rotation;
-                wanted_transform.0 = transform.clone();
+                if let Ok(carrier_transform) = tanks.get(*carrier_entity) {
+                    transform.translation = carrier_transform.translation;
+                    transform.rotation = carrier_transform.rotation;
+                    wanted_transform.0 = transform.clone();
+                } else {
+                    warn!("Carrier not found, dropping flag");
+                    commands.trigger_targets(
+                        FlagGotDroppedTrigger {
+                            flag: *flag,
+                            carrier: *carrier_entity,
+                        },
+                        lobby_entity,
+                    );
+                }
             }
             FlagState::InBase => {
                 // Do nothing
