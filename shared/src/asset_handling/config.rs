@@ -95,6 +95,7 @@ pub struct TankConfig {
     /// The size of the projectile (Vec3, x = width, y = height, z = depth)
     /// full-extents for x (width), z (depth) and y (height)
     pub projectile_size: Vec3,
+    pub projectile_gravity: f32,
     /// The maximum amount of health this tank can have
     pub max_health: f32,
     /// The armor of the tank on each side. value between 0 and 1
