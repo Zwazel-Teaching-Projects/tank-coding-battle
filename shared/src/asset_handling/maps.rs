@@ -244,7 +244,8 @@ impl MapDefinition {
         let mut closest_tile = None;
 
         for (i, real_world_tile_pos) in real_world_grid.iter().enumerate() {
-            let distance = (real_world_tile_pos.x - real_world_x).abs() + (real_world_tile_pos.z - real_world_z).abs();
+            let distance = (real_world_tile_pos.x - real_world_x).abs()
+                + (real_world_tile_pos.z - real_world_z).abs();
             if distance < CELL_SIZE / 2.0 {
                 return Some(TileDefinition {
                     x: i % self.width,
@@ -439,9 +440,9 @@ impl LookDirection {
     pub fn to_quat(&self) -> Quat {
         match self {
             LookDirection::North => Quat::from_rotation_y(0.0),
-            LookDirection::East => Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+            LookDirection::East => Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2),
             LookDirection::South => Quat::from_rotation_y(std::f32::consts::PI),
-            LookDirection::West => Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2),
+            LookDirection::West => Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
         }
     }
 }
