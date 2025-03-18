@@ -17,5 +17,5 @@ impl Plugin for MyCollisionHandlingPlugin {
 fn add_observers_to_lobby(trigger: Trigger<OnAdd, MyLobby>, mut commands: Commands) {
     commands
         .entity(trigger.entity())
-        .observe(handle_collisions::unified_collision_system);
+        .observe(handle_collisions::improved_unified_collision_system);
 }
