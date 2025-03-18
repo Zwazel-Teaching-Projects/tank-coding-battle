@@ -4,7 +4,7 @@ members = ["proc_macros", "server", "shared", "spectator_client"]
 
 [package]
 name = "tank-coding-battle"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2021"
 
 [workspace.dependencies]
