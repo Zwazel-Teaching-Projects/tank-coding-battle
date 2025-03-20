@@ -29,9 +29,6 @@ server = { workspace = true, optional = true, default-features = false }
 spectator_client = { workspace = true, optional = true, default-features = false }
 rand = "0.9.0"
 
-windows-future = "=0.1.1"
-windows-collections = "=0.1.1"
-
 [features]
 default = ["debug"]
 debug = []
