@@ -96,15 +96,19 @@ use super::message_data::{
             /// Can only be sent to itself on the server
             #[target(ToSelf)]
             #[player_state(Alive)]
+            #[unique]
             MoveTankCommand(MoveTankCommand),
             #[target(ToSelf)]
             #[player_state(Alive)]
+            #[unique]
             RotateTankBodyCommand(RotateTankBodyCommand),
             #[target(ToSelf)]
             #[player_state(Alive)]
+            #[unique]
             RotateTankTurretCommand(RotateTankTurretCommand),
             #[target(ToSelf)]
             #[player_state(Alive)]
+            #[unique]
             ShootCommand(ShootCommand),
             GotHit(GotHitMessageData),
             Hit(HitMessageData),

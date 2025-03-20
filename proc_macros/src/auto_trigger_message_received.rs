@@ -181,7 +181,7 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
         #( #target_match_arm_tokens, )*
     };
 
-    // Clean message enum of #[target], #[behaviour].
+    // Clean message enum of #[target], #[behaviour], #[player_state], and #[unique] attributes.
     let mut cleaned_message_enum = message_enum.clone();
     for variant in cleaned_message_enum.variants.iter_mut() {
         variant.attrs.retain(|attr| !attr.path().is_ident("target"));
@@ -191,6 +191,7 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
         variant
             .attrs
             .retain(|attr| !attr.path().is_ident("player_state"));
+        variant.attrs.retain(|attr| !attr.path().is_ident("unique"));
     }
 
     let message_enum_for_match = message_enum.clone();
@@ -386,12 +387,48 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
+    let unique_match_arms: Vec<_> = message_enum_for_match
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_ident = &variant.ident;
+            let pattern = match &variant.fields {
+                syn::Fields::Unit => quote! { #message_enum_ident::#variant_ident },
+                syn::Fields::Unnamed(_) => quote! { #message_enum_ident::#variant_ident (..) },
+                syn::Fields::Named(_) => quote! { #message_enum_ident::#variant_ident { .. } },
+            };
+            let unique_value = if variant
+                .attrs
+                .iter()
+                .any(|attr| attr.path().is_ident("unique"))
+            {
+                quote! { true }
+            } else {
+                quote! { false }
+            };
+            quote! {
+                #pattern => #unique_value
+            }
+        })
+        .collect();
+
+    let unique_impl = quote! {
+        impl #struct_ident {
+            pub fn is_unique(&self) -> bool {
+                match &self.message {
+                    #( #unique_match_arms, )*
+                }
+            }
+        }
+    };
+
     let output = quote! {
         #cleaned_target_enum
         #cleaned_message_enum
         #input_ast
         #generated_impl
         #client_generated_impl
+        #unique_impl
     };
     output.into()
 }

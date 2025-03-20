@@ -69,6 +69,9 @@ pub fn handle_reading_messages(
             // Deserialize the JSON into an array of MessageContainers
             match serde_json::from_str::<Vec<MessageContainer>>(&received) {
                 Ok(mut messages) => {
+                    // Clear duplicate messages of types marked as "unique". only keeping the latest one.
+                    clear_duplicate_unique_messages(&mut messages);
+
                     for message_container in messages.iter_mut() {
                         message_container.sender = Some(sender);
                         // If we're in the lobby, add all messages to the lobby's message queue, so we can process them in the correct moment. expecting all non-server-only messages
@@ -140,4 +143,26 @@ pub fn handle_reading_messages(
             // No Stream, it's a dummy client
         }
     }
+}
+
+// Clear duplicate messages of types marked as "unique". only keeping the latest one.
+// call .is_unique() on the message container directly.
+// store the .message.message (is an enum). then delete any occurring duplicates.
+// So we have to iterate backwards, so we first get the latest message and then remove the older ones.
+fn clear_duplicate_unique_messages(messages: &mut Vec<MessageContainer>) {
+    let mut unique_messages = Vec::new();
+    for message in messages.iter().rev() {
+        if message.is_unique() {
+            if !unique_messages
+                .iter()
+                .any(|m: &MessageContainer| m.message == message.message)
+            {
+                unique_messages.push(message.clone());
+            }
+        } else {
+            unique_messages.push(message.clone());
+        }
+    }
+    unique_messages.reverse();
+    *messages = unique_messages;
 }
