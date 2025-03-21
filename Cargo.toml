@@ -28,13 +28,15 @@ bevy = { workspace = true }
 server = { workspace = true, optional = true, default-features = false }
 spectator_client = { workspace = true, optional = true, default-features = false }
 rand = "0.9.0"
+fern = { version = "0.7.1", optional = true }
+log = { version = "0.4.26", optional = true }
 
 [features]
-default = ["debug"]
+default = []
 debug = []
-server = ["server/server"]
+server = ["server/server", "fern", "log"]
 server_debug = ["debug", "server", "server/debug"]
-spectator_client = ["spectator_client/spectator_client"]
+spectator_client = ["spectator_client/spectator_client", "fern", "log"]
 spectator_client_debug = ["debug", "spectator_client", "spectator_client/debug"]
 
 # Enable a small amount of optimization in debug mode
