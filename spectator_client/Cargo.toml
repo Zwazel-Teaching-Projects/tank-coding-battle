@@ -16,7 +16,12 @@ bevy_mod_billboard = { git = "https://github.com/voximity/bevy_mod_billboard.git
 
 [features]
 default = ["debug"]
-spectator_client = ["bevy/default", "bevy/serialize", "bevy/file_watcher"]
+spectator_client = [
+    "bevy/default",
+    "bevy/serialize",
+    "bevy/file_watcher",
+    "shared/spectator_client",
+]
 release = ["spectator_client", "shared/release"]
 debug = [
     "spectator_client",
