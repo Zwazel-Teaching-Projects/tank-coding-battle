@@ -40,7 +40,14 @@ pub mod release_logging {
     static LOG_GUARD: OnceLock<WorkerGuard> = OnceLock::new();
 
     pub fn custom_log_layer(_app: &mut App) -> Option<BoxedLayer> {
-        let file_appender = rolling::daily("logs", "app.log");
+        let log_dir = if cfg!(feature = "server") {
+            "server_logs"
+        } else if cfg!(feature = "spectator_client") {
+            "spectator_client_logs"
+        } else {
+            "logs"
+        };
+        let file_appender = rolling::daily(log_dir, "app.log");
         let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
         let _ = LOG_GUARD.set(guard);
         Some(
