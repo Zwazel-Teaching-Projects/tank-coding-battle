@@ -5,3 +5,5 @@ Cargo.lock
 *.blend1
 
 logs/
+server_logs/
+spectator_client_logs/
