@@ -15,6 +15,12 @@ bevy_flycam = { workspace = true }
 bevy_mod_billboard = { git = "https://github.com/voximity/bevy_mod_billboard.git", branch = "migrate-0.15" }
 
 [features]
-default = ["spectator_client", "debug"]
+default = ["debug"]
 spectator_client = ["bevy/default", "bevy/serialize", "bevy/file_watcher"]
-debug = ["bevy-inspector-egui", "shared/debug", "bevy/bevy_dev_tools"]
+release = ["spectator_client", "shared/release"]
+debug = [
+    "spectator_client",
+    "bevy-inspector-egui",
+    "shared/debug",
+    "bevy/bevy_dev_tools",
+]

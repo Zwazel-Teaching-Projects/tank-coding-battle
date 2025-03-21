@@ -5,7 +5,7 @@
 
 use bevy::prelude::*;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     let mut app = App::new();
 
     // if feature "server" is enabled
@@ -16,15 +16,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "spectator_client")]
     app.add_plugins((spectator_client::MySpectatorClientPlugin,));
 
-    // If server or client is enabled but not debug, add "fern" logger
-    #[cfg(any(feature = "server", feature = "spectator_client"))]
-    #[cfg(not(feature = "debug"))]
-    fern::Dispatch::new()
-        .level(log::LevelFilter::Error)
-        .chain(fern::log_file("error.log")?)
-        .apply()?;
-
     app.run();
-
-    Ok(())
 }

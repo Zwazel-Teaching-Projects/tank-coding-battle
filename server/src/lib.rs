@@ -21,10 +21,15 @@ impl Plugin for MyServerPlugin {
                 }),
                 ..Default::default()
             }),
-            #[cfg(not(feature = "debug"))]
-            DefaultPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(
-                std::time::Duration::from_secs_f64(1.0 / 60.0),
-            )),
+            #[cfg(feature = "release")]
+            DefaultPlugins
+                .set(bevy::app::ScheduleRunnerPlugin::run_loop(
+                    std::time::Duration::from_secs_f64(1.0 / 60.0),
+                ))
+                .set(bevy::log::LogPlugin {
+                    custom_layer: shared::release_logging::custom_log_layer,
+                    ..default()
+                }),
             MySharedPlugin,
             MyGameplayPlugin,
             MyNetworkingPlugin,

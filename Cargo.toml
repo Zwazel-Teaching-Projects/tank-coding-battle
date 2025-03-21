@@ -4,7 +4,7 @@ members = ["proc_macros", "server", "shared", "spectator_client"]
 
 [package]
 name = "tank-coding-battle"
-version = "0.8.3"
+version = "0.8.4"
 edition = "2021"
 
 [workspace.dependencies]
@@ -22,22 +22,23 @@ server = { path = "server", default-features = false }
 spectator_client = { path = "spectator_client", default-features = false }
 shared = { path = "shared", default-features = false }
 proc_macros = { path = "proc_macros" }
+tracing-appender = "0.2.3"
+
+rand = "0.9.0"
 
 [dependencies]
 bevy = { workspace = true }
 server = { workspace = true, optional = true, default-features = false }
 spectator_client = { workspace = true, optional = true, default-features = false }
-rand = "0.9.0"
-fern = { version = "0.7.1", optional = true }
-log = { version = "0.4.26", optional = true }
 
 [features]
 default = []
 debug = []
-server = ["server/server", "fern", "log"]
-server_debug = ["debug", "server", "server/debug"]
-spectator_client = ["spectator_client/spectator_client", "fern", "log"]
-spectator_client_debug = ["debug", "spectator_client", "spectator_client/debug"]
+release = []
+server_release = ["server/release", "release"]
+server_debug = ["server/debug", "debug"]
+spectator_client_release = ["spectator_client/release", "release"]
+spectator_client_debug = ["spectator_client/debug", "debug"]
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

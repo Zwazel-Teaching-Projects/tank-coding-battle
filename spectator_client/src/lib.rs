@@ -19,13 +19,19 @@ pub struct MySpectatorClientPlugin;
 impl Plugin for MySpectatorClientPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "Client".to_string(),
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Client".to_string(),
+                        ..Default::default()
+                    }),
                     ..Default::default()
+                })
+                .set(bevy::log::LogPlugin {
+                    #[cfg(feature = "release")]
+                    custom_layer: shared::release_logging::custom_log_layer,
+                    ..default()
                 }),
-                ..Default::default()
-            }),
             PlayerPlugin,
             BillboardPlugin,
             MySharedPlugin,
