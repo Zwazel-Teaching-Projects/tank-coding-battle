@@ -51,6 +51,13 @@ pub fn handle_tank_turret_rotation(
     // Clamp pitch to prevent the turret from rotating upside down.
     let max_pitch = tank_config.turret_max_pitch; // Max is negative number
     let min_pitch = tank_config.turret_min_pitch; // Min is positive number
+    if max_pitch > min_pitch {
+        error!(
+            "Error: max_pitch ({}) is greater than min_pitch ({}). Ignoring rotation.",
+            max_pitch, min_pitch
+        );
+        return;
+    }
     let new_pitch = new_pitch.clamp(max_pitch, min_pitch);
 
     // Construct a new rotation with roll forcibly set to zero.
