@@ -3,3 +3,5 @@
 Cargo.lock
 
 *.blend1
+
+logs/

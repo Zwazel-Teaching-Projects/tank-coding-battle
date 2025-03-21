@@ -12,7 +12,10 @@ bevy_common_assets = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+tracing-appender = { workspace = true, optional = true }
+
 [features]
-default = ["shared", "debug"]
+default = ["release"]
 shared = ["bevy/serialize"]
-debug = []
+debug = ["shared"]
+release = ["shared", "tracing-appender"]

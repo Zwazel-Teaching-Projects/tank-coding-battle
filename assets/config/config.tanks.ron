@@ -39,8 +39,8 @@
             bodyRotationSpeed: 0.2,
             turretYawRotationSpeed: 0.15,
             turretPitchRotationSpeed: 0.2,
-            turretMaxPitch: 0.5,
-            turretMinPitch: -0.5,
+            turretMaxPitch: -0.5,
+            turretMinPitch: 0.5,
             maxSlope: 0.20,
             size: (
                 0.5,

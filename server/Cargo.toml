@@ -12,10 +12,10 @@ serde_json = { workspace = true }
 bevy-inspector-egui = { workspace = true, optional = true }
 bevy_flycam = { workspace = true, optional = true }
 
-rand = "0.9.0"
+rand = { workspace = true }
 
 [features]
-default = ["server", "debug"]
+default = ["debug"]
 server = [
     "bevy/bevy_state",
     "bevy/bevy_color",
@@ -24,9 +24,11 @@ server = [
     "bevy/file_watcher",
 ]
 debug = [
+    "server",
     "bevy/default",
     "bevy-inspector-egui",
     "shared/debug",
     "bevy_flycam",
     "bevy/bevy_dev_tools",
 ]
+release = ["server", "shared/release"]
