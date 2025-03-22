@@ -1,7 +1,6 @@
 use bevy::{ecs::system::SystemParam, prelude::*, utils::Entry};
 
 use crate::{
-    asset_handling::config::ServerConfig,
     game::{game_state::LobbyGameState, player_handling::PlayerState},
     networking::{
         lobby_management::PlayerRemovedFromLobbyTrigger,
@@ -27,12 +26,13 @@ pub struct LobbyManagementSystemParam<'w, 's> {
 }
 
 impl<'w, 's> LobbyManagementSystemParam<'w, 's> {
+    #[cfg(feature = "server")]
     pub fn get_or_insert_lobby_entity(
         &mut self,
         lobby_id: &str,
         map_name: Option<&str>,
         commands: &mut Commands,
-        server_config: &ServerConfig,
+        server_config: &crate::asset_handling::config::server_config::ServerConfig,
     ) -> Result<Entity, ()> {
         let lobby_entity_entry = self.lobby_resource.lobbies.entry(lobby_id.to_string());
 

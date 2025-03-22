@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use shared::{
-    asset_handling::config::{ServerConfigSystemParam, TankConfigSystemParam},
+    asset_handling::config::{server_config::ServerConfigSystemParam, TankConfigSystemParam},
     game::{
         collision_handling::{
             components::{Collider, WantedTransform},

@@ -2,7 +2,7 @@ use std::net::TcpStream;
 
 use bevy::prelude::*;
 use shared::{
-    asset_handling::config::ClientConfigSystemParam,
+    asset_handling::config::spectator_client_config::ClientConfigSystemParam,
     networking::networking_state::MyNetworkingState,
 };
 
