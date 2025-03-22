@@ -1,6 +1,6 @@
 use bevy::{prelude::*, utils::HashMap};
 use shared::{
-    asset_handling::config::{ServerConfigSystemParam, TankConfigSystemParam},
+    asset_handling::config::{server_config::ServerConfigSystemParam, TankConfigSystemParam},
     game::{player_handling::TankBodyMarker, tank_types::TankType},
     networking::{
         lobby_management::{

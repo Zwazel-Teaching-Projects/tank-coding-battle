@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use shared::{
-    asset_handling::config::ClientConfigSystemParam,
+    asset_handling::config::spectator_client_config::ClientConfigSystemParam,
     networking::messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
         message_data::first_contact::{ClientType, FirstContactData},

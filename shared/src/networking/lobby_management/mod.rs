@@ -4,10 +4,7 @@ use bevy::{prelude::*, utils::HashMap};
 use lobby_management::LobbyManagementSystemParam;
 
 use crate::{
-    asset_handling::{
-        config::ServerConfigSystemParam,
-        maps::{MapConfig, MapConfigSystemParam},
-    },
+    asset_handling::maps::{MapConfig, MapConfigSystemParam},
     game::game_state::LobbyGameState,
     networking::messages::{
         message_container::{MessageContainer, MessageTarget, NetworkMessageType},
@@ -173,10 +170,11 @@ pub enum LobbyState {
     Finished,
 }
 
+#[cfg(feature = "server")]
 pub fn remove_player_from_lobby(
     trigger: Trigger<PlayerRemovedFromLobbyTrigger>,
     mut commands: Commands,
-    server_config: ServerConfigSystemParam,
+    server_config: crate::asset_handling::config::server_config::ServerConfigSystemParam,
 ) {
     let server_config = server_config.server_config();
 

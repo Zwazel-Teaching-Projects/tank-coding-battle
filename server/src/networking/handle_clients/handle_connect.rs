@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use shared::{
-    asset_handling::config::ServerConfigSystemParam,
+    asset_handling::config::server_config::ServerConfigSystemParam,
     networking::lobby_management::{remove_player_from_lobby, AwaitingFirstContact},
 };
 

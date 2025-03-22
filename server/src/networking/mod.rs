@@ -4,7 +4,7 @@ use handle_messages::HandleMessagesPlugin;
 use lib::MyTcpListener;
 use lobby_management::MyLobbyManagementPlugin;
 use shared::{
-    asset_handling::config::ServerConfigSystemParam,
+    asset_handling::config::server_config::ServerConfigSystemParam,
     main_state::MyMainState,
     networking::{networking_state::MyNetworkingState, networking_system_sets::MyNetworkingSet},
 };
