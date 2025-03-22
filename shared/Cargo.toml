@@ -15,7 +15,7 @@ serde_json = { workspace = true }
 tracing-appender = { workspace = true, optional = true }
 
 [features]
-default = ["shared", "server", "spectator_client"]
+default = ["shared"]
 shared = ["bevy/serialize"]
 debug = ["shared"]
 release = ["shared", "tracing-appender"]
