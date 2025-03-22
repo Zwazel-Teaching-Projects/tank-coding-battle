@@ -28,6 +28,9 @@ impl Plugin for MyMapPlugin {
             .register_type::<MarkerDefinition>()
             .register_type::<MarkerType>()
             .register_type::<SimplifiedRGB>()
+            .register_type::<LookDirection>()
+            .register_type::<TileNeighbours>()
+            .register_type::<TeamInMapConfig>()
             .configure_loading_state(
                 LoadingStateConfig::new(MyMainState::SettingUp).load_collection::<AllMapsAsset>(),
             )
@@ -41,10 +44,18 @@ pub struct AllMapsAsset {
     pub maps: HashMap<AssetFileStem, Handle<MapConfig>>,
 }
 
-#[derive(Debug, Default, Reflect, Clone, Asset, Deserialize, PartialEq)]
+#[derive(Debug, Reflect, Clone, Asset, Deserialize, PartialEq)]
 pub struct MapConfig {
-    pub teams: HashMap<String, TeamConfig>,
+    pub teams: TeamInMapConfig,
     pub map: MapDefinition,
+}
+
+/// Defines how many teams and how many players per team are to be expected in this map
+#[derive(Debug, Default, Reflect, Clone, Asset, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamInMapConfig {
+    pub team_count: usize,
+    pub players_per_team: usize,
 }
 
 impl MapConfig {
@@ -100,7 +111,6 @@ impl MapConfig {
 #[serde(rename_all = "camelCase")]
 pub struct TeamConfig {
     pub team_name: String,
-    pub color: SimplifiedRGB,
     pub max_players: usize,
 
     #[serde(skip)]
@@ -138,22 +148,14 @@ impl From<SimplifiedRGB> for Color {
     }
 }
 
-#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct MapDefinition {
-    pub width: usize,
-    pub depth: usize,
-
-    pub floor_color: SimplifiedRGB,
-
-    /// A 2D array of height values—row by row.
-    /// For a grid of size `height x width`, we'll have `height` sub-vectors,
-    /// each containing `width` floats.
-    pub tiles: Vec<Vec<f32>>,
-
-    pub layers: Vec<LayerDefinition>,
-
-    pub markers: Vec<MarkerDefinition>,
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "PascalCase", tag = "type")]
+pub enum MapDefinition {
+    PremadeMap(PartialMapDefinition),
+    Custom {
+        middle_part: PartialMapDefinition,
+        other_parts: Vec<PartialMapDefinition>,
+    },
 }
 
 impl MapDefinition {
@@ -338,6 +340,16 @@ impl MapDefinition {
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct PartialMapDefinition {
+    pub width: usize,
+    pub depth: usize,
+    pub tiles: Vec<Vec<f32>>,
+    pub layers: Vec<LayerDefinition>,
+    pub markers: Vec<MarkerDefinition>,
+}
+
+#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct TileDefinition {
     pub x: usize,
     pub y: usize,
@@ -443,6 +455,15 @@ impl LookDirection {
             LookDirection::East => Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2),
             LookDirection::South => Quat::from_rotation_y(std::f32::consts::PI),
             LookDirection::West => Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+        }
+    }
+
+    pub fn inverse(&self) -> LookDirection {
+        match self {
+            LookDirection::North => LookDirection::South,
+            LookDirection::East => LookDirection::West,
+            LookDirection::South => LookDirection::North,
+            LookDirection::West => LookDirection::East,
         }
     }
 }
