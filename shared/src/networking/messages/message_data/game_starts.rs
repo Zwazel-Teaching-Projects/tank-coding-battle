@@ -2,10 +2,7 @@ use bevy::{prelude::*, utils::HashMap};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    asset_handling::{
-        config::TankConfig,
-        maps::{MapDefinition, TeamConfig},
-    },
+    asset_handling::{config::TankConfig, maps::MapDefinition},
     game::tank_types::TankType,
 };
 
@@ -16,7 +13,6 @@ pub struct GameStarts {
     pub tick_rate: u64,
     pub client_id: Entity,
     pub connected_clients: Vec<ConnectedClientConfig>,
-    pub team_configs: HashMap<String, TeamConfig>,
     pub tank_configs: HashMap<TankType, TankConfig>,
     pub map_definition: MapDefinition,
 }
