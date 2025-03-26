@@ -97,6 +97,7 @@ pub enum MapDefinition {
     Custom {
         middle_part: PremadePartialMapDefinition,
         other_parts: Vec<PartialMapDefinition>,
+        /// Will be setup together with the other parts and the middle part
         #[serde(skip)]
         full_map: Option<PartialMapDefinition>,
     },
