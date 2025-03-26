@@ -151,9 +151,12 @@ impl From<SimplifiedRGB> for Color {
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "PascalCase", tag = "type")]
 pub enum MapDefinition {
-    PremadeMap(PartialMapDefinition),
+    PremadeMap {
+        name: String,
+        map: PartialMapDefinition,
+    },
     Custom {
-        middle_part: PartialMapDefinition,
+        middle_part: PremadePartialMapDefinition,
         other_parts: Vec<PartialMapDefinition>,
     },
 }
@@ -336,6 +339,13 @@ impl MapDefinition {
     pub fn is_inside_bounds(&self, position: Vec3) -> bool {
         self.get_closest_tile(position).is_some()
     }
+}
+
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PremadePartialMapDefinition {
+    name: String,
+    map: PartialMapDefinition,
 }
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
