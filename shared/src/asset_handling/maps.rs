@@ -26,7 +26,7 @@ impl Plugin for MyMapPlugin {
             .register_type::<SimplifiedRGB>()
             .register_type::<LookDirection>()
             .register_type::<TileNeighbours>()
-            .register_type::<TeamInMapConfig>()
+            .register_type::<MapSettings>()
             .register_type::<PremadePartialMapDefinition>()
             .register_type::<PartialMapDefinition>()
             .configure_loading_state(
@@ -44,15 +44,13 @@ pub struct AllMapsAsset {
 
 #[derive(Debug, Reflect, Clone, Asset, Deserialize, PartialEq)]
 pub struct MapConfig {
-    pub teams: TeamInMapConfig,
+    pub map_settings: MapSettings,
     pub map: MapDefinition,
 }
 
-/// Defines how many teams and how many players per team are to be expected in this map
 #[derive(Debug, Default, Reflect, Clone, Asset, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct TeamInMapConfig {
-    pub team_count: usize,
+pub struct MapSettings {
     pub players_per_team: usize,
 }
 
@@ -104,6 +102,13 @@ pub enum MapDefinition {
 }
 
 impl MapDefinition {
+    pub fn get_full_map_definition(&self) -> Option<&PartialMapDefinition> {
+        match self {
+            MapDefinition::PremadeMap { map, .. } => Some(map),
+            MapDefinition::Custom { full_map, .. } => full_map.as_ref(),
+        }
+    }
+
     /// If custom, merge all parts into one map
     pub fn setup_map(&mut self) {
         match self {
@@ -146,10 +151,7 @@ impl MapDefinition {
 
     pub fn get_floor_height_of_tile(&self, tile: impl Into<TileDefinition>) -> Option<f32> {
         let tile = TileDefinition::from(tile.into());
-        let tiles = match self {
-            MapDefinition::PremadeMap { map, .. } => &map.tiles,
-            MapDefinition::Custom { full_map, .. } => full_map.as_ref()?.tiles.as_ref(),
-        };
+        let tiles = &self.get_full_map_definition()?.tiles;
 
         tiles.get(tile.y).and_then(|row| row.get(tile.x)).copied()
     }
@@ -159,10 +161,7 @@ impl MapDefinition {
     }
 
     pub fn grid_in_real_world(&self) -> Vec<Vec3> {
-        let map = match self {
-            MapDefinition::PremadeMap { map, .. } => map,
-            MapDefinition::Custom { full_map, .. } => full_map.as_ref().unwrap(),
-        };
+        let map = self.get_full_map_definition().unwrap();
 
         let mut grid = Vec::new();
         for y in 0..map.depth {
@@ -175,57 +174,6 @@ impl MapDefinition {
         grid
     }
 
-    pub fn get_all_spawn_points_of_group(&self, group: &str) -> Vec<(Vec3, usize)> {
-        self.markers
-            .iter()
-            .filter_map(|marker| {
-                if marker.group == group {
-                    match &marker.kind {
-                        MarkerType::Spawn { spawn_number, .. } => self
-                            .get_real_world_position_of_tile((marker.tile.x, marker.tile.y))
-                            .map(|pos| (pos, *spawn_number)),
-                        _ => None,
-                    }
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
-    pub fn get_spawn_point_position(&self, group: &str, spawn_number: usize) -> Option<Vec3> {
-        self.markers.iter().find_map(|marker| {
-            if marker.group == group {
-                match &marker.kind {
-                    MarkerType::Spawn {
-                        spawn_number: n, ..
-                    } if *n == spawn_number => {
-                        Some(self.get_real_world_position_of_tile((marker.tile.x, marker.tile.y))?)
-                    }
-                    _ => None,
-                }
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn get_spawn_point_rotation(&self, group: &str, spawn_number: usize) -> Option<Quat> {
-        self.markers.iter().find_map(|marker| {
-            if marker.group == group {
-                match &marker.kind {
-                    MarkerType::Spawn {
-                        spawn_number: n,
-                        look_direction,
-                    } if *n == spawn_number => Some(look_direction.to_quat()),
-                    _ => None,
-                }
-            } else {
-                None
-            }
-        })
-    }
-
     pub fn get_closest_tile(&self, real_world_position: Vec3) -> Option<TileDefinition> {
         if real_world_position.y < 0.0 {
             return None;
@@ -234,6 +182,7 @@ impl MapDefinition {
         const CELL_SIZE: f32 = 1.0;
         let (real_world_x, real_world_z) = (real_world_position.x, real_world_position.z);
 
+        let map = self.get_full_map_definition().unwrap();
         let real_world_grid = self.grid_in_real_world();
         let mut closest_tile = None;
 
@@ -242,8 +191,8 @@ impl MapDefinition {
                 + (real_world_tile_pos.z - real_world_z).abs();
             if distance < CELL_SIZE / 2.0 {
                 return Some(TileDefinition {
-                    x: i % self.width,
-                    y: i / self.width,
+                    x: i % map.width,
+                    y: i / map.width,
                 });
             }
 
@@ -257,25 +206,28 @@ impl MapDefinition {
         }
 
         closest_tile.map(|(i, _)| TileDefinition {
-            x: i % self.width,
-            y: i / self.width,
+            x: i % map.width,
+            y: i / map.width,
         })
     }
 
     pub fn get_neighbours(&self, tile: impl Into<TileDefinition>) -> TileNeighbours {
         let TileDefinition { x, y } = tile.into();
         let center = TileDefinition { x, y };
-        let north = (y + 1 < self.depth).then(|| TileDefinition { x, y: y + 1 });
+
+        let map = self.get_full_map_definition().unwrap();
+
+        let north = (y + 1 < map.depth).then(|| TileDefinition { x, y: y + 1 });
         let south = (y > 0).then(|| TileDefinition { x, y: y - 1 });
         let east = (x > 0).then(|| TileDefinition { x: x - 1, y });
-        let west = ((x + 1) < self.width).then(|| TileDefinition { x: x + 1, y });
+        let west = ((x + 1) < map.width).then(|| TileDefinition { x: x + 1, y });
 
-        let north_east = if x > 0 && (y + 1) < self.depth {
+        let north_east = if x > 0 && (y + 1) < map.depth {
             Some(TileDefinition { x: x - 1, y: y + 1 })
         } else {
             None
         };
-        let north_west = if (x + 1) < self.width && (y + 1) < self.depth {
+        let north_west = if (x + 1) < map.width && (y + 1) < map.depth {
             Some(TileDefinition { x: x + 1, y: y + 1 })
         } else {
             None
@@ -285,7 +237,7 @@ impl MapDefinition {
         } else {
             None
         };
-        let south_west = if (x + 1) < self.width && y > 0 {
+        let south_west = if (x + 1) < map.width && y > 0 {
             Some(TileDefinition { x: x + 1, y: y - 1 })
         } else {
             None
@@ -305,11 +257,13 @@ impl MapDefinition {
     }
 
     pub fn get_center_of_map(&self) -> Vec3 {
-        Vec3::new(self.width as f32 / 2.0, 0.0, self.depth as f32 / 2.0)
+        let map = self.get_full_map_definition().unwrap();
+        Vec3::new(map.width as f32 / 2.0, 0.0, map.depth as f32 / 2.0)
     }
 
     pub fn get_highest_point(&self) -> f32 {
-        self.tiles
+        let map = self.get_full_map_definition().unwrap();
+        map.tiles
             .iter()
             .flat_map(|row| row.iter())
             .copied()
