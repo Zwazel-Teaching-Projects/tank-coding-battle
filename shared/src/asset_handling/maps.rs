@@ -10,17 +10,13 @@ use bevy_asset_loader::{
 use bevy_common_assets::ron::RonAssetPlugin;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    main_state::MyMainState,
-    networking::messages::message_data::message_error_types::ErrorMessageTypes,
-};
+use crate::main_state::MyMainState;
 
 pub struct MyMapPlugin;
 
 impl Plugin for MyMapPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<TeamConfig>()
-            .register_type::<MapConfig>()
+        app.register_type::<MapConfig>()
             .register_type::<MapDefinition>()
             .register_type::<TileDefinition>()
             .register_type::<LayerDefinition>()
@@ -31,6 +27,8 @@ impl Plugin for MyMapPlugin {
             .register_type::<LookDirection>()
             .register_type::<TileNeighbours>()
             .register_type::<TeamInMapConfig>()
+            .register_type::<PremadePartialMapDefinition>()
+            .register_type::<PartialMapDefinition>()
             .configure_loading_state(
                 LoadingStateConfig::new(MyMainState::SettingUp).load_collection::<AllMapsAsset>(),
             )
@@ -56,65 +54,6 @@ pub struct MapConfig {
 pub struct TeamInMapConfig {
     pub team_count: usize,
     pub players_per_team: usize,
-}
-
-impl MapConfig {
-    pub fn insert_player_into_team(
-        &mut self,
-        team_name: &str,
-        player: Entity,
-    ) -> Result<(), ErrorMessageTypes> {
-        match self.teams.get_mut(team_name) {
-            Some(team) => {
-                if team.players.len() < team.max_players {
-                    team.players.push(player);
-                    Ok(())
-                } else {
-                    Err(ErrorMessageTypes::TeamFull(format!(
-                        "Team {} is full",
-                        team_name
-                    )))
-                }
-            }
-            None => Err(ErrorMessageTypes::TeamDoesNotExist(format!(
-                "Team {} not found",
-                team_name
-            ))),
-        }
-    }
-
-    pub fn remove_player_from_team(&mut self, player: Entity) {
-        for team in self.teams.values_mut() {
-            team.players.retain(|&x| x != player);
-        }
-    }
-
-    pub fn get_team(&self, team_name: &str) -> Option<&TeamConfig> {
-        self.teams.get(team_name)
-    }
-
-    pub fn get_team_of_player(&self, player: Entity) -> Option<(String, &TeamConfig)> {
-        for (team_name, team) in self.teams.iter() {
-            if team.players.contains(&player) {
-                return Some((team_name.clone(), team));
-            }
-        }
-        None
-    }
-
-    pub fn get_team_names(&self) -> Vec<String> {
-        self.teams.keys().cloned().collect()
-    }
-}
-
-#[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct TeamConfig {
-    pub team_name: String,
-    pub max_players: usize,
-
-    #[serde(skip)]
-    pub players: Vec<Entity>,
 }
 
 #[derive(Debug, Clone, Reflect, Default, Serialize, Deserialize, PartialEq)]
@@ -158,16 +97,60 @@ pub enum MapDefinition {
     Custom {
         middle_part: PremadePartialMapDefinition,
         other_parts: Vec<PartialMapDefinition>,
+        #[serde(skip)]
+        full_map: Option<PartialMapDefinition>,
     },
 }
 
 impl MapDefinition {
+    /// If custom, merge all parts into one map
+    pub fn setup_map(&mut self) {
+        match self {
+            MapDefinition::PremadeMap { .. } => {}
+            MapDefinition::Custom {
+                middle_part,
+                other_parts,
+                ..
+            } => {
+                // check how many other parts there are. for now, expect exactly 2. put one in front, then middle, then last
+                if other_parts.len() == 2 {
+                    let mut full_map = middle_part.map.clone();
+                    let first_part = &other_parts[0];
+                    let last_part = &other_parts[1];
+
+                    // put first part in front
+                    full_map.tiles = first_part.tiles.clone();
+                    full_map.layers = first_part.layers.clone();
+                    full_map.markers = first_part.markers.clone();
+
+                    // put last part at the end
+                    full_map.tiles.extend(last_part.tiles.clone());
+                    full_map.layers.extend(last_part.layers.clone());
+                    full_map.markers.extend(last_part.markers.clone());
+
+                    *self = MapDefinition::Custom {
+                        middle_part: middle_part.clone(),
+                        other_parts: other_parts.clone(),
+                        full_map: Some(full_map),
+                    };
+                } else {
+                    error!(
+                        "Expected exactly 2 other parts for custom map, got {}",
+                        other_parts.len()
+                    );
+                }
+            }
+        }
+    }
+
     pub fn get_floor_height_of_tile(&self, tile: impl Into<TileDefinition>) -> Option<f32> {
         let tile = TileDefinition::from(tile.into());
-        self.tiles
-            .get(tile.y)
-            .and_then(|row| row.get(tile.x))
-            .copied()
+        let tiles = match self {
+            MapDefinition::PremadeMap { map, .. } => &map.tiles,
+            MapDefinition::Custom { full_map, .. } => full_map.as_ref()?.tiles.as_ref(),
+        };
+
+        tiles.get(tile.y).and_then(|row| row.get(tile.x)).copied()
     }
 
     pub fn get_real_world_position_of_tile(&self, tile: impl Into<TileDefinition>) -> Option<Vec3> {
@@ -175,9 +158,14 @@ impl MapDefinition {
     }
 
     pub fn grid_in_real_world(&self) -> Vec<Vec3> {
+        let map = match self {
+            MapDefinition::PremadeMap { map, .. } => map,
+            MapDefinition::Custom { full_map, .. } => full_map.as_ref().unwrap(),
+        };
+
         let mut grid = Vec::new();
-        for y in 0..self.depth {
-            for x in 0..self.width {
+        for y in 0..map.depth {
+            for x in 0..map.width {
                 if let Some(pos) = self.get_real_world_position_of_tile((x, y)) {
                     grid.push(pos);
                 }
