@@ -73,7 +73,7 @@ fn button_pressed(
 
     if let Ok(mut message_queue) = message_queue.get_single_mut() {
         message_queue.push_back(MessageContainer::new(
-            MessageTarget::ToLobbyDirectly,
+            MessageTarget::ToEveryone,
             NetworkMessageType::StartGame(StartGameConfig {
                 fill_empty_slots_with_dummies: client_config.fill_empty_slots_with_dummies,
             }),

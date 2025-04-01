@@ -37,7 +37,7 @@ pub fn handle_scoring(
                 .and_modify(|score| *score += 1);
 
             lobby_message_queue.push_back(MessageContainer::new(
-                MessageTarget::AllInLobby,
+                MessageTarget::ToEveryone,
                 NetworkMessageType::TeamScored(TeamScoredData {
                     score: lobby_state.score.get(team).unwrap().clone(),
                     team: team.clone(),

@@ -48,7 +48,7 @@ pub fn reset_flag(
     let (lobby, mut lobby_message_queue) = my_lobby.get_mut(**in_lobby).expect("Lobby not found");
 
     lobby_message_queue.push_back(MessageContainer::new(
-        MessageTarget::AllInLobby,
+        MessageTarget::ToEveryone,
         NetworkMessageType::FlagReturnedInBase(FlagSimpleEventDataWrapper {
             flag_id: flag_entity,
         }),

@@ -236,9 +236,9 @@ pub fn generate(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         let allowed_states = get_allowed_player_states(&variant.attrs);
         let sender_state_check = if let Some(ref allowed_states) = allowed_states {
-            let allowed_state_tokens = allowed_states.iter().map(|s| quote! { PlayerState::#s });
+            let allowed_state_tokens = allowed_states.iter().map(|s| quote! { BotState::#s });
             quote! {
-                if let Some(state) = lobby_management_arg.sender_state {
+                if let Ok(state) = lobby_management.get_sender_state(&lobby_management_arg) {
                     if !matches!(state, #( #allowed_state_tokens )|* ) {
                         return Err(ErrorMessageTypes::InvalidSenderState(
                             concat!("Invalid sender state for ", stringify!(#variant_ident)).to_string()

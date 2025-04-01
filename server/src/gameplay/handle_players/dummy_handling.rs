@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
-    game::{player_handling::PlayerState, tank_types::TankType},
+    game::{player_handling::BotState, tank_types::TankType},
     networking::{
         lobby_management::MyLobby,
         messages::{
@@ -40,14 +40,14 @@ pub fn simulate_movement(
     trigger: Trigger<CollectAndTriggerMessagesTrigger>,
     lobbies: Query<&MyLobby>,
     mut commands: Commands,
-    dummy_clients: Query<(&TankType, &PlayerState), With<DummyClientMarker>>,
+    dummy_clients: Query<(&TankType, &BotState), With<DummyClientMarker>>,
     tank_config: TankConfigSystemParam,
 ) {
     let lobby = lobbies.get(trigger.entity()).expect("Failed to get lobby");
     // Get all players of type Dummy
     for (_, player, _) in lobby.players.iter() {
         if let Ok((tank_type, player_state)) = dummy_clients.get(*player) {
-            if player_state == &PlayerState::Dead {
+            if player_state == &BotState::Dead {
                 continue;
             }
             let tank_config = tank_config

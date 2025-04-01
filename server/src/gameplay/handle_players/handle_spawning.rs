@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     game::{
         collision_handling::components::{CollisionLayer, WantedTransform},
-        player_handling::{Health, PlayerState, RespawnTimer, TankBodyMarker, TankTurretMarker},
+        player_handling::{Health, BotState, RespawnTimer, TankBodyMarker, TankTurretMarker},
     },
     networking::{
         lobby_management::{
@@ -49,7 +49,7 @@ pub fn respawn_player(
     mut body_query: Query<(
         &mut Transform,
         &mut WantedTransform,
-        &mut PlayerState,
+        &mut BotState,
         &mut Health,
         &mut CollisionLayer,
         &MyNetworkClient,
@@ -74,7 +74,7 @@ pub fn respawn_player(
         tank_body_marker,
     )) = body_query.get_mut(entity_to_respawn)
     {
-        *player_state = PlayerState::Alive;
+        *player_state = BotState::Alive;
         health.health = health.max_health;
 
         *collision_layer = CollisionLayer::player().with_additional_layers(&[CollisionLayer::FLAG]);
@@ -129,7 +129,7 @@ pub fn respawn_player(
             .get_mut(client_in_lobby.0)
             .expect("Failed to get lobby message queue");
         message_queue.push_back(MessageContainer::new(
-            MessageTarget::AllInLobby,
+            MessageTarget::ToEveryone,
             NetworkMessageType::PlayerRespawned(EntityDataWrapper::new(entity_to_respawn)),
         ));
     } else {

@@ -43,7 +43,7 @@ pub fn flag_picked_up(
         .expect("Message queue not found");
 
     lobby_message_queue.push_back(MessageContainer::new(
-        MessageTarget::AllInLobby,
+        MessageTarget::ToEveryone,
         NetworkMessageType::FlagGotPickedUp(FlagEventDataWrapper {
             flag_id: flag_entity,
             carrier_id: picker_entity,

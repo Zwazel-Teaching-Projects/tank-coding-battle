@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     game::{
         collision_handling::components::{Collider, WantedTransform},
-        player_handling::{Health, PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker},
+        player_handling::{Health, BotState, ShootCooldown, TankBodyMarker, TankTurretMarker},
     },
     networking::messages::message_container::GameStateTrigger,
 };
@@ -18,7 +18,7 @@ pub fn update_player_state_on_game_state_update(
             &mut WantedTransform,
             &mut Health,
             &mut ShootCooldown,
-            &mut PlayerState,
+            &mut BotState,
             &TankBodyMarker,
             &Collider,
         ),

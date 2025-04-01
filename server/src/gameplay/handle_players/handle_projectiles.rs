@@ -8,7 +8,7 @@ use shared::{
             triggers::{CollidedWithTrigger, CollidedWithWorldTrigger},
         },
         common_components::{Gravity, TickBasedDespawnTimer, Velocity},
-        player_handling::{Health, PlayerState, TankBodyMarker},
+        player_handling::{Health, BotState, TankBodyMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
     },
@@ -39,7 +39,7 @@ pub fn colliding_with_entity(
             &Transform,
             &Collider,
             &TankType,
-            &PlayerState,
+            &BotState,
             &mut Health,
             &mut OutMessageQueue,
         ),
@@ -59,7 +59,7 @@ pub fn colliding_with_entity(
     if let Ok((body_transform, body_collider, tank_type, state, mut health, mut message_queue)) =
         players.get_mut(collided_with)
     {
-        if state == &PlayerState::Alive {
+        if state == &BotState::Alive {
             hit_a_tank = true;
             let tank_config = tank_configs
                 .get_tank_type_config(tank_type)

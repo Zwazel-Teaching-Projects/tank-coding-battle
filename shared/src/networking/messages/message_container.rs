@@ -3,7 +3,7 @@ use proc_macros::{auto_trigger_message_received, generate_message_data_triggers}
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    game::player_handling::PlayerState,
+    game::player_handling::BotState,
     networking::{
         lobby_management::lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
         messages::message_queue::OutMessageQueue,
@@ -36,23 +36,20 @@ use super::message_data::{
         #[derive(Serialize, Deserialize, Default, Reflect, Clone, Debug, PartialEq)]
         #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "type", content = "clientId")]
         pub enum MessageTarget {
+            /// To everyone in the same team, excluding the sender itself
             #[default]
-            #[get_targets(targets_get_players_in_lobby_team)]
-            // To everyone in the same team in the same lobby
+            #[get_targets(targets_get_players_in_team)]
             Team,
+            /// To the server directly, no client. used for first contact, starting game, etc
             #[get_targets(targets_get_empty)]
-            // To the server directly, no lobby or client. Used for first contact
             ServerOnly,
-            #[get_targets(targets_get_players_in_lobby)]
-            // To everyone in the same lobby
-            AllInLobby,
-            #[get_targets(targets_get_single_player)]
-            // To a single player, excluding the the sender itself
+            /// To everyone in the game, excluding the sender itself
+            #[get_targets(targets_get_everyone_in_game)]
+            ToEveryone,
+            /// To a single player, excluding the the sender itself
+            #[get_targets(targets_get_single_player)]            
             Client(Entity),
-            #[get_targets(targets_get_lobby_directly)]
-            // To the lobby itself (for example to start the game)
-            ToLobbyDirectly,
-            // To the sender itself (used for commands, e.g. tank movement)
+            /// To the sender itself (used for commands, e.g. tank movement)
             #[get_targets(targets_get_self)]
             ToSelf,
         }
@@ -73,7 +70,7 @@ use super::message_data::{
             /// A simple Text Message
             /// Can be sent to a single client, everyone in the team or everyone in the lobby
             /// The server does not do anything with this message, it only forwards it to the specified targets
-            #[target(Client, Team, AllInLobby)]
+            #[target(Client, Team, ToEveryone)]
             #[behaviour(Forward)]
             SimpleTextMessage(TextDataWrapper),
             /// An error message, sent to the client that caused the error.
@@ -86,7 +83,7 @@ use super::message_data::{
             GameStarts(GameStarts),
             /// Sent to the lobby by a client to start the game
             /// Can only be sent to the lobby directly
-            #[target(ToLobbyDirectly)]
+            #[target(ServerOnly)]
             StartGame(StartGameConfig),
             /// Sent to the client when they successfully joined a lobby
             /// Can not be sent by a client, only by the server

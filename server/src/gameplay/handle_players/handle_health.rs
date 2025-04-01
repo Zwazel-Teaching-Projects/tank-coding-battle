@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::{
     asset_handling::config::TankConfigSystemParam,
     game::{
-        player_handling::{Health, PlayerState, RespawnTimer},
+        player_handling::{Health, BotState, RespawnTimer},
         tank_types::TankType,
     },
     networking::lobby_management::MyLobby,
@@ -16,7 +16,7 @@ pub fn check_health_and_die(
     trigger: Trigger<CheckHealthTrigger>,
     lobby: Query<&MyLobby>,
     mut commands: Commands,
-    mut players: Query<(&Health, &TankType, &mut PlayerState)>,
+    mut players: Query<(&Health, &TankType, &mut BotState)>,
     tank_configs: TankConfigSystemParam,
 ) {
     let lobby_entity = trigger.entity();
@@ -29,8 +29,8 @@ pub fn check_health_and_die(
             .get_tank_type_config(tank_type)
             .expect("Tank config not found");
 
-        if health.health <= 0.0 && *player_state == PlayerState::Alive {
-            *player_state = PlayerState::Dead;
+        if health.health <= 0.0 && *player_state == BotState::Alive {
+            *player_state = BotState::Dead;
             commands
                 .entity(*player_entity)
                 .insert(RespawnTimer(tank_config.respawn_timer));

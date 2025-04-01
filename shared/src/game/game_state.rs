@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::networking::messages::message_data::game_state::GameState;
 
-use super::player_handling::PlayerState;
+use super::player_handling::BotState;
 
 /// The full game state stored in the lobby
 /// This is the state that is sent to the spectators
@@ -114,7 +114,7 @@ pub struct ClientState {
     /// e.g. because the client has not spotted the other client yet.
     pub transform_turret: Option<Transform>,
     /// The state of the player (e.g. alive, dead)
-    pub state: Option<PlayerState>,
+    pub state: Option<BotState>,
     /// The time in ticks until the client can shoot again
     pub shoot_cooldown: u32,
     /// The current health of the client

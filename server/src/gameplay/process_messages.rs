@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use shared::{
-    game::player_handling::PlayerState,
+    game::player_handling::BotState,
     networking::{
         lobby_management::{
             lobby_management::{LobbyManagementArgument, LobbyManagementSystemParam},
@@ -23,7 +23,7 @@ pub fn process_lobby_messages(
     mut commands: Commands,
     mut outgoing_message_queues: Query<&mut OutMessageQueue>,
     mut immediate_message_queues: Query<&mut ImmediateOutMessageQueue>,
-    client: Query<(&InTeam, Option<&PlayerState>)>,
+    client: Query<(&InTeam, Option<&BotState>)>,
 ) {
     let lobby_entity = trigger.entity();
 

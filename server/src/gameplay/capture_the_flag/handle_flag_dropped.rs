@@ -33,7 +33,7 @@ pub fn flag_dropped(
         .get_mut(lobby_entity)
         .expect("Message queue not found");
     lobby_queue.push_back(MessageContainer::new(
-        MessageTarget::AllInLobby,
+        MessageTarget::ToEveryone,
         NetworkMessageType::FlagGotDropped(FlagEventDataWrapper {
             flag_id: flag_entity,
             carrier_id: carrier_entity,

@@ -39,7 +39,7 @@ pub fn client_died(
         .expect("Message queue not found");
 
     lobby_message_queue.push_back(MessageContainer::new(
-        MessageTarget::AllInLobby,
+        MessageTarget::ToEveryone,
         NetworkMessageType::PlayerDied(EntityDataWrapper::new(player_entity)),
     ));
 

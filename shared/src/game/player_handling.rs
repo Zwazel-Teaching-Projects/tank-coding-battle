@@ -11,7 +11,7 @@ use super::{
 #[derive(Debug, Reflect, Component, Clone, PartialEq, Default, Serialize, Deserialize, Copy)]
 #[reflect(Component)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum PlayerState {
+pub enum BotState {
     #[default]
     Alive,
     Dead,
@@ -40,7 +40,7 @@ impl Health {
 
 #[derive(Debug, Component, Reflect, Clone, PartialEq, Default)]
 #[reflect(Component)]
-#[require(ShootCooldown, PlayerState, WantedTransform, Health)]
+#[require(ShootCooldown, BotState, WantedTransform, Health)]
 pub struct TankBodyMarker {
     pub turret: Option<Entity>,
 }

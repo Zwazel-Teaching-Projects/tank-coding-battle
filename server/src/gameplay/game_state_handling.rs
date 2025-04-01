@@ -6,7 +6,7 @@ use shared::{
         game_state::{
             ClientState, FlagBaseState, FlagGameState, PersonalizedClientGameState, ProjectileState,
         },
-        player_handling::{Health, PlayerState, ShootCooldown, TankBodyMarker, TankTurretMarker},
+        player_handling::{Health, BotState, ShootCooldown, TankBodyMarker, TankTurretMarker},
         projectile_handling::ProjectileMarker,
         tank_types::TankType,
     },
@@ -34,7 +34,7 @@ pub fn update_lobby_state(
         &TankBodyMarker,
         &ShootCooldown,
         &Health,
-        &PlayerState,
+        &BotState,
     )>,
     turrets: Query<&Transform, With<TankTurretMarker>>,
     projectiles: Query<(&Transform, &ProjectileMarker)>,

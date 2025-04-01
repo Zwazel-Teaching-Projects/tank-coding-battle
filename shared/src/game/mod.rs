@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use collision_handling::MyCollisionHandlingPlugin;
 use game_state::{ClientState, LobbyGameState, PersonalizedClientGameState, ProjectileState};
 use player_handling::{
-    Health, PlayerState, RespawnTimer, ShootCooldown, TankBodyMarker, TankTurretMarker,
+    Health, BotState, RespawnTimer, ShootCooldown, TankBodyMarker, TankTurretMarker,
 };
 use tank_types::TankType;
 
@@ -29,7 +29,7 @@ impl Plugin for MySharedGamePlugin {
             .register_type::<TankTurretMarker>()
             .register_type::<ShootCooldown>()
             .register_type::<TankType>()
-            .register_type::<PlayerState>()
+            .register_type::<BotState>()
             .register_type::<projectile_handling::ProjectileMarker>()
             .register_type::<common_components::DespawnTimer>()
             .register_type::<common_components::TickBasedDespawnTimer>()
