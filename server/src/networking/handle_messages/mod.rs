@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use receiving_messages::handle_reading_messages;
 use sending_messages::{sending_client_messages, sending_immediate_messages};
-use shared::networking::{lobby_management::MyLobby, networking_system_sets::MyNetworkingSet};
+use shared::networking::{ networking_system_sets::MyNetworkingSet};
 
 pub mod receiving_messages;
 pub mod sending_messages;

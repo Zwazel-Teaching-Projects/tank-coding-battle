@@ -46,7 +46,7 @@ use super::message_data::{
             /// To everyone in the game, excluding the sender itself
             #[get_targets(targets_get_everyone_in_game)]
             ToEveryone,
-            /// To a single player, excluding the the sender itself
+            /// To a single bot, excluding the the sender itself
             #[get_targets(targets_get_single_player)]            
             Client(Entity),
             /// To the sender itself (used for commands, e.g. tank movement)

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use handle_clients::HandleClientsPlugin;
 use handle_messages::HandleMessagesPlugin;
-use lib::MyTcpListener;
+use lib::{GameManagerMarker, MyTcpListener};
 use lobby_management::MyLobbyManagementPlugin;
 use shared::{
     asset_handling::config::ServerConfigSystemParam,
@@ -21,20 +21,21 @@ pub struct MyNetworkingPlugin;
 
 impl Plugin for MyNetworkingPlugin {
     fn build(&self, app: &mut App) {
-        app.configure_sets(
-            Update,
-            (
-                MyNetworkingSet::ReadingMessages,
-                MyNetworkingSet::SendingMessages,
+        app.register_type::<GameManagerMarker>()
+            .configure_sets(
+                Update,
+                (
+                    MyNetworkingSet::ReadingMessages,
+                    MyNetworkingSet::SendingMessages,
+                )
+                    .after(MyGameplaySet::SimulationStepDone),
             )
-                .after(MyGameplaySet::SimulationStepDone),
-        )
-        .add_plugins((
-            HandleClientsPlugin,
-            HandleMessagesPlugin,
-            MyLobbyManagementPlugin,
-        ))
-        .add_systems(OnEnter(MyMainState::Ready), setup_listener);
+            .add_plugins((
+                HandleClientsPlugin,
+                HandleMessagesPlugin,
+                MyLobbyManagementPlugin,
+            ))
+            .add_systems(OnEnter(MyMainState::Ready), setup_listener);
     }
 }
 

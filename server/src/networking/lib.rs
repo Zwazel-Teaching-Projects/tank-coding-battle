@@ -7,3 +7,7 @@ use bevy::prelude::*;
 pub struct MyTcpListener {
     pub listener: TcpListener,
 }
+
+#[derive(Component, Reflect, Default, Debug)]
+#[reflect(Component)]
+pub struct GameManagerMarker;
